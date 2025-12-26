@@ -4,9 +4,14 @@ from PySide6.QtGui import QFont, QPainter, QPolygon, QColor
 
 from collections import deque
 
+import random
+
 SPEECH_BACKGROUND_COLOR = QColor(255, 255, 224, 255)
 TAIL_WIDTH = 12
 
+CHARACTERS_PER_SECOND = (25, 45)
+READING_DELAY = 4500
+READING_WPS = (180 / 60) # words per second
 REFRESH_RATE = 15 # frames per second
 SPEECH_MARGIN = 8
 
@@ -16,6 +21,7 @@ class SpeechBubble(QWidget):
 
         self.sprite = sprite
         self.queue = deque()
+
         self.active = False
         self.tailDirection = "right"
 
@@ -27,6 +33,13 @@ class SpeechBubble(QWidget):
         )
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setFocusPolicy(Qt.NoFocus)
+
+        # current speech variables
+        self.fullText = ""
+        self.currentCharacterIndex = 0
+
+        self.typeTimer = QTimer(self)
+        self.typeTimer.timeout.connect(self._typeNextCharacter)
 
         # label
         self.label = QLabel("")
@@ -64,18 +77,32 @@ class SpeechBubble(QWidget):
         self.hide()
 
     # internal methods
+    def mousePressEvent(self, event):
+        if not self.typeTimer.isActive():
+            return
+
+        self.typeTimer.stop()
+        self.label.setText(self.fullText)
+        self.adjustSize()
+
     def _showNext(self):
         if not self.queue:
             self.active = False
+            self.typeTimer.stop()
             self.hide()
             return
 
         self.active = True
-        text, duration = self.queue.popleft()
+        text, duration, typing_delay = self.queue.popleft()
+
+        self.fullText = text
+        self.curentCharacterIndex = 0
 
         self.label.setText(text)
         self.adjustSize()
         self._reposition(force_show=True)
+
+        self.typeTimer.start(typing_delay)
 
         self.raise_()
         QTimer.singleShot(duration, self._showNext)
@@ -133,6 +160,15 @@ class SpeechBubble(QWidget):
         self.movementAnimation.setEndValue(target)
         self.movementAnimation.start()
 
+    def _typeNextCharacter(self):
+        if self.currentCharacterIndex >= len(self.fullText):
+            self.typeTimer.stop()
+            return
+        
+        self.currentCharacterIndex += 1
+        self.label.setText(self.fullText[:self.currentCharacterIndex])
+        self.adjustSize()
+
     # internal tail painting method
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -160,9 +196,17 @@ class SpeechBubble(QWidget):
 
     # external methods
     def addSpeech(self, text: str, duration: int | None = None):
-        if duration is None:
-            duration = max(2000, len(text) * 45)
+        typing_delay = (1000 // random.randint(*CHARACTERS_PER_SECOND))
 
-        self.queue.append((text, duration))
+        if duration is None:
+            wordCount = len(text.split())
+            characterCount = len(text)
+
+            timeTyping = characterCount * typing_delay
+            timeReading = (wordCount / READING_WPS) * 1000
+
+            duration = max(timeTyping + timeReading + READING_DELAY, 3000)
+
+        self.queue.append((text, duration, typing_delay))
         if not self.active:
             self._showNext()

@@ -4,7 +4,7 @@ from .system.dragger import WindowDragger
 
 from .widgets.speechbubble import SpeechBubble
 
-from .sprite import SpriteSystem, ASLEEP_COMBINATION, DRAG_COMBINATION
+from .sprite import IDLE_COMBINATION, SpriteSystem, ASLEEP_COMBINATION, DRAG_COMBINATION
 from .sprite.blinker import Blinker
 
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
@@ -45,6 +45,7 @@ class RockinWindow(QWidget):
 
         # internal states
         self.spriteBlinking = False
+        self.spriteStarting = True
         self.spriteExiting = False
         self.spriteReady = False
 
@@ -75,7 +76,7 @@ class RockinWindow(QWidget):
 
         # initial sprite state
         self.updateSpriteFeatures(
-            *ASLEEP_COMBINATION,
+            *IDLE_COMBINATION,
             True
         )
 
@@ -100,10 +101,11 @@ class RockinWindow(QWidget):
     def startWindowLoop(self):
         self.Sound.playSound(
             "applicationStart.wav",
-            SoundCategory.SPECIAL
+            SoundCategory.SPECIAL,
+            onFinish=lambda: setattr(self, "spriteStarting", False)
         )
 
-        self.SpeechBubble.addSpeech("gooooodd mythical mornningg")
+        self.SpeechBubble.addSpeech("gooooodd mythical mornningg :3")
 
         sys.exit(APPLICATION.exec_())
 
@@ -147,7 +149,7 @@ class RockinWindow(QWidget):
 
     # sprite expression loop
     def updateSpriteLoop(self):
-        if (not self.spriteReady) or (self.spriteBlinking):
+        if (self.spriteStarting) or (self.spriteBlinking):
             return
         
         self.updateSpriteFeatures(
@@ -162,7 +164,7 @@ class RockinWindow(QWidget):
         faceName: str, eyesName: str,
         ignoreChecks: bool = False
     ):
-        if self.spriteExiting:
+        if self.spriteExiting and (not self.spriteStarting):
             return
 
         if (not self.spriteReady) and not ignoreChecks:
@@ -185,7 +187,7 @@ class RockinWindow(QWidget):
         faceName: str,
         ignoreChecks: bool = False
     ):
-        if self.spriteExiting:
+        if self.spriteExiting and (not self.spriteStarting):
             return
 
         if (not self.spriteReady) and not ignoreChecks:
@@ -204,7 +206,7 @@ class RockinWindow(QWidget):
         eyeName: str,
         ignoreChecks: bool = False
     ):
-        if self.spriteExiting:
+        if self.spriteExiting and (not self.spriteStarting):
             return
 
         if (not self.spriteReady) and not ignoreChecks:
