@@ -1,0 +1,89 @@
+from .Keyboard import KeyListener
+
+from PySide6.QtGui import QPixmap
+from pathlib import Path
+
+import time
+
+SPRITE_FILE_PATH = Path(__file__).resolve()
+
+ASLEEP_COMBINATION = ("idle", "sleepy")
+BLINK_COMBINATION = ("idle", "blink")
+DRAG_COMBINATION = ("idle", "dragged")
+IDLE_COMBINATION = ("idle", "idle")
+
+SLEEP_DELTA_THRESHOLD = 15
+
+class SpriteSystem:
+    def __init__(self):
+        self.AssetsPath = SPRITE_FILE_PATH.parent.parent / "assets"
+        self.KeyListener = KeyListener()
+
+        self.BodyMap = None
+        self.FaceMaps = {}
+        self.EyeMaps = {}
+
+        self._loadAssets()
+
+    def _iterateFiles(self, Directory: Path, Extension: str = ".png"):
+        for item in Directory.iterdir():
+            if item.is_file() and item.suffix.lower() == Extension.lower():
+                yield item
+
+    def _loadAssets(self):
+        # completely reload all assets
+        self.BodyMap = QPixmap(
+            str(self.AssetsPath / "root.png")
+        )
+        
+        for eyeFile in self._iterateFiles(self.AssetsPath / "eyes"):
+            self.EyeMaps[eyeFile.stem] = QPixmap(
+                str(eyeFile)
+            )
+
+        for faceFile in self._iterateFiles(self.AssetsPath / "faces"):
+            self.FaceMaps[faceFile.stem] = QPixmap(
+                str(faceFile)
+            )
+    
+    def getFace(self, faceName: str) -> QPixmap:
+        return self.FaceMaps.get(
+            faceName,
+            QPixmap()
+        )
+    
+    def getEyes(self, eyesName: str) -> QPixmap:
+        return self.EyeMaps.get(
+            eyesName,
+            QPixmap()
+        )
+
+    def getMoodCombination(self) -> tuple[str, str]:
+        # no keys have been pressed since the program started
+        if self.KeyListener.lastKeyPress is None:
+            return ASLEEP_COMBINATION
+        
+        # idling state
+        delta = time.time() - self.KeyListener.lastKeyPress
+
+        if delta >= SLEEP_DELTA_THRESHOLD:
+            self.KeyListener.keyDeltas.clear()
+            return ASLEEP_COMBINATION
+        
+        if delta >= SLEEP_DELTA_THRESHOLD / 2:
+            return IDLE_COMBINATION
+        
+        # key-pressing activity state
+        averageDelta = self.KeyListener.getAverageDelta()
+
+        if averageDelta is None:
+            return IDLE_COMBINATION
+        
+        if averageDelta < 0.08:
+            return ("idle", "rock")
+        elif averageDelta < 0.1:
+            return ("idle", "alert")
+        elif averageDelta < 0.25:
+            return IDLE_COMBINATION
+        else:
+            return ASLEEP_COMBINATION
