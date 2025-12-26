@@ -1,16 +1,16 @@
+from PySide6.QtCore import Qt, QElapsedTimer, QPointF
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtCore import Qt
 
 from typing import Callable, Optional
 
 class WindowDragger:
     def __init__(
         self,
-        widget,
+        sprite,
         onDragStart: Optional[Callable] = None,
         onDragEnd: Optional[Callable] = None
     ):
-        self.widget = widget
+        self.sprite = sprite
         self.onDragStart = onDragStart
         self.onDragEnd = onDragEnd
 
@@ -21,7 +21,7 @@ class WindowDragger:
         if event.button() != Qt.LeftButton:
             return
 
-        self.dragDelta = event.globalPosition().toPoint() - self.widget.pos()
+        self.dragDelta = event.globalPosition().toPoint() - self.sprite.pos()
         self.isDragging = True
 
         if self.onDragStart:
@@ -47,7 +47,7 @@ class WindowDragger:
             screenBounds.left(),
             min(
                 targetPos.x(),
-                screenBounds.right() - self.widget.width()
+                screenBounds.right() - self.sprite.width()
             )
         )
 
@@ -55,11 +55,11 @@ class WindowDragger:
             screenBounds.top(),
             min(
                 targetPos.y(),
-                screenBounds.bottom() - self.widget.height()
+                screenBounds.bottom() - self.sprite.height()
             )
         )
 
-        self.widget.move(finalX, finalY)
+        self.sprite.move(finalX, finalY)
 
     def handleMouseRelease(self, _event) -> None:
         if not self.isDragging:

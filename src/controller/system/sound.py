@@ -50,9 +50,9 @@ class SoundManager(QObject):
         self.soundCategories = {
             SoundCategory.EVENT: CategoryConfig(maxPolyphony=9),
             SoundCategory.FEEDBACK: CategoryConfig(),
-            SoundCategory.AMBIENT: CategoryConfig(),
+            SoundCategory.AMBIENT: CategoryConfig(volume=0.25),
             SoundCategory.SPECIAL: CategoryConfig(),
-            SoundCategory.SPEECH: CategoryConfig(maxPolyphony=SPEECH_BLIP_COUNT),
+            SoundCategory.SPEECH: CategoryConfig(volume=0.6, maxPolyphony=SPEECH_BLIP_COUNT),
         }
 
         self.soundCache = {}
@@ -70,7 +70,7 @@ class SoundManager(QObject):
 
         # array of scheduled sounds
         self.scheduledSounds: List[QTimer] = []
-    
+
     # internal methods
     def _massLoadSoundInstanceToCategory(self, url: QUrl, category: SoundCategory) -> List[QSoundEffect]:
         categoryConfig = self.soundCategories[category]
@@ -264,9 +264,15 @@ class SoundManager(QObject):
         return soundInstance
     
     # audio playback
+    def isAmbientPlaying(self) -> bool:
+        return self.ambientMediaPlayer.playbackState() == QMediaPlayer.PlayingState
+
     def playAmbientAudio(self, relativePath: str) -> None:
+        if self.isAmbientPlaying():
+            return
+
         categoryConfig = self.soundCategories[SoundCategory.AMBIENT]
-        fullPath = self.soundAssets.getAsset(relativePath)
+        fullPath = self.soundAssets.getAsset(relativePath + ".wav")
         url = QUrl.fromLocalFile(str(fullPath))
 
         self.ambientMediaPlayer.setSource(url)
@@ -277,9 +283,10 @@ class SoundManager(QObject):
             )
         )
         self.ambientMediaPlayer.play()
-    
+
     def stopAmbientAudio(self) -> None:
         self.ambientMediaPlayer.stop()
+        self.ambientMediaPlayer.setSource(QUrl())
 
     # speech blip playback
     def playSpeechBlip(self) -> None:

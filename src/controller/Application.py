@@ -112,6 +112,7 @@ class RockinWindow(QWidget):
 
     # dragging handlers
     def mousePressEvent(self, event):
+        self.Sound.playAmbientAudio("dragging")
         self.Dragger.handleMousePress(event)
     
     def mouseMoveEvent(self, event):
@@ -119,6 +120,7 @@ class RockinWindow(QWidget):
         self.Dragger.handleMouseMove(event)
 
     def mouseReleaseEvent(self, event):
+        self.Sound.stopAmbientAudio()
         self.Dragger.handleMouseRelease(event)
     
     # keyboard handlers

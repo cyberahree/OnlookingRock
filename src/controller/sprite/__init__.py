@@ -11,7 +11,7 @@ BLINK_COMBINATION = ("idle", "blink")
 DRAG_COMBINATION = ("idle", "dragged")
 IDLE_COMBINATION = ("idle", "idle")
 
-SLEEP_DELTA_THRESHOLD = 15
+SLEEP_DELTA_THRESHOLD = 120
 
 class SpriteSystem:
     def __init__(self):
@@ -55,7 +55,7 @@ class SpriteSystem:
     def getMoodCombination(self) -> tuple[str, str]:
         # no keys have been pressed since the program started
         if self.KeyListener.lastKeyPress is None:
-            return ASLEEP_COMBINATION
+            return IDLE_COMBINATION
         
         # idling state
         delta = time.time() - self.KeyListener.lastKeyPress
