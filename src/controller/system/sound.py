@@ -1,3 +1,5 @@
+from ..asset import AssetController
+
 from PySide6.QtMultimedia import QSoundEffect, QMediaPlayer, QAudioOutput
 from PySide6.QtCore import QObject, QUrl, QTimer, Signal, QDateTime
 
@@ -19,7 +21,7 @@ class ValueRange:
 
 @dataclass
 class CategoryConfig:
-    volume: ValueRange = ValueRange()
+    volume: float = 1.0
     muted: bool = False
     maxPolyphony: int = 3
     audioCooldown: int = 0 # in seconds, how long until one sound can be played again
@@ -31,7 +33,9 @@ def clamp(value: float, range: ValueRange) -> float:
 
 class SoundManager(QObject):
     def __init__(self, parent: Optional[QObject] = None):
-        super().init(parent)
+        super().__init__(parent)
+
+        self.soundAssets = AssetController("sounds")
 
         self.mutedSignal = Signal(bool)
         self.masterMuted = False
@@ -58,7 +62,7 @@ class SoundManager(QObject):
         self.scheduledSounds: List[QTimer] = []
     
     # internal methods
-    def _massLoadSoundInstances(self, url: QUrl, category: SoundCategory) -> List[QSoundEffect]:
+    def _massLoadSoundInstanceToCategory(self, url: QUrl, category: SoundCategory) -> List[QSoundEffect]:
         categoryConfig = self.soundCategories[category]
         
         loadMax = max(1, categoryConfig.maxPolyphony)
@@ -168,22 +172,24 @@ class SoundManager(QObject):
         self._updateCategoryHandler(category)
     
     # playback methods
-    def preloadSounds(self, path: Path, category: SoundCategory) -> None:
-        key = (category, str(path))
+    def preloadSounds(self, relativePath: str, category: SoundCategory) -> None:
+        key = (category, relativePath)
 
         if key in self.soundCache:
             return
     
-        url = QUrl.fromLocalFile(str(path))
-        self.soundCache[key] = self._massLoadSoundInstances(url, category)
+        fullPath = self.soundAssets.getAsset(relativePath)
+        url = QUrl.fromLocalFile(str(fullPath))
+        self.soundCache[key] = self._massLoadSoundInstanceToCategory(url, category)
         
     def playSound(
         self,
-        path: Path,
+        relativePath: str,
         category: SoundCategory,
-        volume: Optional[float] = None
+        volume: Optional[float] = None,
+        onFinish: Optional[callable] = None
     ) -> None:
-        key = (category, str(path))
+        key = (category, relativePath)
         
         # cooldown check
         categoryConfig = self.soundCategories[category]
@@ -201,7 +207,7 @@ class SoundManager(QObject):
         
         # check cache
         if key not in self.soundCache:
-            self.preloadSounds(path, category)
+            self.preloadSounds(relativePath, category)
         
         # get a free instance or do a robbery
         soundInstances = self.soundCache[key]
@@ -224,11 +230,22 @@ class SoundManager(QObject):
         )
 
         soundInstance.setVolume(effectiveVolume)
+
+        # playback and finish handler
+        if onFinish is not None:
+            def handleFinished():
+                soundInstance.playbackFinished.disconnect(handleFinished)
+                onFinish()
+            
+            soundInstance.playbackFinished.connect(handleFinished)
+
         soundInstance.play()
+        return soundInstance
     
-    def playAmbientAudio(self, path: Path) -> None:
+    def playAmbientAudio(self, relativePath: str) -> None:
         categoryConfig = self.soundCategories[SoundCategory.AMBIENT]
-        url = QUrl.fromLocalFile(str(path))
+        fullPath = self.soundAssets.getAsset(relativePath)
+        url = QUrl.fromLocalFile(str(fullPath))
 
         self.ambientMediaPlayer.setSource(url)
         self.ambientAudioOutput.setVolume(
@@ -242,24 +259,18 @@ class SoundManager(QObject):
     def stopAmbientAudio(self) -> None:
         self.ambientMediaPlayer.stop()
 
-    # special sounds
-    def playSpecial(self, path: Path) -> None:
-        self.playSound(
-            path,
-            SoundCategory.SPECIAL
-        )
-    
+    # scheduled sounds
     def scheduleTimedSound(
         self,
         intervalMs: int,
-        path: Path,
+        relativePath: str,
         category: SoundCategory
     ) -> None:
         scheduledTimer = QTimer(self)
         scheduledTimer.setInterval(max(10, intervalMs))
 
         scheduledTimer.timeout.connect(
-            lambda: self.playSound(path, category)
+            lambda: self.playSound(relativePath, category)
         )
         scheduledTimer.start()
 

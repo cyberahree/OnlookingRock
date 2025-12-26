@@ -1,4 +1,6 @@
 from .sprite import SpriteSystem, ASLEEP_COMBINATION, DRAG_COMBINATION
+from .system.sound import SoundManager, SoundCategory
+from .system.dragger import WindowDragger
 from .sprite.blinker import Blinker
 
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
@@ -16,7 +18,12 @@ class RockinWindow(QWidget):
     def __init__(self):
         super().__init__()
 
+        # sound controller
+        self.Sound = SoundManager(self)
+
+        # sprite controller systems
         self.Sprite = SpriteSystem()
+
         self.Blink = Blinker(
             QTimer(self),
             self.triggerBlink,
@@ -24,15 +31,18 @@ class RockinWindow(QWidget):
             BLINK_RANGE
         )
 
+        self.Dragger = WindowDragger(
+            self,
+            onDragStart=self.onDragStart,
+            onDragEnd=self.onDragEnd
+        )
+
         # internal states
-        self.windowDragging = False
         self.spriteBlinking = False
         self.spriteReady = False
 
         self.currentFace = None
         self.currentEyes = None
-
-        self.dragDelta = None
 
         # window setup
         self.setAttribute(Qt.WA_TranslucentBackground)
@@ -76,62 +86,42 @@ class RockinWindow(QWidget):
         self.spriteReady = True
         self.show()
 
+    def shutdown(self):
+        self.Sound.shutdown()
+        APPLICATION.quit()
+
     def startWindowLoop(self):
-        sys.exit(
-            APPLICATION.exec()
+        self.Sound.playSound(
+            "applicationStart.wav",
+            SoundCategory.SPECIAL
         )
+
+        APPLICATION.aboutToQuit.connect(
+            lambda: self.Sound.playSound(
+                "applicationEnd.wav",
+                SoundCategory.SPECIAL,
+                onFinish=self.shutdown
+            )
+        )
+        APPLICATION.exec()
 
     # dragging handlers
     def mousePressEvent(self, event):
-        if event.button() != Qt.LeftButton:
-            return
-        
-        self.dragDelta = event.globalPosition().toPoint() - self.pos()
-        self.windowDragging = True
+        self.Dragger.handleMousePress(event)
+    
+    def mouseMoveEvent(self, event):
+        self.Dragger.handleMouseMove(event)
 
+    def mouseReleaseEvent(self, event):
+        self.Dragger.handleMouseRelease(event)
+    
+    def onDragStart(self):
         self.updateSpriteFeatures(
             *DRAG_COMBINATION,
             True
         )
     
-    def mouseMoveEvent(self, event):
-        if (event.buttons() != Qt.LeftButton) or (self.dragDelta is None):
-            return
-        
-        globalPos = event.globalPosition().toPoint()
-        targetPos = globalPos - self.dragDelta
-
-        # get targetted screen
-        screen = QGuiApplication.screenAt(globalPos)
-
-        if screen is None:
-            screen = QGuiApplication.primaryScreen()
-        
-        # calculate application position
-        # restricted to screen bounds
-        screenBounds = screen.availableGeometry()
-
-        finalX = max(
-            screenBounds.left(),
-            min(
-                targetPos.x(),
-                screenBounds.right() - self.width()
-            )
-        )
-
-        finalY = max(
-            screenBounds.top(),
-            min(
-                targetPos.y(),
-                screenBounds.bottom() - self.height()
-            )
-        )
-
-        self.move(finalX, finalY)
-
-    def mouseReleaseEvent(self, _event):
-        self.windowDragging = False
-        self.dragDelta = None
+    def onDragEnd(self):
         self.updateSpriteLoop()
 
     # sprite expression loop
@@ -141,7 +131,7 @@ class RockinWindow(QWidget):
         
         self.updateSpriteFeatures(
             *self.Sprite.getMoodCombination()
-            if not self.windowDragging
+            if not self.Dragger.isDragging
             else DRAG_COMBINATION
         )
 
@@ -200,7 +190,7 @@ class RockinWindow(QWidget):
 
     # blinking methods
     def triggerBlink(self):
-        if (not self.spriteReady) or (self.spriteBlinking or self.windowDragging):
+        if (not self.spriteReady) or (self.spriteBlinking or self.Dragger.isDragging):
             return
         
         self.updateSpriteEyes("blink")
