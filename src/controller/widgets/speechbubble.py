@@ -1,5 +1,5 @@
+from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QGraphicsOpacityEffect
 from PySide6.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QEasingCurve
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout
 from PySide6.QtGui import QFont, QPainter, QPolygon, QColor
 
 from collections import deque
@@ -7,6 +7,7 @@ from collections import deque
 import random
 
 SPEECH_BACKGROUND_COLOR = QColor(255, 255, 224, 255)
+APPEAR_DURATION = 300
 TAIL_WIDTH = 12
 
 CHARACTERS_PER_SECOND = (25, 45)
@@ -33,6 +34,10 @@ class SpeechBubble(QWidget):
         )
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setFocusPolicy(Qt.NoFocus)
+
+        self.windowOpacityEffect = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self.windowOpacityEffect)
+        self.windowOpacityEffect.setOpacity(0.0)
 
         # current speech variables
         self.fullText = ""
@@ -69,6 +74,12 @@ class SpeechBubble(QWidget):
         self.movementAnimation = QPropertyAnimation(self, b"pos")
         self.movementAnimation.setEasingCurve(QEasingCurve.OutCubic)
 
+        # fade animation
+        self.fadeAnimation = QPropertyAnimation(self.windowOpacityEffect, b"opacity")
+        self.fadeAnimation.setEasingCurve(QEasingCurve.OutCubic)
+        self.fadeAnimation.setDuration(APPEAR_DURATION)
+        self.fadeAnimation.finished.connect(self._onFadeFinished)
+
         # follow sprite
         self.followTimer = QTimer(self)
         self.followTimer.timeout.connect(self._reposition)
@@ -85,20 +96,37 @@ class SpeechBubble(QWidget):
         self.label.setText(self.fullText)
         self.adjustSize()
 
+    def _onFadeFinished(self):
+        if self.windowOpacityEffect.opacity() > 0.001:
+            return
+        
+        self.hide()
+
     def _showNext(self):
         if not self.queue:
             self.active = False
             self.typeTimer.stop()
-            self.hide()
+
+            self.fadeAnimation.stop()
+            self.fadeAnimation.setStartValue(self.windowOpacityEffect.opacity())
+            self.fadeAnimation.setEndValue(0.0)
+            self.fadeAnimation.start()
             return
+
+        # fade in
+        self.fadeAnimation.stop()
+        self.windowOpacityEffect.setOpacity(0.0)
+        self.fadeAnimation.setStartValue(0.0)
+        self.fadeAnimation.setEndValue(1.0)
+        self.fadeAnimation.start()
 
         self.active = True
         text, duration, typing_delay = self.queue.popleft()
 
         self.fullText = text
-        self.curentCharacterIndex = 0
+        self.currentCharacterIndex = 0 
 
-        self.label.setText(text)
+        self.label.setText("")
         self.adjustSize()
         self._reposition(force_show=True)
 
@@ -106,6 +134,7 @@ class SpeechBubble(QWidget):
 
         self.raise_()
         QTimer.singleShot(duration, self._showNext)
+
 
     def _reposition(self, force_show: bool = False):
         if not self.sprite:
@@ -169,6 +198,8 @@ class SpeechBubble(QWidget):
         self.label.setText(self.fullText[:self.currentCharacterIndex])
         self.adjustSize()
 
+        character = self.fullText[self.currentCharacterIndex - 1]
+
     # internal tail painting method
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -189,8 +220,8 @@ class SpeechBubble(QWidget):
         else:
             tip = QPoint(base_x + TAIL_WIDTH, base_y + TAIL_WIDTH)
 
-        left = QPoint(base_x - TAIL_WIDTH / 2, base_y)
-        right = QPoint(base_x + TAIL_WIDTH / 2, base_y)
+        left = QPoint(base_x - TAIL_WIDTH // 2, base_y)
+        right = QPoint(base_x + TAIL_WIDTH // 2, base_y)
 
         painter.drawPolygon(QPolygon([left, tip, right]))
 

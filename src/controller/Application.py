@@ -99,13 +99,14 @@ class RockinWindow(QWidget):
         APPLICATION.quit()
 
     def startWindowLoop(self):
-        self.Sound.playSound(
-            "applicationStart.wav",
-            SoundCategory.SPECIAL,
-            onFinish=lambda: setattr(self, "spriteStarting", False)
-        )
+        #self.Sound.playSound(
+        #    "applicationStart.wav",
+        #    SoundCategory.SPECIAL,
+        #    onFinish=lambda: setattr(self, "spriteStarting", False)
+        #)
 
         self.SpeechBubble.addSpeech("gooooodd mythical mornningg :3")
+        self.SpeechBubble.addSpeech("how are you doing today?")
 
         sys.exit(APPLICATION.exec_())
 
