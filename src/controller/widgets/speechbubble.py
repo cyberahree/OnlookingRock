@@ -195,8 +195,14 @@ class SpeechBubble(QWidget):
         
         self.currentCharacterIndex += 1
         self.label.setText(self.fullText[:self.currentCharacterIndex])
-        self.sprite.Sound.playSpeechBlip()
         self.adjustSize()
+
+        previousCharacter = self.fullText[
+            self.currentCharacterIndex-1:self.currentCharacterIndex
+        ]
+
+        if previousCharacter.isalnum():
+            self.sprite.Sound.playSpeechBlip()
 
     # internal tail painting method
     def paintEvent(self, event):
