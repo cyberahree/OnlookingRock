@@ -1,10 +1,13 @@
-from .sprite import SpriteSystem, ASLEEP_COMBINATION, DRAG_COMBINATION
+#!/usr/bin/env python3
 from .system.sound import SoundManager, SoundCategory
 from .system.dragger import WindowDragger
+
+from .widgets.speechbubble import SpeechBubble
+
+from .sprite import SpriteSystem, ASLEEP_COMBINATION, DRAG_COMBINATION
 from .sprite.blinker import Blinker
 
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
-from PySide6.QtGui import QGuiApplication
 from PySide6.QtCore import Qt, QTimer
 
 import sys
@@ -20,6 +23,9 @@ class RockinWindow(QWidget):
 
         # sound controller
         self.Sound = SoundManager(self)
+
+        # speech bubble
+        self.SpeechBubble = SpeechBubble(self)
 
         # sprite controller systems
         self.Sprite = SpriteSystem()
@@ -80,7 +86,7 @@ class RockinWindow(QWidget):
         )
 
         self.expressionTimer.start(
-            int((1/REFRESH_RATE) * 1000)
+            1000 // REFRESH_RATE
         )
 
         # show window
@@ -97,6 +103,8 @@ class RockinWindow(QWidget):
             SoundCategory.SPECIAL
         )
 
+        self.SpeechBubble.addSpeech("gooooodd mythical mornningg")
+
         sys.exit(APPLICATION.exec_())
 
     # dragging handlers
@@ -104,6 +112,7 @@ class RockinWindow(QWidget):
         self.Dragger.handleMousePress(event)
     
     def mouseMoveEvent(self, event):
+        self.SpeechBubble._reposition()
         self.Dragger.handleMouseMove(event)
 
     def mouseReleaseEvent(self, event):
