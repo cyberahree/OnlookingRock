@@ -232,12 +232,13 @@ class SoundManager(QObject):
         soundInstance.setVolume(effectiveVolume)
 
         # playback and finish handler
-        if onFinish is not None:
-            def handleFinished():
-                soundInstance.playbackFinished.disconnect(handleFinished)
-                onFinish()
-            
-            soundInstance.playbackFinished.connect(handleFinished)
+        def playingChangeHandler():
+            if not soundInstance.isPlaying():
+                soundInstance.playingChanged.disconnect(playingChangeHandler)
+                if onFinish:
+                    onFinish()
+
+        soundInstance.playingChanged.connect(playingChangeHandler)
 
         soundInstance.play()
         return soundInstance

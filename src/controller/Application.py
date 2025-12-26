@@ -96,14 +96,7 @@ class RockinWindow(QWidget):
             SoundCategory.SPECIAL
         )
 
-        APPLICATION.aboutToQuit.connect(
-            lambda: self.Sound.playSound(
-                "applicationEnd.wav",
-                SoundCategory.SPECIAL,
-                onFinish=self.shutdown
-            )
-        )
-        APPLICATION.exec()
+        sys.exit(APPLICATION.exec_())
 
     # dragging handlers
     def mousePressEvent(self, event):
@@ -114,6 +107,16 @@ class RockinWindow(QWidget):
 
     def mouseReleaseEvent(self, event):
         self.Dragger.handleMouseRelease(event)
+    
+    # keyboard handlers
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.Dragger.isDragging = True # for sprite update and prevent blink
+            self.Sound.playSound(
+                "applicationEnd.wav",
+                SoundCategory.SPECIAL,
+                onFinish=self.shutdown,
+            )
     
     def onDragStart(self):
         self.updateSpriteFeatures(
