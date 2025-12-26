@@ -187,7 +187,8 @@ class SoundManager(QObject):
         relativePath: str,
         category: SoundCategory,
         volume: Optional[float] = None,
-        onFinish: Optional[callable] = None
+        onFinish: Optional[callable] = None,
+        finishDelay: int = 0
     ) -> None:
         key = (category, relativePath)
         
@@ -233,12 +234,21 @@ class SoundManager(QObject):
 
         # playback and finish handler
         def playingChangeHandler():
-            if not soundInstance.isPlaying():
-                soundInstance.playingChanged.disconnect(playingChangeHandler)
-                if onFinish:
-                    onFinish()
+            if soundInstance.isPlaying():
+                return                
+            
+            soundInstance.playingChanged.disconnect(playingChangeHandler)
 
-        soundInstance.playingChanged.connect(playingChangeHandler)
+            if finishDelay > 0:
+                QTimer.singleShot(
+                    finishDelay,
+                    onFinish
+                )
+            else:
+                onFinish()
+
+        if onFinish:
+            soundInstance.playingChanged.connect(playingChangeHandler)
 
         soundInstance.play()
         return soundInstance

@@ -74,7 +74,7 @@ class SpriteSystem:
             return IDLE_COMBINATION
         
         if averageDelta < 0.08:
-            return ("idle", "rock")
+            return ("rock", "idle")
         elif averageDelta < 0.1:
             return ("idle", "alert")
         elif averageDelta < 0.25:

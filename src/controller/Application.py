@@ -39,6 +39,7 @@ class RockinWindow(QWidget):
 
         # internal states
         self.spriteBlinking = False
+        self.spriteExiting = False
         self.spriteReady = False
 
         self.currentFace = None
@@ -63,8 +64,8 @@ class RockinWindow(QWidget):
         
         # prepare label z-order
         self.bodyLabel.lower()
-        self.faceLabel.raise_()
         self.eyesLabel.raise_()
+        self.faceLabel.raise_()
 
         # initial sprite state
         self.updateSpriteFeatures(
@@ -110,13 +111,21 @@ class RockinWindow(QWidget):
     
     # keyboard handlers
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
-            self.Dragger.isDragging = True # for sprite update and prevent blink
-            self.Sound.playSound(
-                "applicationEnd.wav",
-                SoundCategory.SPECIAL,
-                onFinish=self.shutdown,
-            )
+        if (event.key() != Qt.Key_Escape) or (not self.isActiveWindow()):
+            return
+        
+        if self.spriteExiting:
+            return
+
+        self.updateSpriteFeatures("empty", "shuttingdown", True)
+        self.spriteExiting = True
+
+        self.Sound.playSound(
+            "applicationEnd.wav",
+            SoundCategory.SPECIAL,
+            onFinish=self.shutdown,
+            finishDelay=1000
+        )
     
     def onDragStart(self):
         self.updateSpriteFeatures(
@@ -144,6 +153,9 @@ class RockinWindow(QWidget):
         faceName: str, eyesName: str,
         ignoreChecks: bool = False
     ):
+        if self.spriteExiting:
+            return
+
         if (not self.spriteReady) and not ignoreChecks:
             return
         
@@ -164,6 +176,9 @@ class RockinWindow(QWidget):
         faceName: str,
         ignoreChecks: bool = False
     ):
+        if self.spriteExiting:
+            return
+
         if (not self.spriteReady) and not ignoreChecks:
             return
         
@@ -180,6 +195,9 @@ class RockinWindow(QWidget):
         eyeName: str,
         ignoreChecks: bool = False
     ):
+        if self.spriteExiting:
+            return
+
         if (not self.spriteReady) and not ignoreChecks:
             return
         
@@ -193,14 +211,14 @@ class RockinWindow(QWidget):
 
     # blinking methods
     def triggerBlink(self):
-        if (not self.spriteReady) or (self.spriteBlinking or self.Dragger.isDragging):
+        if (not self.spriteReady) or (self.spriteBlinking or self.Dragger.isDragging) or self.spriteExiting:
             return
         
         self.updateSpriteEyes("blink")
         self.spriteBlinking = True
 
     def completeBlink(self):
-        if (not self.spriteReady) or (not self.spriteBlinking):
+        if (not self.spriteReady) or (not self.spriteBlinking) or self.spriteExiting:
             return
         
         self.spriteBlinking = False
