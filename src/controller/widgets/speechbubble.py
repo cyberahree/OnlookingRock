@@ -135,7 +135,6 @@ class SpeechBubble(QWidget):
         self.raise_()
         QTimer.singleShot(duration, self._showNext)
 
-
     def _reposition(self, force_show: bool = False):
         if not self.sprite:
             return
@@ -196,9 +195,8 @@ class SpeechBubble(QWidget):
         
         self.currentCharacterIndex += 1
         self.label.setText(self.fullText[:self.currentCharacterIndex])
+        self.sprite.Sound.playSpeechBlip()
         self.adjustSize()
-
-        character = self.fullText[self.currentCharacterIndex - 1]
 
     # internal tail painting method
     def paintEvent(self, event):

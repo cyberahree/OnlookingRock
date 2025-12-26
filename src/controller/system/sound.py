@@ -1,18 +1,24 @@
 from ..asset import AssetController
 
+from .speech import buildSpeechBlips
+
 from PySide6.QtMultimedia import QSoundEffect, QMediaPlayer, QAudioOutput
 from PySide6.QtCore import QObject, QUrl, QTimer, Signal, QDateTime
 
 from typing import List, Optional, Annotated
 from dataclasses import dataclass
-from pathlib import Path
 from enum import Enum
+
+import random
+
+SPEECH_BLIP_COUNT = 6
 
 class SoundCategory(Enum):
     EVENT = 0
     FEEDBACK = 1
     AMBIENT = 2
     SPECIAL = 3
+    SPEECH = 4
 
 @dataclass
 class ValueRange:
@@ -46,6 +52,7 @@ class SoundManager(QObject):
             SoundCategory.FEEDBACK: CategoryConfig(),
             SoundCategory.AMBIENT: CategoryConfig(),
             SoundCategory.SPECIAL: CategoryConfig(),
+            SoundCategory.SPEECH: CategoryConfig(maxPolyphony=SPEECH_BLIP_COUNT),
         }
 
         self.soundCache = {}
@@ -57,6 +64,9 @@ class SoundManager(QObject):
 
         self.ambientMediaPlayer.setAudioOutput(self.ambientAudioOutput)
         self.ambientMediaPlayer.setLoops(QMediaPlayer.Infinite)
+
+        # generate speech blips
+        buildSpeechBlips(self, SoundCategory.SPEECH, SPEECH_BLIP_COUNT)
 
         # array of scheduled sounds
         self.scheduledSounds: List[QTimer] = []
@@ -253,6 +263,7 @@ class SoundManager(QObject):
         soundInstance.play()
         return soundInstance
     
+    # audio playback
     def playAmbientAudio(self, relativePath: str) -> None:
         categoryConfig = self.soundCategories[SoundCategory.AMBIENT]
         fullPath = self.soundAssets.getAsset(relativePath)
@@ -269,6 +280,16 @@ class SoundManager(QObject):
     
     def stopAmbientAudio(self) -> None:
         self.ambientMediaPlayer.stop()
+
+    # speech blip playback
+    def playSpeechBlip(self) -> None:
+        index = random.randint(0, SPEECH_BLIP_COUNT - 1)
+        key = (SoundCategory.SPEECH, f"_blip_{index}")
+        
+        effects = self.soundCache.get(key)
+
+        if effects and len(effects) > 0:
+            effects[0].play()
 
     # scheduled sounds
     def scheduleTimedSound(
