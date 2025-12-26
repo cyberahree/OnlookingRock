@@ -1,5 +1,5 @@
-from .Sprite import SpriteSystem, ASLEEP_COMBINATION, DRAG_COMBINATION
-from .Blinker import Blinker
+from .sprite import SpriteSystem, ASLEEP_COMBINATION, DRAG_COMBINATION
+from .sprite.blinker import Blinker
 
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
 from PySide6.QtGui import QGuiApplication
@@ -9,8 +9,8 @@ import sys
 
 APPLICATION = QApplication(sys.argv)
 
-UPDATE_FREQUENCY = (1/60) * 1000 # milliseconds
 BLINK_RANGE = (4000, 12000) # milliseconds
+REFRESH_RATE = 30 # frames per second
 
 class RockinWindow(QWidget):
     def __init__(self):
@@ -69,7 +69,7 @@ class RockinWindow(QWidget):
         )
 
         self.expressionTimer.start(
-            int(UPDATE_FREQUENCY)
+            int((1/REFRESH_RATE) * 1000)
         )
 
         # show window

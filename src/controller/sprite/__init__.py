@@ -1,11 +1,10 @@
-from .Keyboard import KeyListener
+from ..system.keyboard import KeyListener
+from ..asset import AssetController
 
 from PySide6.QtGui import QPixmap
 from pathlib import Path
 
 import time
-
-SPRITE_FILE_PATH = Path(__file__).resolve()
 
 ASLEEP_COMBINATION = ("idle", "sleepy")
 BLINK_COMBINATION = ("idle", "blink")
@@ -16,7 +15,7 @@ SLEEP_DELTA_THRESHOLD = 15
 
 class SpriteSystem:
     def __init__(self):
-        self.AssetsPath = SPRITE_FILE_PATH.parent.parent / "assets"
+        self.SpriteAssets = AssetController("images/sprite")
         self.KeyListener = KeyListener()
 
         self.BodyMap = None
@@ -25,23 +24,18 @@ class SpriteSystem:
 
         self._loadAssets()
 
-    def _iterateFiles(self, Directory: Path, Extension: str = ".png"):
-        for item in Directory.iterdir():
-            if item.is_file() and item.suffix.lower() == Extension.lower():
-                yield item
-
     def _loadAssets(self):
         # completely reload all assets
         self.BodyMap = QPixmap(
-            str(self.AssetsPath / "root.png")
+            str(self.SpriteAssets.getAsset("root.png"))
         )
         
-        for eyeFile in self._iterateFiles(self.AssetsPath / "eyes"):
+        for eyeFile in self.SpriteAssets.iterateDirectory("eyes", ".png"):
             self.EyeMaps[eyeFile.stem] = QPixmap(
                 str(eyeFile)
             )
 
-        for faceFile in self._iterateFiles(self.AssetsPath / "faces"):
+        for faceFile in self.SpriteAssets.iterateDirectory("faces", ".png"):
             self.FaceMaps[faceFile.stem] = QPixmap(
                 str(faceFile)
             )
