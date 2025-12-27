@@ -247,7 +247,6 @@ class DecorationController(QWidget):
         self.updateTimer.start(self.refreshRate)
 
         self._updateSceneBounds()
-        self.loadDecorationPerScreen()
         self.show()
     
     def _updateSceneBounds(self):
@@ -328,22 +327,18 @@ class DecorationController(QWidget):
             
             self.cachedImages[assetPath.stem] = pixmap
 
-    def loadDecorationPerScreen(self):
-        if (not self.cachedImages) or len(self.cachedImages) == 0:
+    def autoSpawnDecorations(self, count: int = 3):
+        if not self.cachedImages:
             self.cacheDecorations()
         
-        self.clearDecorations()
-
-        pixmaps = list(self.cachedImages.values())
-
-        if (not pixmaps) or len(pixmaps) == 0:
+        if not self.cachedImages:
             return
         
-        decorationPixmap = pixmaps[
-            random.randint(0, len(pixmaps) - 1)
-        ]
+        for _ in range(count):
+            decorName = random.choice( list(self.cachedImages.keys()) )
+            pixmap = self.cachedImages[decorName]
 
-        self.addDecoration(decorationPixmap)
+            self.addDecoration(pixmap)
 
     def clearDecorations(self):
         for decor in self.childDecorations:
@@ -374,18 +369,16 @@ class DecorationSystem:
         self.controllers = []
 
         for screen in QGuiApplication.screens():
-            self.controllers.append(
-                DecorationController(
-                    screen,
-                    refreshRate=refreshRate,
-                    bottomBand=bottomBand,
-                    overlayHeight=overlayHeight
-                )
+            controller = DecorationController(
+                screen,
+                refreshRate=refreshRate,
+                bottomBand=bottomBand,
+                overlayHeight=overlayHeight
             )
-    
-    def reload(self):
-        for controller in self.controllers:
-            controller.loadDecorationPerScreen()
+
+            controller.autoSpawnDecorations()
+
+            self.controllers.append(controller)
     
     def shutdown(self):
         for controller in self.controllers:

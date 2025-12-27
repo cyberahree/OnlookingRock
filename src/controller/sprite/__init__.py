@@ -2,7 +2,6 @@ from ..system.keyboard import KeyListener
 from ..asset import AssetController
 
 from PySide6.QtGui import QPixmap
-from pathlib import Path
 
 import time
 
