@@ -334,8 +334,12 @@ class DecorationController(QWidget):
         if not self.cachedImages:
             return
         
+        decorations = list(self.cachedImages.keys())
+
         for _ in range(count):
-            decorName = random.choice( list(self.cachedImages.keys()) )
+            decorName = decorations.pop(
+                random.randint(0, len(decorations) - 1)
+            )
             pixmap = self.cachedImages[decorName]
 
             self.addDecoration(pixmap)

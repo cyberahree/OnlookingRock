@@ -45,7 +45,7 @@ EMOTION_DECISION_TABLE: list[ReactionRule] = [
     ),
     ReactionRule(
         name="rock",
-        mood=("idle", "rock"),
+        mood=("rock", "empty"),
         priority=70,
         predicate=lambda m: (m.IDLE_TIME < SLEEP_DELTA_THRESHOLD / 2)
         and (
@@ -60,7 +60,7 @@ EMOTION_DECISION_TABLE: list[ReactionRule] = [
         predicate=lambda m: (m.IDLE_TIME < SLEEP_DELTA_THRESHOLD / 2)
         and (
             m.KEYS_PER_SECOND >= 10
-            or (m.AVERAGE_DELTA is not None and m.AVERAGE_DELTA < 0.8)
+            #or (m.AVERAGE_DELTA is not None and m.AVERAGE_DELTA < 0.8)
         ),
     ),
     ReactionRule(
