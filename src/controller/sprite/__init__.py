@@ -3,14 +3,80 @@ from ..asset import AssetController
 
 from PySide6.QtGui import QPixmap
 
+from dataclasses import dataclass
+from typing import Callable
+
 import time
 
 ASLEEP_COMBINATION = ("idle", "sleepy")
+TIRED_COMBINATION = ("idle", "tired")
 BLINK_COMBINATION = ("idle", "blink")
 DRAG_COMBINATION = ("idle", "dragged")
 IDLE_COMBINATION = ("idle", "idle")
 
 SLEEP_DELTA_THRESHOLD = 120
+
+@dataclass(frozen=True)
+class ReactionRule:
+    name: str
+    mood: tuple[str, str]
+    priority: int
+    predicate: Callable[[dict], bool]
+
+@dataclass
+class Metrics:
+    IDLE_TIME: float
+    ACTIVITY_LEVEL: float
+    KEYS_PER_SECOND: float
+    AVERAGE_DELTA: float
+
+EMOTION_DECISION_TABLE: list[ReactionRule] = [
+    ReactionRule(
+        name="asleep",
+        mood=ASLEEP_COMBINATION,
+        priority=100,
+        predicate=lambda m: m.IDLE_TIME >= SLEEP_DELTA_THRESHOLD,
+    ),
+    ReactionRule(
+        name="tired_idle",
+        mood=TIRED_COMBINATION,
+        priority=80,
+        predicate=lambda m: (SLEEP_DELTA_THRESHOLD / 2) <= m.IDLE_TIME < SLEEP_DELTA_THRESHOLD,
+    ),
+    ReactionRule(
+        name="rock",
+        mood=("idle", "rock"),
+        priority=70,
+        predicate=lambda m: (m.IDLE_TIME < SLEEP_DELTA_THRESHOLD / 2)
+        and (
+            m.KEYS_PER_SECOND >= 13
+            or (m.AVERAGE_DELTA is not None and m.AVERAGE_DELTA < 0.04)
+        ),
+    ),
+    ReactionRule(
+        name="alert",
+        mood=("idle", "alert"),
+        priority=60,
+        predicate=lambda m: (m.IDLE_TIME < SLEEP_DELTA_THRESHOLD / 2)
+        and (
+            m.KEYS_PER_SECOND >= 10
+            or (m.AVERAGE_DELTA is not None and m.AVERAGE_DELTA < 0.8)
+        ),
+    ),
+    ReactionRule(
+        name="tired_low",
+        mood=TIRED_COMBINATION,
+        priority=50,
+        predicate=lambda m: (m.IDLE_TIME < SLEEP_DELTA_THRESHOLD / 2)
+        and (m.ACTIVITY_LEVEL < 0.15 and m.KEYS_PER_SECOND < 1.5),
+    ),
+    ReactionRule(
+        name="idle",
+        mood=IDLE_COMBINATION,
+        priority=0,
+        predicate=lambda m: True,
+    ),
+]
 
 class SpriteSystem:
     def __init__(self, _spriteParent):
@@ -51,32 +117,44 @@ class SpriteSystem:
             QPixmap()
         )
 
+    def chooseMood(
+            self,
+            timeIdle: float,
+            metrics: Metrics = None,
+            rules: list[ReactionRule] = EMOTION_DECISION_TABLE
+        ) -> tuple[str, str]:
+        if metrics is None:
+            metrics = Metrics(
+                IDLE_TIME = timeIdle,
+                ACTIVITY_LEVEL = self.KeyListener.getActivityLevel(),
+                KEYS_PER_SECOND = self.KeyListener.keysPerSecond(),
+                AVERAGE_DELTA = self.KeyListener.getAverageDelta()
+            )
+
+        print(metrics)
+        
+        # "best" = highest priority rule that matches right now
+        for rule in sorted(rules, key=lambda r: r.priority, reverse=True):
+            if not rule.predicate(metrics):
+                continue
+
+            return rule.mood
+
+        return IDLE_COMBINATION
+
     def getMoodCombination(self) -> tuple[str, str]:
-        # no keys have been pressed since the program started
         if self.KeyListener.lastKeyPress is None:
             return IDLE_COMBINATION
         
-        # idling state
-        delta = time.time() - self.KeyListener.lastKeyPress
+        idle = time.time() - self.KeyListener.lastKeyPress
 
-        if delta >= SLEEP_DELTA_THRESHOLD:
-            self.KeyListener.keyDeltas.clear()
+        # no activity = asleep
+        # factz
+        if idle >= SLEEP_DELTA_THRESHOLD:
             return ASLEEP_COMBINATION
-        
-        if delta >= SLEEP_DELTA_THRESHOLD / 2:
-            return IDLE_COMBINATION
-        
-        # key-pressing activity state
-        averageDelta = self.KeyListener.getAverageDelta()
 
-        if averageDelta is None:
-            return IDLE_COMBINATION
-        
-        if averageDelta < 0.08:
-            return ("rock", "idle")
-        elif averageDelta < 0.1:
-            return ("idle", "alert")
-        elif averageDelta < 0.25:
-            return IDLE_COMBINATION
-        else:
-            return ASLEEP_COMBINATION
+        # tired mode
+        if idle >= (SLEEP_DELTA_THRESHOLD / 3):
+            return TIRED_COMBINATION
+    
+        return self.chooseMood(idle)
