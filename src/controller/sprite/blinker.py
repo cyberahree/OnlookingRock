@@ -8,7 +8,7 @@ random.seed(
     "arisblinkyrocksystemversionsupercool" + str(time.time())
 )
 
-class Blinker:
+class BlinkingController:
     def __init__(
         self,
         timer: QTimer,

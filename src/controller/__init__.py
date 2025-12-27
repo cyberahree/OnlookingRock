@@ -3,7 +3,8 @@ from .system.sound import SoundManager, SoundCategory
 from .system.dragger import WindowDragger
 
 from .sprite import SpriteSystem, IDLE_COMBINATION, DRAG_COMBINATION
-from .sprite.blinker import Blinker
+from .sprite.lasermouse import LaserMouseController
+from .sprite.blinker import BlinkingController
 
 from .widgets.speechbubble import SpeechBubbleController
 from .widgets.decoration import DecorationSystem
@@ -29,18 +30,26 @@ class RockinWindow(QWidget):
 
         # sprite controller systems
         self.Sprite = SpriteSystem(self)
+        
+        self.Dragger = WindowDragger(
+            self,
+            onDragStart=self.onDragStart,
+            onDragEnd=self.onDragEnd
+        )
 
-        self.Blink = Blinker(
+        self.Blink = BlinkingController(
             QTimer(self),
             self.triggerBlink,
             self.completeBlink,
             BLINK_RANGE
         )
 
-        self.Dragger = WindowDragger(
+        self.LaserMouse = LaserMouseController(
             self,
-            onDragStart=self.onDragStart,
-            onDragEnd=self.onDragEnd
+            canTrack=lambda: (
+                (not self.spriteBlinking) and
+                (not self.Dragger.isDragging)
+            )
         )
 
         # widgets
@@ -49,8 +58,6 @@ class RockinWindow(QWidget):
 
         # internal states
         self.spriteBlinking = False
-        self.spriteStarting = True
-        self.spriteExiting = False
         self.spriteReady = False
 
         self.currentFace = None
@@ -80,8 +87,7 @@ class RockinWindow(QWidget):
 
         # initial sprite state
         self.updateSpriteFeatures(
-            *IDLE_COMBINATION,
-            True
+            *IDLE_COMBINATION, True
         )
 
         # expression loop
@@ -95,19 +101,19 @@ class RockinWindow(QWidget):
         )
 
         # show window
-        self.spriteReady = True
         self.show()
 
     def shutdown(self):
-        self.Sound.shutdown()
         self.Decorations.shutdown()
+        self.Sound.shutdown()
+
         APPLICATION.quit()
 
     def startWindowLoop(self):
         self.Sound.playSound(
             "applicationStart.wav",
             SoundCategory.SPECIAL,
-            onFinish=lambda: setattr(self, "spriteStarting", False)
+            onFinish=lambda: setattr(self, "spriteReady", True)
         )
 
         self.SpeechBubble.addSpeech("gooooodd mythical mornningg :3")
@@ -133,11 +139,14 @@ class RockinWindow(QWidget):
         if (event.key() != Qt.Key_Escape) or (not self.isActiveWindow()):
             return
         
-        if self.spriteExiting:
+        if not self.spriteReady:
             return
 
-        self.updateSpriteFeatures("empty", "shuttingdown", True)
-        self.spriteExiting = True
+        self.updateSpriteFeatures("empty", "shuttingdown")
+        self.spriteReady = False
+
+        # note: early shutdown here to avoid race conditions
+        self.SpeechBubble.shutdown()
 
         self.Sound.playSound(
             "applicationEnd.wav",
@@ -148,8 +157,7 @@ class RockinWindow(QWidget):
     
     def onDragStart(self):
         self.updateSpriteFeatures(
-            *DRAG_COMBINATION,
-            True
+            *DRAG_COMBINATION
         )
     
     def onDragEnd(self):
@@ -157,8 +165,10 @@ class RockinWindow(QWidget):
 
     # sprite expression loop
     def updateSpriteLoop(self):
-        if (self.spriteStarting) or (self.spriteBlinking):
+        if not self.spriteReady:
             return
+        
+        self.LaserMouse.update()
         
         self.updateSpriteFeatures(
             *self.Sprite.getMoodCombination()
@@ -170,12 +180,9 @@ class RockinWindow(QWidget):
     def updateSpriteFeatures(
         self,
         faceName: str, eyesName: str,
-        ignoreChecks: bool = False
+        forceful: bool = False
     ):
-        if self.spriteExiting and (not self.spriteStarting):
-            return
-
-        if (not self.spriteReady) and not ignoreChecks:
+        if (not self.spriteReady or self.spriteBlinking) and not forceful:
             return
         
         if (self.currentFace != faceName):
@@ -192,13 +199,9 @@ class RockinWindow(QWidget):
 
     def updateSpriteFace(
         self,
-        faceName: str,
-        ignoreChecks: bool = False
+        faceName: str
     ):
-        if self.spriteExiting and (not self.spriteStarting):
-            return
-
-        if (not self.spriteReady) and not ignoreChecks:
+        if not self.spriteReady or self.spriteBlinking:
             return
         
         if self.currentFace == faceName:
@@ -211,16 +214,9 @@ class RockinWindow(QWidget):
     
     def updateSpriteEyes(
         self,
-        eyeName: str,
-        ignoreChecks: bool = False
+        eyeName: str
     ):
-        if self.spriteExiting and (not self.spriteStarting):
-            return
-
-        if (not self.spriteReady) and not ignoreChecks:
-            return
-        
-        if self.currentEyes == eyeName:
+        if not self.spriteReady or self.spriteBlinking:
             return
         
         self.currentEyes = eyeName
@@ -230,15 +226,12 @@ class RockinWindow(QWidget):
 
     # blinking methods
     def triggerBlink(self):
-        if (not self.spriteReady) or (self.spriteBlinking or self.Dragger.isDragging) or self.spriteExiting:
+        if (not self.spriteReady):
             return
         
         self.updateSpriteEyes("blink")
         self.spriteBlinking = True
 
     def completeBlink(self):
-        if (not self.spriteReady) or (not self.spriteBlinking) or self.spriteExiting:
-            return
-        
         self.spriteBlinking = False
         self.updateSpriteLoop()

@@ -24,6 +24,7 @@ class SpeechBubbleController(QWidget):
         self.queue = deque()
 
         self.active = False
+        self.shuttingDown = False
         self.tailDirection = "right"
 
         # window setup
@@ -103,6 +104,9 @@ class SpeechBubbleController(QWidget):
         self.hide()
 
     def _showNext(self):
+        if self.shuttingDown:
+            return
+
         if not self.queue:
             self.active = False
             self.typeTimer.stop()
@@ -189,6 +193,10 @@ class SpeechBubbleController(QWidget):
         self.movementAnimation.start()
 
     def _typeNextCharacter(self):
+        if self.shuttingDown:
+            self.typeTimer.stop()
+            return
+
         if self.currentCharacterIndex >= len(self.fullText):
             self.typeTimer.stop()
             return
@@ -231,6 +239,9 @@ class SpeechBubbleController(QWidget):
 
     # external methods
     def addSpeech(self, text: str, duration: int | None = None):
+        if self.shuttingDown:
+            return
+
         typing_delay = (1000 // random.randint(*CHARACTERS_PER_SECOND))
 
         if duration is None:
@@ -245,3 +256,11 @@ class SpeechBubbleController(QWidget):
         self.queue.append((text, duration, typing_delay))
         if not self.active:
             self._showNext()
+    
+    def shutdown(self):
+        self.shuttingDown = True
+        self.followTimer.stop()
+        self.typeTimer.stop()
+        self.fadeAnimation.stop()
+        self.movementAnimation.stop()
+        self.hide()
