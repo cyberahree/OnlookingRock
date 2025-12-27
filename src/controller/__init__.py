@@ -2,10 +2,11 @@
 from .system.sound import SoundManager, SoundCategory
 from .system.dragger import WindowDragger
 
-from .widgets.speechbubble import SpeechBubble
-
-from .sprite import IDLE_COMBINATION, SpriteSystem, ASLEEP_COMBINATION, DRAG_COMBINATION
+from .sprite import SpriteSystem, IDLE_COMBINATION, DRAG_COMBINATION
 from .sprite.blinker import Blinker
+
+from .widgets.speechbubble import SpeechBubbleController
+from .widgets.decoration import DecorationSystem
 
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
 from PySide6.QtCore import Qt, QTimer
@@ -15,7 +16,9 @@ import sys
 APPLICATION = QApplication(sys.argv)
 
 BLINK_RANGE = (4000, 12000) # milliseconds
-REFRESH_RATE = 30 # frames per second
+
+APP_REFRESH_RATE = 30 # frames per second
+SECONDARY_REFRESH_RATE = 15 # frames per second
 
 class RockinWindow(QWidget):
     def __init__(self):
@@ -24,11 +27,8 @@ class RockinWindow(QWidget):
         # sound controller
         self.Sound = SoundManager(self)
 
-        # speech bubble
-        self.SpeechBubble = SpeechBubble(self)
-
         # sprite controller systems
-        self.Sprite = SpriteSystem()
+        self.Sprite = SpriteSystem(self)
 
         self.Blink = Blinker(
             QTimer(self),
@@ -42,6 +42,10 @@ class RockinWindow(QWidget):
             onDragStart=self.onDragStart,
             onDragEnd=self.onDragEnd
         )
+
+        # widgets
+        self.SpeechBubble = SpeechBubbleController(self, SECONDARY_REFRESH_RATE)
+        self.Decorations = DecorationSystem(self, SECONDARY_REFRESH_RATE)
 
         # internal states
         self.spriteBlinking = False
@@ -87,7 +91,7 @@ class RockinWindow(QWidget):
         )
 
         self.expressionTimer.start(
-            1000 // REFRESH_RATE
+            1000 // APP_REFRESH_RATE
         )
 
         # show window
@@ -96,6 +100,7 @@ class RockinWindow(QWidget):
 
     def shutdown(self):
         self.Sound.shutdown()
+        self.Decorations.shutdown()
         APPLICATION.quit()
 
     def startWindowLoop(self):
@@ -138,7 +143,7 @@ class RockinWindow(QWidget):
             "applicationEnd.wav",
             SoundCategory.SPECIAL,
             onFinish=self.shutdown,
-            finishDelay=1000
+            finishDelay=500
         )
     
     def onDragStart(self):

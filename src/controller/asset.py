@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional, Union, Tuple
 
 # i wonder if there's a better way to do this
-ROOT_ASSET_DIRECTORY = Path(__file__).resolve().parent.parent.parent / "assets"
+ROOT_ASSET_DIRECTORY = Path(__file__).resolve().parent.parent / "assets"
 
 class AssetController:
     def __init__(self, folder: str) -> None:

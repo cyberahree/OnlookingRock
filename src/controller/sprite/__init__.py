@@ -14,7 +14,7 @@ IDLE_COMBINATION = ("idle", "idle")
 SLEEP_DELTA_THRESHOLD = 120
 
 class SpriteSystem:
-    def __init__(self):
+    def __init__(self, _spriteParent):
         self.SpriteAssets = AssetController("images/sprite")
         self.KeyListener = KeyListener()
 

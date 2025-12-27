@@ -1,4 +1,4 @@
-from src.controller.application import RockinWindow
+from src.controller import RockinWindow
 
 if __name__ == "__main__":
     app = RockinWindow()

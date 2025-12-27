@@ -13,12 +13,12 @@ TAIL_WIDTH = 12
 CHARACTERS_PER_SECOND = (25, 45)
 READING_DELAY = 4500
 READING_WPS = (180 / 60) # words per second
-REFRESH_RATE = 15 # frames per second
 SPEECH_MARGIN = 8
 
-class SpeechBubble(QWidget):
-    def __init__(self, sprite: QWidget):
+class SpeechBubbleController(QWidget):
+    def __init__(self, sprite: QWidget, refreshRate: int = 5):
         super().__init__(None)
+        self.refreshRate = refreshRate
 
         self.sprite = sprite
         self.queue = deque()
@@ -83,7 +83,7 @@ class SpeechBubble(QWidget):
         # follow sprite
         self.followTimer = QTimer(self)
         self.followTimer.timeout.connect(self._reposition)
-        self.followTimer.start(1000 // REFRESH_RATE)
+        self.followTimer.start(1000 // self.refreshRate)
 
         self.hide()
 

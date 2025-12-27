@@ -45,7 +45,7 @@ class SoundManager(QObject):
 
         self.mutedSignal = Signal(bool)
         self.masterMuted = False
-        self.masterVolume = 1.0
+        self.masterVolume = 0.5
 
         self.soundCategories = {
             SoundCategory.EVENT: CategoryConfig(maxPolyphony=9),
