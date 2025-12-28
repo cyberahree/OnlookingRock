@@ -202,6 +202,9 @@ class RockinWindow(QWidget):
         self.SpeechBubble.bubble._reposition()
 
     def triggerShutdown(self):
+        if not self.spriteReady:
+            return
+
         self.spriteReady = False
         self.updateSpriteFeatures("empty", "shuttingdown", True)
 
