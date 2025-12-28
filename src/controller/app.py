@@ -25,8 +25,8 @@ BLINK_RANGE = (4000, 12000) # milliseconds
 
 MAX_SCALE = 2.0
 
-APP_REFRESH_RATE = 30 # frames per second
-SECONDARY_REFRESH_RATE = 15 # frames per second
+APP_REFRESH_RATE = 60 # frames per second
+SECONDARY_REFRESH_RATE = 30 # frames per second
 
 class RockinWindow(QWidget):
     def __init__(
@@ -55,14 +55,14 @@ class RockinWindow(QWidget):
         self.blinkController = BlinkingController(
             QTimer(self),
             self.triggerBlink,
-            self.completeBlink,
+            self.updateSpriteLoop,
             BLINK_RANGE
         )
 
         self.laserMouse = LaserMouseController(
             self,
             canTrack=lambda: (
-                (not self.spriteBlinking) and
+                (not self.blinkController.isBlinking) and
                 (not self.dragger.isDragging)
             )
         )
@@ -71,13 +71,11 @@ class RockinWindow(QWidget):
         self.interfaceManager = InterfaceManager(self)
 
         # start menu
-        actions = [
-            MenuAction("quitSprite", "Quit", self.triggerShutdown, "power")
-        ]
-
         self.startMenu = StartMenuComponent(
             self,
-            actions,
+            [
+                MenuAction("quitSprite", "Quit", self.triggerShutdown, "power")
+            ],
             SECONDARY_REFRESH_RATE
         )
 
@@ -87,7 +85,7 @@ class RockinWindow(QWidget):
         )
 
         # widgets
-        self.decorations = DecorationSystem(self, SECONDARY_REFRESH_RATE)
+        self.decorations = DecorationSystem(self, APP_REFRESH_RATE)
 
         self.speechBubble = SpeechBubbleController(
             self,
@@ -96,7 +94,6 @@ class RockinWindow(QWidget):
         )
 
         # internal states
-        self.spriteBlinking = False
         self.spriteReady = False
 
         self.currentFace = None
@@ -306,7 +303,7 @@ class RockinWindow(QWidget):
         faceName: str, eyesName: str,
         forceful: bool = False
     ):
-        if (not self.spriteReady or self.spriteBlinking) and not forceful:
+        if (not self.spriteReady or self.blinkController.isBlinking) and not forceful:
             return
         
         if (self.currentFace != faceName):
@@ -325,7 +322,7 @@ class RockinWindow(QWidget):
         self,
         faceName: str
     ):
-        if not self.spriteReady or self.spriteBlinking:
+        if not self.spriteReady or self.blinkController.isBlinking:
             return
         
         if self.currentFace == faceName:
@@ -333,19 +330,19 @@ class RockinWindow(QWidget):
 
         self.currentFace = faceName
         self.faceLabel.setPixmap(
-            self.Sprite.getFace(faceName, self.currentSpriteScale)
+            self.spriteSystem.getFace(faceName, self.currentSpriteScale)
         )
     
     def updateSpriteEyes(
         self,
         eyeName: str
     ):
-        if not self.spriteReady or self.spriteBlinking:
+        if not self.spriteReady or self.blinkController.isBlinking:
             return
         
         self.currentEyes = eyeName
         self.eyesLabel.setPixmap(
-            self.Sprite.getEyes(eyeName, self.currentSpriteScale)
+            self.spriteSystem.getEyes(eyeName, self.currentSpriteScale)
         )
 
     # blinking methods
@@ -354,8 +351,3 @@ class RockinWindow(QWidget):
             return
         
         self.updateSpriteEyes("blink")
-        self.spriteBlinking = True
-
-    def completeBlink(self):
-        self.spriteBlinking = False
-        self.updateSpriteLoop()

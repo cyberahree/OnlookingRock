@@ -1,16 +1,49 @@
-from .app import RockinWindow
-
 import argparse
+import logging
+import os
+
+def setLogging(debug: bool) -> None:
+    key = "true" if debug else "false"
+    
+    os.environ["QT_LOGGING_RULES"] = """
+    qt.multimedia.ffmpeg.*={0};
+    qt.multimedia.*={0};
+    """.format(key.strip())
+
+    logging.basicConfig(
+        level = (logging.DEBUG if debug else logging.INFO),
+        format = "[%(asctime)s] [%(levelname)s] %(message)s",
+    )
 
 def main():
     parser = argparse.ArgumentParser(description="Rockin' Controller Application")
 
-    parser.add_argument("--profile", "-p", default=None, help="Specify the configuration profile to use")
-    parser.add_argument("--qtargs", "-qt", default="", help="Additional arguments for the Qt framework")
+    parser.add_argument(
+        "--profile", "-p",
+        default=None,
+        help="Specify the configuration profile to use"
+    )
+
+    parser.add_argument(
+        "--qtargs", "-qt",
+        default="",
+        help="Additional arguments for the Qt framework"
+    )
+
+    parser.add_argument(
+        "--debug", "-d",
+        action="store_true",
+        help="Enable debug logging output"
+    )
 
     arguments = parser.parse_args()
 
+    # logging
+    setLogging(arguments.debug)
+
     # start application
+    from .app import RockinWindow
+
     app = RockinWindow(
         configProfile=arguments.profile,
     )
@@ -18,5 +51,4 @@ def main():
     app.startWindowLoop()
 
 if __name__ == "__main__":
-    app = RockinWindow()
-    app.startWindowLoop()
+    main()

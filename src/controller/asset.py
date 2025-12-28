@@ -10,7 +10,7 @@ class AssetController:
 
     def blindGetAsset(self, fileName: str) -> Path | None:
         for item in self.iterateDirectory(""):
-            if not item.name.startswith(fileName):
+            if not item.stem == fileName:
                 continue
 
             return item

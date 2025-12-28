@@ -5,8 +5,11 @@ from pathlib import Path
 from typing import Any
 
 import tempfile
+import logging
 import json
 import os
+
+logger = logging.getLogger(__name__)
 
 ASSETS_DIR = AssetController()
 JsonDict = dict[str, Any]
@@ -173,7 +176,7 @@ class ConfigController:
             self.currentOverrides
         )
 
-        print(self.config)
+        logger.debug("Loaded config: %s", self.config)
         return self.config
 
     def saveConfig(self):

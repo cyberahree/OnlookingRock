@@ -19,13 +19,22 @@ class BlinkingController:
         self.timer = timer
         self.blinkDelayRange = blinkDelayRange
 
+        self.isBlinking = False
         self.triggerBlink = triggerBlink
         self.completeBlink = completeBlink
 
-        timer.timeout.connect(self.triggerBlink)
-        timer.timeout.connect(self.scheduleBlink)
+        timer.timeout.connect(self._onBlink)
+        timer.timeout.connect(self._onBlinkComplete)
 
         self.scheduleBlink()
+
+    def _onBlink(self) -> None:
+        self.isBlinking = True
+        self.triggerBlink()
+    
+    def _onBlinkComplete(self) -> None:
+        self.isBlinking = False
+        self.completeBlink()
 
     def getNextBlink(self) -> int:
         return random.randint(

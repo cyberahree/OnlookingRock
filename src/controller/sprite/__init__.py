@@ -6,6 +6,7 @@ from PySide6.QtGui import QPixmap
 from dataclasses import dataclass, field
 from typing import Callable
 
+import logging
 import time
 
 ASLEEP_COMBINATION = ("idle", "sleepy")
@@ -15,6 +16,8 @@ DRAG_COMBINATION = ("idle", "dragged")
 IDLE_COMBINATION = ("idle", "idle")
 
 SLEEP_DELTA_THRESHOLD = 120
+
+logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class ReactionRule:
@@ -136,6 +139,8 @@ class SpriteSystem:
         assetType: str,
         name: str = None
     ) -> None:
+        scale = round(max(0.1, scale), 2)
+
         if not scale in self.cachedPixmaps:
             self.cachedPixmaps[scale] = PixmapCache()
         else:
@@ -160,12 +165,12 @@ class SpriteSystem:
             ).get(name, None)
         
         if fullPixmap is None:
-            raise ValueError(f"Asset {type}/{name} not found for scaling")
+            raise ValueError(f"Asset {assetType}/{name} not found for scaling")
         
         # scale it
         scaledPixmap = fullPixmap.scaled(
-            fullPixmap.width() * scale,
-            fullPixmap.height() * scale
+            int(fullPixmap.width() * scale),
+            int(fullPixmap.height() * scale)
         )
 
         # cache it
@@ -178,12 +183,12 @@ class SpriteSystem:
             )[name] = scaledPixmap
 
     def getBody(self, scale: float = 1.0) -> QPixmap:
-        scale = max(0.1, scale)
+        scale = round(max(0.1, scale), 2)
         self._loadScaledAsset(scale, "body")
         return self.cachedPixmaps[scale].body
 
     def getFace(self, faceName: str, scale: float = 1.0) -> QPixmap:
-        scale = max(0.1, scale)
+        scale = round(max(0.1, scale), 2)
         self._loadScaledAsset(scale, "faces", faceName)
 
         return self.cachedPixmaps[scale].faces.get(
@@ -192,7 +197,7 @@ class SpriteSystem:
         )
     
     def getEyes(self, eyesName: str, scale: float = 1.0) -> QPixmap:
-        scale = max(0.1, scale)
+        scale = round(max(0.1, scale), 2)
         self._loadScaledAsset(scale, "eyes", eyesName)
 
         return self.cachedPixmaps[scale].eyes.get(
@@ -214,7 +219,7 @@ class SpriteSystem:
                 averageDelta=self.keyListener.getAverageDelta()
             )
 
-        print(metrics)
+        logger.debug("metrics=%s", metrics)
         
         # "best" = highest priority rule that matches right now
         for rule in sorted(rules, key=lambda r: r.priority, reverse=True):

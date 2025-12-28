@@ -50,8 +50,8 @@ class InterfaceComponent(QWidget):
         self.enableFadeAnimation = True
         self.fadeHideWhenZero = True
 
-        self.fadeOnOpen = False
-        self.fadeOnClose = False
+        self.fadeOnOpen = True
+        self.fadeOnClose = True
         self._fadeClosePending = False
 
     def build(self) -> None:

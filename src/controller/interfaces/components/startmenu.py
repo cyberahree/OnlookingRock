@@ -57,6 +57,7 @@ class StartMenuComponent(InterfaceComponent):
         self.setFont(DEFAULT_FONT)
 
         self.setOpacity(0.0)
+        self.isOpening = False
 
     def build(self) -> None:
         self.setObjectName("startMenu")
@@ -139,9 +140,6 @@ class StartMenuComponent(InterfaceComponent):
             background-color: {asRGB(onSelectBackground)};
         }}
         """)
-
-        # update height
-        QTimer.singleShot(0, self._recomputeHeight)
     
     def _getSpriteGlobalBounds(self) -> QRect:
         topLeft = self.sprite.mapToGlobal(QPoint(0, 0))
@@ -275,13 +273,36 @@ class StartMenuComponent(InterfaceComponent):
         self.close()
         return False
 
-    def open(self) -> None:
-        self._reposition()
-        self.fadeIn()
-        super().open()
+    def _recomputeHeightSnap(self) -> None:
+        if not self.isVisible():
+            return
+        
+        previous = self.enableMoveAnimation
+        self.enableMoveAnimation = False
 
+        try:
+            self._recomputeHeight()
+        finally:
+            self.enableMoveAnimation = previous
+
+    def open(self) -> None:
+        super().open()
         QApplication.instance().installEventFilter(self)
-        QTimer.singleShot(0, self._recomputeHeight)
+        QTimer.singleShot(0, self._recomputeHeightSnap)
+    
+    def _onOpened(self):
+        previous = self.enableMoveAnimation
+        self.enableMoveAnimation = False
+
+        try:
+            self._recomputeHeight()
+            self._reposition()
+        finally:
+            self.enableMoveAnimation = previous
+            self.isOpening = False
+        
+        self.fadeIn()
+        self.followTimer.start()
 
     def hideEvent(self, event) -> None:
         self._resetListVisualState()
