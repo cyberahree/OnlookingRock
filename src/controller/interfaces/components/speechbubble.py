@@ -9,6 +9,7 @@ from ..styling import (
     ANIMATION_OPACITY_DURATION,
 )
 
+from ..positioning import bestCandidate
 from ..base import InterfaceComponent
 
 from PySide6.QtCore import (
@@ -31,17 +32,6 @@ import random
 CHARACTERS_PER_SECOND = (25, 45)
 TAIL_SIZE = 12
 
-def getIntersectingarea(
-    rectA: QRect,
-    rectB: QRect
-) -> int:
-    intersction = rectA.intersected(rectB)
-
-    if intersction.isNull():
-        return 0
-    
-    return max(0, intersction.width()) * max(0, intersction.height())
-
 class SpeechBubbleComponent(InterfaceComponent):
     typingFinished = Signal()
     fadeOutFinished = Signal()
@@ -52,7 +42,7 @@ class SpeechBubbleComponent(InterfaceComponent):
         refreshRate: int = 5,
         blipSound: Optional[Callable[[], None]] = None,
         occludersProvider: Optional[Callable[[], Iterable[QWidget]]] = (lambda: []),
-        keepOccludorsOnTop: bool = True
+        keepOccludersOnTop: bool = True
     ):
         super().__init__(sprite, refreshRate)
 
@@ -61,7 +51,7 @@ class SpeechBubbleComponent(InterfaceComponent):
         self.refreshRate = refreshRate
 
         self.occludersProvider = occludersProvider
-        self.keepOccludersOnTop = keepOccludorsOnTop
+        self.keepOccludersOnTop = keepOccludersOnTop
 
         self.isShuttingDown = False
         self.tailDirection = "right"
@@ -81,9 +71,8 @@ class SpeechBubbleComponent(InterfaceComponent):
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
         self.setFocusPolicy(Qt.NoFocus)
 
-        self.opacityFx = QGraphicsOpacityEffect(self)
-        self.setGraphicsEffect(self.opacityFx)
-        self.opacityFx.setOpacity(0.0)
+        self.setOpacity(0.0)
+        self.fadeFinished.connect(self._handleFadeFinished)
 
         # label
         self.label = QLabel("")
@@ -108,20 +97,7 @@ class SpeechBubbleComponent(InterfaceComponent):
         self.typeTimer = QTimer(self)
         self.typeTimer.timeout.connect(self._typeNextCharacter)
 
-        # follow timer
-        self.followTimer = QTimer(self)
-        self.followTimer.timeout.connect(self._reposition)
-        self.followTimer.start(max(1, 1000 // self.refreshRate))
-
-        # movement animation
-        self.moveAnim = QPropertyAnimation(self, b"pos")
-        self.moveAnim.setEasingCurve(QEasingCurve.OutCubic)
-
-        # fade animation
-        self.fadeAnim = QPropertyAnimation(self.opacityFx, b"opacity")
-        self.fadeAnim.setEasingCurve(QEasingCurve.OutCubic)
-        self.fadeAnim.setDuration(ANIMATION_OPACITY_DURATION)
-        self.fadeAnim.finished.connect(self._onFadeFinished)
+        self.followTimer.start()
 
         self.hide()
 
@@ -163,7 +139,7 @@ class SpeechBubbleComponent(InterfaceComponent):
         if self.isShuttingDown:
             return
         
-        if typingDelay is not None:
+        if typingDelay is None:
             typingDelay = random.randint(
                 CHARACTERS_PER_SECOND[0],
                 CHARACTERS_PER_SECOND[1]
@@ -179,6 +155,7 @@ class SpeechBubbleComponent(InterfaceComponent):
 
         self.fadeIn()
         self.raise_()
+        self.followTimer.start()
         self._restackOccluders()
 
         self.typeTimer.start(self.currentTypingDelay)
@@ -191,7 +168,6 @@ class SpeechBubbleComponent(InterfaceComponent):
             showFullText=True
         )
         
-    
     def stopTyping(
         self,
         showFullText: bool = False
@@ -205,27 +181,12 @@ class SpeechBubbleComponent(InterfaceComponent):
             self.label.setText(self.fullText)
             self.adjustSize()
     
-    def fadeIn(self):
-        self.fadeAnim.stop()
-        self.opacityFx.setOpacity(self.opacityFx.opacity())
-        self.fadeAnim.setStartValue(self.opacityFx.opacity())
-        self.fadeAnim.setEndValue(1.0)
-        self.fadeAnim.start()
-        if self.isHidden():
-            self.show()
-    
-    def fadeOut(self):
-        self.fadeAnim.stop()
-        self.fadeAnim.setStartValue(self.opacityFx.opacity())
-        self.fadeAnim.setEndValue(0.0)
-        self.fadeAnim.start()
-    
     def shutdown(self):
         self.isShuttingDown = True
         self.followTimer.stop()
         self.typeTimer.stop()
-        self.fadeAnim.stop()
-        self.moveAnim.stop()
+        self.fadeAnimation.stop()
+        self.moveAnimation.stop()
         self.hide()
     
     # internal methods
@@ -244,84 +205,16 @@ class SpeechBubbleComponent(InterfaceComponent):
         self.adjustSize()
         self._reposition()
 
-        chracter = self.fullText[self.currentCharacterIndex - 1:self.currentCharacterIndex]
+        character = self.fullText[self.currentCharacterIndex - 1:self.currentCharacterIndex]
 
-        if chracter.isalnum():
+        if character.isalnum():
             self.blip()
     
     # fade animation handler
-    def _onFadeFinished(self):
-        if self.opacityFx.opacity() > 0.001:
-            return
-        
-        self.hide()
-        self.fadeOutFinished.emit()
+    def _handleFadeFinished(self, endOpacity: float) -> None:
+        if endOpacity <= 0.001:
+            self.fadeOutFinished.emit()
     
-    # repositioning
-    def _clampToScreen(
-        self,
-        x: int, y: int,
-        width: int, height: int,
-        screen: QRect
-    ) -> QPoint:
-        x = max(screen.left() + BORDER_MARGIN, min(x, screen.right() - width - BORDER_MARGIN))
-        y = max(screen.top() + BORDER_MARGIN, min(y, screen.bottom() - height - BORDER_MARGIN))
-
-        return QPoint(x, y)
-
-    def _score(
-        self,
-        bounds: QRect,
-        preferredTopLeft: QPoint,
-        occluders: Sequence[QRect]
-    ) -> tuple[int, int]:
-        overlap = sum(getIntersectingarea(bounds, o) for o in occluders)
-        dist = (bounds.topLeft() - preferredTopLeft).manhattanLength()
-        return (overlap, dist)
-
-    def _bestCandidate(
-        self,
-        preferred: QPoint,
-        alt: QPoint,
-        width: int,
-        height: int,
-        screen: QRect,
-        occluders: Sequence[QRect],
-    ) -> QPoint:
-        candidates: list[QPoint] = []
-
-        def addBaseAndNudges(base: QPoint):
-            candidates.append(base)
-            base_rect = QRect(base.x(), base.y(), width, height)
-
-            for o in occluders:
-                if not base_rect.intersects(o):
-                    continue
-
-                candidates.append(QPoint(base.x(), o.top() - height - BORDER_MARGIN))
-                candidates.append(QPoint(base.x(), o.bottom() + BORDER_MARGIN))
-
-        addBaseAndNudges(preferred)
-        addBaseAndNudges(alt)
-
-        bestPosition = None
-        bestScore = None
-
-        for candidatePosition in candidates:
-            p2 = self._clampToScreen(candidatePosition.x(), candidatePosition.y(), width, height, screen)
-            r = QRect(p2.x(), p2.y(), width, height)
-            s = self._score(r, preferred, occluders)
-
-            if bestScore is None or s < bestScore:
-                bestScore = s
-                bestPosition = p2
-
-                # no more overlap is possible
-                if s[0] == 0:
-                    break
-
-        return bestPosition or preferred
-
     def _reposition(self, force_show: bool = False):
         if not self.sprite:
             return
@@ -333,49 +226,34 @@ class SpeechBubbleComponent(InterfaceComponent):
             self.show()
 
         screen = self.sprite.screen().availableGeometry()
-        sprite_rect = self.sprite.frameGeometry()
-        width, height = self.width(), self.height()
+        spriteRect = self.sprite.frameGeometry()
+        size = self.size()
 
         # prefer right side, fallback left
-        preferred_x = sprite_rect.right() + BORDER_MARGIN
-        alt_x = sprite_rect.left() - width - BORDER_MARGIN
+        preferredX = spriteRect.right() + BORDER_MARGIN
+        alternateX = spriteRect.left() - size.width() - BORDER_MARGIN
 
         # anchor around sprite center (not sprite.top())
-        base_y = sprite_rect.center().y() - (height // 2)
+        baseY = spriteRect.center().y() - (size.height() // 2)
 
-        preferred = QPoint(preferred_x, base_y)
-        alt = QPoint(alt_x, base_y)
+        preferred = QPoint(preferredX, baseY)
+        alt = QPoint(alternateX, baseY)
 
         occluders = list(self._iterateOccludersBounds())
-        target = self._bestCandidate(preferred, alt, width, height, screen, occluders)
+        target = bestCandidate(preferred, alt, size, screen, occluders, BORDER_MARGIN)
 
         # tail direction
         prev_tail = self.tailDirection
 
-        bubble_center_x = target.x() + (width // 2)
-        sprite_center_x = sprite_rect.center().x()
+        bubbleCenterX = target.x() + (size.width() // 2)
+        spriteCenterX = spriteRect.center().x()
 
-        self.tailDirection = "left" if sprite_center_x < bubble_center_x else "right"
+        self.tailDirection = "left" if spriteCenterX < bubbleCenterX else "right"
 
         if prev_tail != self.tailDirection:
             self.update()
 
-        self._animateTo(target)
-
-    def _animateTo(self, target: QPoint):
-        if (self.pos() - target).manhattanLength() < 2:
-            self.move(target)
-            return
-
-        if self.moveAnim.state() == QPropertyAnimation.Running:
-            self.moveAnim.stop()
-
-        distance = (self.pos() - target).manhattanLength()
-
-        self.moveAnim.setDuration(min(300, max(80, distance)))
-        self.moveAnim.setStartValue(self.pos())
-        self.moveAnim.setEndValue(target)
-        self.moveAnim.start()
+        self.animateTo(target)
     
     # tail painting
     def paintEvent(self, event):

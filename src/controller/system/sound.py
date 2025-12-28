@@ -22,8 +22,8 @@ class SoundCategory(Enum):
 
 @dataclass
 class ValueRange:
-    min: float = 0.0
-    max: float = 1.0
+    minValue: float = 0.0
+    maxValue: float = 1.0
 
 @dataclass
 class CategoryConfig:
@@ -34,16 +34,17 @@ class CategoryConfig:
 
 VOLUME_RANGE = ValueRange()
 
-def clamp(value: float, range: ValueRange) -> float:
-    return max(range.min, min(range.max, value))
+def clamp(value: float, rangeValues: ValueRange) -> float:
+    return max(rangeValues.minValue, min(rangeValues.maxValue, value))
 
 class SoundManager(QObject):
+    mutedSignal = Signal(bool)
+    
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
 
         self.soundAssets = AssetController("sounds")
 
-        self.mutedSignal = Signal(bool)
         self.masterMuted = False
         self.masterVolume = 0.5
 

@@ -5,7 +5,7 @@ import threading
 import time
 import math
 
-DEQUE_MAX = 45
+KEY_HISTORY_MAX = 45
 
 class KeyListener:
     def __init__(
@@ -29,8 +29,8 @@ class KeyListener:
         self.activityBumpPerKey = activityBumpPerKey
 
         # initialise data structures
-        self.keyDeltas = deque(maxlen=DEQUE_MAX)
-        self.keyPressTimes = deque(maxlen=DEQUE_MAX*4)
+        self.keyDeltas = deque(maxlen=KEY_HISTORY_MAX)
+        self.keyPressTimes = deque(maxlen=KEY_HISTORY_MAX * 4)
 
         self.lastKeyPress = None
         self.lastKeyPressMono = None
@@ -39,7 +39,7 @@ class KeyListener:
         self.activityLastUpdateMono = time.monotonic()
 
         # thread
-        self.listenerlock = threading.Lock()
+        self.listenerLock = threading.Lock()
         self.listenerThread = None
 
         threading.Thread(
@@ -70,7 +70,7 @@ class KeyListener:
             nowWall = time.time()
             nowMono = time.monotonic()
 
-            with self.listenerlock:
+            with self.listenerLock:
                 # update deltas
                 if self.lastKeyPressMono is not None:
                     delta = nowMono - self.lastKeyPressMono
@@ -92,7 +92,7 @@ class KeyListener:
             listenerThread.join()
     
     def shutdown(self):
-        with self.listenerlock:
+        with self.listenerLock:
             if self.listenerThread is None:
                 return
             
@@ -100,14 +100,14 @@ class KeyListener:
             self.listenerThread = None
     
     def getTimeSinceLastKeyPress(self) -> float | None:
-        with self.listenerlock:
+        with self.listenerLock:
             if self.lastKeyPress is None:
                 return None
             
             return time.time() - self.lastKeyPress
     
     def getAverageDelta(self) -> float | None:
-        with self.listenerlock:
+        with self.listenerLock:
             if len(self.keyDeltas) < self.minSamples:
                 return None
             
@@ -117,7 +117,7 @@ class KeyListener:
         nowMono = time.monotonic()
         cutoff = nowMono - self.recentInputWindow
 
-        with self.listenerlock:
+        with self.listenerLock:
             # cheap rolling window
             while (self.keyPressTimes and self.keyPressTimes[0] < cutoff):
                 self.keyPressTimes.popleft()
@@ -129,6 +129,6 @@ class KeyListener:
     def getActivityLevel(self) -> float:
         nowMono = time.monotonic()
 
-        with self.listenerlock:
+        with self.listenerLock:
             self._decayActivityLocked(nowMono)
             return self.activity

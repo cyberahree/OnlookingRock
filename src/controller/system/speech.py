@@ -1,7 +1,7 @@
 from PySide6.QtCore import QTemporaryFile, QUrl
 from PySide6.QtMultimedia import QSoundEffect
 
-from typing import List, TYPE_CHECKING
+from typing import Any, List, TYPE_CHECKING
 
 import struct
 import math
@@ -48,12 +48,12 @@ def generateBlipWav(
     blockAlign = CHANNELS * SAMPLE_BIT_DEPTH // 8
     dataSize = samplesCount * CHANNELS * SAMPLE_BIT_DEPTH // 8
 
-    WAV = bytearray()
+    wavData = bytearray()
 
     # RIFF chunk
-    WAV.extend(b'RIFF')
-    WAV.extend(struct.pack('<I', 36 + dataSize))
-    WAV.extend(b'WAVE')
+    wavData.extend(b'RIFF')
+    wavData.extend(struct.pack('<I', 36 + dataSize))
+    wavData.extend(b'WAVE')
 
     # fmt chunk
 
@@ -62,26 +62,26 @@ def generateBlipWav(
     # sample rate, byte rate, block align
     # bps
 
-    WAV.extend(b'fmt ')
-    WAV.extend(struct.pack('<I', 16))
-    WAV.extend(struct.pack('<H', 1))
-    WAV.extend(struct.pack('<H', CHANNELS))
-    WAV.extend(struct.pack('<I', sampleRate))
-    WAV.extend(struct.pack('<I', byteRate))
-    WAV.extend(struct.pack('<H', blockAlign))
-    WAV.extend(struct.pack('<H', SAMPLE_BIT_DEPTH))
+    wavData.extend(b'fmt ')
+    wavData.extend(struct.pack('<I', 16))
+    wavData.extend(struct.pack('<H', 1))
+    wavData.extend(struct.pack('<H', CHANNELS))
+    wavData.extend(struct.pack('<I', sampleRate))
+    wavData.extend(struct.pack('<I', byteRate))
+    wavData.extend(struct.pack('<H', blockAlign))
+    wavData.extend(struct.pack('<H', SAMPLE_BIT_DEPTH))
 
     # data chunk
-    WAV.extend(b'data')
-    WAV.extend(struct.pack('<I', dataSize))
+    wavData.extend(b'data')
+    wavData.extend(struct.pack('<I', dataSize))
 
     for sample in rawSamples:
-        WAV.extend(struct.pack('<h', sample))
+        wavData.extend(struct.pack('<h', sample))
 
     # write to temporary file
     tempWavFile = QTemporaryFile()
     if tempWavFile.open():
-        tempWavFile.write(WAV)
+        tempWavFile.write(wavData)
         tempWavFile.flush()
         tempWavFile.seek(0)
         return tempWavFile
@@ -90,7 +90,7 @@ def generateBlipWav(
 
 def buildSpeechBlips(
     soundController,
-    speechCategory: any,
+    speechCategory: Any,
     blipCount: int,
     baseFrequency: float = 220.0,
     pitchVariance: float = 0.25,

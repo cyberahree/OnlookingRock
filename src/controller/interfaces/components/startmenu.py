@@ -1,5 +1,6 @@
 from ..styling import (
     asRGB,
+    ICON_ASSETS,
     BACKGROUND_COLOR,
     TEXT_COLOR,
     SUBHEADING_FONT,
@@ -9,39 +10,7 @@ from ..styling import (
     PADDING,
 )
 
-from ..base import InterfaceComponent
-
-from PySide6.QtWidgets import (
-    QFrame, QWidget, QVBoxLayout, QLabel,
-    QListWidget, QListWidgetItem, QAbstractItemView
-)
-
-from PySide6.QtCore import Qt, QPoint, QSize, QTimer
-from PySide6.QtGui import QIcon, QColor
-
-from typing import Callable, Optional, Sequence
-from dataclasses import dataclass
-
-SIZE_CONSTRAINTS = (260, 320)
-
-@dataclass(frozen=True)
-class MenuAction:
-    name: str
-    label: str
-    callback: Callable[[], None]
-    iconPath: Optional[str] = None
-
-from ..styling import (
-    asRGB,
-    BACKGROUND_COLOR,
-    TEXT_COLOR,
-    SUBHEADING_FONT,
-    DEFAULT_FONT,
-    BORDER_RADIUS,
-    BORDER_MARGIN,
-    PADDING,
-)
-
+from ..positioning import bestCandidate
 from ..base import InterfaceComponent
 
 from PySide6.QtWidgets import (
@@ -63,7 +32,7 @@ class MenuAction:
     name: str
     label: str
     callback: Callable[[], None]
-    iconPath: Optional[str] = None
+    iconName: Optional[str] = None
 
 class StartMenuComponent(InterfaceComponent):
     def __init__(
@@ -86,6 +55,8 @@ class StartMenuComponent(InterfaceComponent):
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setFocusPolicy(Qt.NoFocus)
         self.setFont(DEFAULT_FONT)
+
+        self.setOpacity(0.0)
 
     def build(self) -> None:
         self.setObjectName("startMenu")
@@ -121,8 +92,9 @@ class StartMenuComponent(InterfaceComponent):
             item = QListWidgetItem(action.label)
             item.setData(Qt.UserRole, action.name)
 
-            if action.iconPath:
-                item.setIcon(QIcon(action.iconPath))
+            if action.iconName:
+                path = ICON_ASSETS.blindGetAsset(action.iconName)
+                item.setIcon(QIcon(str(path)))
 
             self.listWidget.addItem(item)
 
@@ -221,35 +193,50 @@ class StartMenuComponent(InterfaceComponent):
     def _reposition(self):
         if not self.sprite:
             return
-        
+
         screen = self.sprite.screen().availableGeometry()
-        sprite = self.sprite.frameGeometry()
+        spriteRect = self.sprite.frameGeometry()
+        size = self.size()
 
-        width, height = self.width(), self.height()
+        # right side, bottom aligned
+        preferred = QPoint(
+            spriteRect.right() + BORDER_MARGIN,
+            spriteRect.bottom() - size.height()
+        )
 
-        x = sprite.right() + BORDER_MARGIN
-        y = sprite.bottom() - height
+        # left side, bottom aligned
+        alt = QPoint(
+            spriteRect.left() - size.width() - BORDER_MARGIN,
+            spriteRect.bottom() - size.height()
+        )
 
-        if x + width > screen.right() - BORDER_MARGIN:
-            x = sprite.left() - width - BORDER_MARGIN
-        
-        if y < screen.top() + BORDER_MARGIN:
-            y = screen.top()
+        occluders = []
+        target = bestCandidate(preferred, alt, size, screen, occluders, BORDER_MARGIN)
 
-        if y + height > screen.bottom() - BORDER_MARGIN:
-            y = screen.bottom() - height - BORDER_MARGIN
-        
-        # final clamp
-        position = QPoint(x, y)
-        position = self.clampToScreen(position)
+        self.animateTo(target)
 
-        self.move(position)
+    def _resetListVisualState(self) -> None:
+        if not hasattr(self, "listWidget"):
+            return
+
+        listWidget = self.listWidget
+
+        # clear selection/current
+        listWidget.clearSelection()
+        listWidget.setCurrentRow(-1)
+        listWidget.clearFocus()
+
+        # force-hover reset
+        viewport = listWidget.viewport()
+        QApplication.sendEvent(viewport, QEvent(QEvent.Leave))
+        viewport.update()
 
     def _onClicked(self, item: QListWidgetItem) -> None:
         if not item.flags():
             return
 
         actionName = item.data(Qt.UserRole)
+        self._resetListVisualState()
         
         for action in self.actions:
             if action.name != actionName:
@@ -257,6 +244,7 @@ class StartMenuComponent(InterfaceComponent):
 
             self.close()
             action.callback()
+
             break
     
     def eventFilter(self, watched, event) -> bool:
@@ -288,11 +276,16 @@ class StartMenuComponent(InterfaceComponent):
         return False
 
     def open(self) -> None:
+        self._reposition()
+        self.fadeIn()
         super().open()
+
         QApplication.instance().installEventFilter(self)
         QTimer.singleShot(0, self._recomputeHeight)
 
     def hideEvent(self, event) -> None:
+        self._resetListVisualState()
+
         try:
             QApplication.instance().removeEventFilter(self)
         finally:

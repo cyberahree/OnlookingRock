@@ -9,9 +9,9 @@ import json
 import os
 
 ASSETS_DIR = AssetController()
-JSON_DICT = dict[str, Any]
+JsonDict = dict[str, Any]
 
-def readJSONFile(path: Path) -> JSON_DICT:
+def readJSONFile(path: Path) -> JsonDict:
     if not path.exists():
         return {}
     
@@ -29,7 +29,7 @@ def deleteFileIfExists(path: Path) -> None:
 # because i fkin love data integrity that's why
 def atomicWriteJson(
     path: Path,
-    data: JSON_DICT
+    data: JsonDict
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -64,9 +64,9 @@ def atomicWriteJson(
 # so we can prune for "non-defaults", and save them to a config
 # then overlay them on top of defaults
 def deepMerge(
-    base: JSON_DICT,
-    overlay: JSON_DICT
-) -> JSON_DICT:
+    base: JsonDict,
+    overlay: JsonDict
+) -> JsonDict:
     out = dict(base)
 
     for (key, value) in overlay.items():
@@ -78,11 +78,11 @@ def deepMerge(
     return out
 
 def pruneForDefaults(
-    defaults: JSON_DICT,
-    current: JSON_DICT
-) -> JSON_DICT:
+    defaults: JsonDict,
+    current: JsonDict
+) -> JsonDict:
     if isinstance(defaults, dict) and isinstance(current, dict):
-        out: JSON_DICT = {}
+        out: JsonDict = {}
 
         for (key, value) in current.items():
             defaultValue = defaults.get(key)
@@ -100,7 +100,7 @@ def pruneForDefaults(
     return None if defaults == current else current
 
 def getByPath(
-    data: JSON_DICT,
+    data: JsonDict,
     path: str
 ) -> Any:
     current = data
@@ -114,7 +114,7 @@ def getByPath(
     return current
 
 def setByPath(
-    data: JSON_DICT,
+    data: JsonDict,
     path: str,
     value: Any
 ) -> None:
@@ -204,7 +204,7 @@ class ConfigController:
         self.userProfilePath = self.userProfilesDirectory / f"{profile}.json"
         self.loadConfig()
     
-    def loadSchema(self) -> JSON_DICT:
+    def loadSchema(self) -> JsonDict:
         schemaPath = ASSETS_DIR.getAsset("configSchema.json")
         loadedSchema = readJSONFile(schemaPath)
 

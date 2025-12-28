@@ -25,50 +25,50 @@ class ReactionRule:
 
 @dataclass
 class Metrics:
-    IDLE_TIME: float
-    ACTIVITY_LEVEL: float
-    KEYS_PER_SECOND: float
-    AVERAGE_DELTA: float
+    idleTime: float
+    activityLevel: float
+    keysPerSecond: float
+    averageDelta: float
 
 EMOTION_DECISION_TABLE: list[ReactionRule] = [
     ReactionRule(
         name="asleep",
         mood=ASLEEP_COMBINATION,
         priority=100,
-        predicate=lambda m: m.IDLE_TIME >= SLEEP_DELTA_THRESHOLD,
+        predicate=lambda m: m.idleTime >= SLEEP_DELTA_THRESHOLD,
     ),
     ReactionRule(
         name="tired_idle",
         mood=TIRED_COMBINATION,
         priority=80,
-        predicate=lambda m: (SLEEP_DELTA_THRESHOLD / 2) <= m.IDLE_TIME < SLEEP_DELTA_THRESHOLD,
+        predicate=lambda m: (SLEEP_DELTA_THRESHOLD / 2) <= m.idleTime < SLEEP_DELTA_THRESHOLD,
     ),
     ReactionRule(
         name="rock",
         mood=("rock", "empty"),
         priority=70,
-        predicate=lambda m: (m.IDLE_TIME < SLEEP_DELTA_THRESHOLD / 2)
+        predicate=lambda m: (m.idleTime < SLEEP_DELTA_THRESHOLD / 2)
         and (
-            m.KEYS_PER_SECOND >= 13
-            or (m.AVERAGE_DELTA is not None and m.AVERAGE_DELTA < 0.04)
+            m.keysPerSecond >= 13
+            or (m.averageDelta is not None and m.averageDelta < 0.04)
         ),
     ),
     ReactionRule(
         name="alert",
         mood=("idle", "alert"),
         priority=60,
-        predicate=lambda m: (m.IDLE_TIME < SLEEP_DELTA_THRESHOLD / 2)
+        predicate=lambda m: (m.idleTime < SLEEP_DELTA_THRESHOLD / 2)
         and (
-            m.KEYS_PER_SECOND >= 10
-            #or (m.AVERAGE_DELTA is not None and m.AVERAGE_DELTA < 0.8)
+            m.keysPerSecond >= 10
+            #or (m.averageDelta is not None and m.averageDelta < 0.8)
         ),
     ),
     ReactionRule(
         name="tired_low",
         mood=TIRED_COMBINATION,
         priority=50,
-        predicate=lambda m: (m.IDLE_TIME < SLEEP_DELTA_THRESHOLD / 2)
-        and (m.ACTIVITY_LEVEL < 0.15 and m.KEYS_PER_SECOND < 1.5),
+        predicate=lambda m: (m.idleTime < SLEEP_DELTA_THRESHOLD / 2)
+        and (m.activityLevel < 0.15 and m.keysPerSecond < 1.5),
     ),
     ReactionRule(
         name="idle",
@@ -80,14 +80,14 @@ EMOTION_DECISION_TABLE: list[ReactionRule] = [
 
 @dataclass
 class PixmapCache:
-    Body: QPixmap = field(default_factory=QPixmap)
-    Faces: dict[str, QPixmap] = field(default_factory=dict)
-    Eyes: dict[str, QPixmap] = field(default_factory=dict)
+    body: QPixmap = field(default_factory=QPixmap)
+    faces: dict[str, QPixmap] = field(default_factory=dict)
+    eyes: dict[str, QPixmap] = field(default_factory=dict)
 
 class SpriteSystem:
     def __init__(self, _spriteParent, preloadScale: float = None) -> None:
-        self.SpriteAssets = AssetController("images/sprite")
-        self.KeyListener = KeyListener()
+        self.spriteAssets = AssetController("images/sprite")
+        self.keyListener = KeyListener()
 
         self.cachedPixmaps = {
             1.0: PixmapCache()
@@ -99,30 +99,30 @@ class SpriteSystem:
         loadRescaledCopy = (scale is not None) and (scale != 1.0)
 
         # load body
-        bodyPixmap = QPixmap(self.SpriteAssets.getAsset("root.png"))
-        self.cachedPixmaps[1.0].Body = bodyPixmap
+        bodyPixmap = QPixmap(self.spriteAssets.getAsset("root.png"))
+        self.cachedPixmaps[1.0].body = bodyPixmap
 
         if loadRescaledCopy:
             scaledBody = self._scalePixmap(bodyPixmap, scale)
-            self.cachedPixmaps[scale] = PixmapCache(Body=scaledBody)
+            self.cachedPixmaps[scale] = PixmapCache(body=scaledBody)
         
         # load eyes
-        for eyeFile in self.SpriteAssets.iterateDirectory("eyes", ".png"):
+        for eyeFile in self.spriteAssets.iterateDirectory("eyes", ".png"):
             filePixmap = QPixmap(str(eyeFile))
-            self.cachedPixmaps[1.0].Eyes[eyeFile.stem] = filePixmap
+            self.cachedPixmaps[1.0].eyes[eyeFile.stem] = filePixmap
 
             if loadRescaledCopy:
                 scaledPixmap = self._scalePixmap(filePixmap, scale)
-                self.cachedPixmaps[scale].Eyes[eyeFile.stem] = scaledPixmap
+                self.cachedPixmaps[scale].eyes[eyeFile.stem] = scaledPixmap
 
         # load faces
-        for faceFile in self.SpriteAssets.iterateDirectory("faces", ".png"):
+        for faceFile in self.spriteAssets.iterateDirectory("faces", ".png"):
             filePixmap = QPixmap(str(faceFile))
-            self.cachedPixmaps[1.0].Faces[faceFile.stem] = filePixmap
+            self.cachedPixmaps[1.0].faces[faceFile.stem] = filePixmap
 
             if loadRescaledCopy:
                 scaledPixmap = self._scalePixmap(filePixmap, scale)
-                self.cachedPixmaps[scale].Faces[faceFile.stem] = scaledPixmap
+                self.cachedPixmaps[scale].faces[faceFile.stem] = scaledPixmap
     
     def _scalePixmap(self, pixmap: QPixmap, scale: float) -> QPixmap:
         return pixmap.scaled(
@@ -133,29 +133,30 @@ class SpriteSystem:
     def _loadScaledAsset(
         self,
         scale: float,
-        type: str,
+        assetType: str,
         name: str = None
     ) -> None:
         if not scale in self.cachedPixmaps:
             self.cachedPixmaps[scale] = PixmapCache()
         else:
             # check if already cached
-            if type == "body":
-                if not self.cachedPixmaps[scale].Body.isNull():
+            if assetType == "body":
+                if not self.cachedPixmaps[scale].body.isNull():
                     return
             else:
-                if name in self.cachedPixmaps[scale].__dict__[type.capitalize()]:
+                cachedCollection = getattr(self.cachedPixmaps[scale], assetType)
+                if name in cachedCollection:
                     return
 
         # get the full-scale pixmap
         fullPixmap = None
 
-        if type == "body":
-            fullPixmap = self.cachedPixmaps[1.0].Body
+        if assetType == "body":
+            fullPixmap = self.cachedPixmaps[1.0].body
         else:
             fullPixmap = getattr(
                 self.cachedPixmaps[1.0],
-                type.capitalize()
+                assetType
             ).get(name, None)
         
         if fullPixmap is None:
@@ -168,25 +169,24 @@ class SpriteSystem:
         )
 
         # cache it
-        if type == "body":
-            self.cachedPixmaps[scale].Body = scaledPixmap
+        if assetType == "body":
+            self.cachedPixmaps[scale].body = scaledPixmap
         else:
             getattr(
                 self.cachedPixmaps[scale],
-                type.capitalize()
+                assetType
             )[name] = scaledPixmap
 
     def getBody(self, scale: float = 1.0) -> QPixmap:
         scale = max(0.1, scale)
         self._loadScaledAsset(scale, "body")
-
-        return self.cachedPixmaps[scale].Body
+        return self.cachedPixmaps[scale].body
 
     def getFace(self, faceName: str, scale: float = 1.0) -> QPixmap:
         scale = max(0.1, scale)
         self._loadScaledAsset(scale, "faces", faceName)
 
-        return self.cachedPixmaps[scale].Faces.get(
+        return self.cachedPixmaps[scale].faces.get(
             faceName,
             QPixmap()
         )
@@ -195,7 +195,7 @@ class SpriteSystem:
         scale = max(0.1, scale)
         self._loadScaledAsset(scale, "eyes", eyesName)
 
-        return self.cachedPixmaps[scale].Eyes.get(
+        return self.cachedPixmaps[scale].eyes.get(
             eyesName,
             QPixmap()
         )
@@ -208,10 +208,10 @@ class SpriteSystem:
         ) -> tuple[str, str]:
         if metrics is None:
             metrics = Metrics(
-                IDLE_TIME = timeIdle,
-                ACTIVITY_LEVEL = self.KeyListener.getActivityLevel(),
-                KEYS_PER_SECOND = self.KeyListener.keysPerSecond(),
-                AVERAGE_DELTA = self.KeyListener.getAverageDelta()
+                idleTime=timeIdle,
+                activityLevel=self.keyListener.getActivityLevel(),
+                keysPerSecond=self.keyListener.keysPerSecond(),
+                averageDelta=self.keyListener.getAverageDelta()
             )
 
         print(metrics)
@@ -226,10 +226,10 @@ class SpriteSystem:
         return IDLE_COMBINATION
 
     def getMoodCombination(self) -> tuple[str, str]:
-        if self.KeyListener.lastKeyPress is None:
+        if self.keyListener.lastKeyPress is None:
             return IDLE_COMBINATION
         
-        idle = time.time() - self.KeyListener.lastKeyPress
+        idle = time.time() - self.keyListener.lastKeyPress
 
         # no activity = asleep
         # factz

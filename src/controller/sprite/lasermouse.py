@@ -21,8 +21,8 @@ class LaserMouseController:
         self.maxOffset = maxOffset
         self.smoothing = smoothing
 
-    def _clamp(self, value: float, min_value: float, max_value: float) -> float:
-        return max(min_value, min(value, max_value))
+    def _clamp(self, value: float, minValue: float, maxValue: float) -> float:
+        return max(minValue, min(value, maxValue))
 
     def _computeTarget(self, mousePosition: QPoint) -> QPointF:
         mouseX = float(mousePosition.x())
@@ -76,8 +76,8 @@ class LaserMouseController:
         
         # smooth movement
         self.offset = QPointF(
-            self.offset.x() + (target.x() - self.offset.x() * self.smoothing),
-            self.offset.y() + (target.y() - self.offset.y() * self.smoothing)
+            self.offset.x() + (target.x() - self.offset.x()) * self.smoothing,
+            self.offset.y() + (target.y() - self.offset.y()) * self.smoothing,
         )
 
         eyesLabel.move(

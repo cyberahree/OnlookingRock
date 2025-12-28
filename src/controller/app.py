@@ -40,59 +40,59 @@ class RockinWindow(QWidget):
         )
 
         # sound controller
-        self.Sound = SoundManager(self)
+        self.soundManager = SoundManager(self)
 
         # sprite controller systems
         self.currentSpriteScale = self.config.getValue("sprite.scale")
-        self.Sprite = SpriteSystem(self, self.currentSpriteScale)
+        self.spriteSystem = SpriteSystem(self, self.currentSpriteScale)
         
-        self.Dragger = WindowDragger(
+        self.dragger = WindowDragger(
             self,
             onDragStart=self.onDragStart,
             onDragEnd=self.onDragEnd
         )
 
-        self.Blink = BlinkingController(
+        self.blinkController = BlinkingController(
             QTimer(self),
             self.triggerBlink,
             self.completeBlink,
             BLINK_RANGE
         )
 
-        self.LaserMouse = LaserMouseController(
+        self.laserMouse = LaserMouseController(
             self,
             canTrack=lambda: (
                 (not self.spriteBlinking) and
-                (not self.Dragger.isDragging)
+                (not self.dragger.isDragging)
             )
         )
 
         # interfaces
-        self.InterfaceManager = InterfaceManager(self)
+        self.interfaceManager = InterfaceManager(self)
 
         # start menu
         actions = [
-            MenuAction("quitSprite", "Quit", self.triggerShutdown)
+            MenuAction("quitSprite", "Quit", self.triggerShutdown, "power")
         ]
 
-        self.StartMenu = StartMenuComponent(
+        self.startMenu = StartMenuComponent(
             self,
             actions,
             SECONDARY_REFRESH_RATE
         )
 
-        self.InterfaceManager.registerComponent(
+        self.interfaceManager.registerComponent(
             "startMenu",
-            self.StartMenu
+            self.startMenu
         )
 
         # widgets
-        self.Decorations = DecorationSystem(self, SECONDARY_REFRESH_RATE)
+        self.decorations = DecorationSystem(self, SECONDARY_REFRESH_RATE)
 
-        self.SpeechBubble = SpeechBubbleController(
+        self.speechBubble = SpeechBubbleController(
             self,
             SECONDARY_REFRESH_RATE,
-            occludersProvider=lambda: [self.StartMenu]
+            occludersProvider=lambda: [self.startMenu]
         )
 
         # internal states
@@ -114,9 +114,9 @@ class RockinWindow(QWidget):
         self.faceLabel = QLabel(self)
         self.eyesLabel = QLabel(self)
         
-        self.bodyLabel.setPixmap(self.Sprite.getBody(self.currentSpriteScale))
+        self.bodyLabel.setPixmap(self.spriteSystem.getBody(self.currentSpriteScale))
         self.resize(
-            self.Sprite.getBody(self.currentSpriteScale).size()
+            self.spriteSystem.getBody(self.currentSpriteScale).size()
         )
         
         # prepare label z-order
@@ -126,24 +126,24 @@ class RockinWindow(QWidget):
 
         # apply config
         self.userNickname = self.config.getValue("user.nickname")
-        self.userLangauge = self.config.getValue("user.languagePreference")
+        self.userLanguage = self.config.getValue("user.languagePreference")
 
-        self.setSpriteScale(self.currentSpriteScale)
-
-        self.Sound.setMasterVolume(
+        self.soundManager.setMasterVolume(
             self.config.getValue("sound.masterVolume")
         )
 
         for category, volume in self.config.getValue("sound.categoryVolumes").items():
-            self.Sound.setCategoryVolume(
+            self.soundManager.setCategoryVolume(
                 category,
                 volume
             )
 
-        # initial sprite state
+        # sprite
         self.updateSpriteFeatures(
             *IDLE_COMBINATION, True
         )
+
+        self.setSpriteScale(self.currentSpriteScale)
 
         # expression loop
         self.expressionTimer = QTimer(self)
@@ -168,7 +168,7 @@ class RockinWindow(QWidget):
         self.config.setValue("sprite.scale", scale)
 
         # resize window and labels
-        scaledBodyPixmap = self.Sprite.getBody(scale)
+        scaledBodyPixmap = self.spriteSystem.getBody(scale)
         newRootSize = scaledBodyPixmap.size()
 
         self.resize(newRootSize)
@@ -183,14 +183,14 @@ class RockinWindow(QWidget):
                 label.setPixmap(scaledBodyPixmap)
             elif label == self.faceLabel:
                 label.setPixmap(
-                    self.Sprite.getFace(
+                    self.spriteSystem.getFace(
                         self.currentFace,
                         scale
                     )
                 )
             elif label == self.eyesLabel:
                 label.setPixmap(
-                    self.Sprite.getEyes(
+                    self.spriteSystem.getEyes(
                         self.currentEyes,
                         scale
                     )
@@ -199,7 +199,7 @@ class RockinWindow(QWidget):
                 pass
         
         # reposition speech bubble
-        self.SpeechBubble.bubble._reposition()
+        self.speechBubble.bubble._reposition()
 
     def triggerShutdown(self):
         if not self.spriteReady:
@@ -208,9 +208,9 @@ class RockinWindow(QWidget):
         self.spriteReady = False
         self.updateSpriteFeatures("empty", "shuttingdown", True)
 
-        self.SpeechBubble.shutdown()
+        self.speechBubble.shutdown()
 
-        self.Sound.playSound(
+        self.soundManager.playSound(
             "applicationEnd.wav",
             SoundCategory.SPECIAL,
             onFinish=self.shutdown,
@@ -226,7 +226,7 @@ class RockinWindow(QWidget):
             return
 
         if event.key() == Qt.Key_E:
-            self.StartMenu.open()
+            self.startMenu.open()
             event.accept()
             return
 
@@ -239,20 +239,21 @@ class RockinWindow(QWidget):
 
 
     def shutdown(self):
-        self.Decorations.shutdown()
-        self.Sound.shutdown()
+        self.config.saveConfig()
+        self.decorations.shutdown()
+        self.soundManager.shutdown()
 
         APPLICATION.quit()
 
     def startWindowLoop(self):
-        self.Sound.playSound(
+        self.soundManager.playSound(
             "applicationStart.wav",
             SoundCategory.SPECIAL,
             onFinish=lambda: setattr(self, "spriteReady", True)
         )
 
-        self.SpeechBubble.addSpeech("gooooodd mythical mornningg :3")
-        self.SpeechBubble.addSpeech("how are you doing today?")
+        self.speechBubble.addSpeech("gooooodd mythical mornningg :3")
+        self.speechBubble.addSpeech("how are you doing today?")
 
         sys.exit(APPLICATION.exec_())
 
@@ -261,22 +262,22 @@ class RockinWindow(QWidget):
         btn = event.button()
 
         if btn == Qt.LeftButton:
-            self.Sound.playAmbientAudio("dragging")
-            self.Dragger.handleMousePress(event)
+            self.soundManager.playAmbientAudio("dragging")
+            self.dragger.handleMousePress(event)
             event.accept()
         elif btn == Qt.RightButton:
-            self.InterfaceManager.toggle("startMenu")
+            self.interfaceManager.toggle("startMenu")
             event.accept()
         else:
             super().mousePressEvent(event)
     
     def mouseMoveEvent(self, event):
-        self.SpeechBubble.bubble._reposition()
-        self.Dragger.handleMouseMove(event)
+        self.speechBubble.bubble._reposition()
+        self.dragger.handleMouseMove(event)
 
     def mouseReleaseEvent(self, event):
-        self.Sound.stopAmbientAudio()
-        self.Dragger.handleMouseRelease(event)
+        self.soundManager.stopAmbientAudio()
+        self.dragger.handleMouseRelease(event)
     
     def onDragStart(self):
         self.updateSpriteFeatures(
@@ -291,11 +292,11 @@ class RockinWindow(QWidget):
         if not self.spriteReady:
             return
         
-        self.LaserMouse.update()
+        self.laserMouse.update()
         
         self.updateSpriteFeatures(
-            *self.Sprite.getMoodCombination()
-            if not self.Dragger.isDragging
+            *self.spriteSystem.getMoodCombination()
+            if not self.dragger.isDragging
             else DRAG_COMBINATION
         )
 
@@ -311,13 +312,13 @@ class RockinWindow(QWidget):
         if (self.currentFace != faceName):
             self.currentFace = faceName
             self.faceLabel.setPixmap(
-                self.Sprite.getFace(faceName, self.currentSpriteScale)
+                self.spriteSystem.getFace(faceName, self.currentSpriteScale)
             )
 
         if (self.currentEyes != eyesName):
             self.currentEyes = eyesName
             self.eyesLabel.setPixmap(
-                self.Sprite.getEyes(eyesName, self.currentSpriteScale)
+                self.spriteSystem.getEyes(eyesName, self.currentSpriteScale)
             )
 
     def updateSpriteFace(

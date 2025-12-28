@@ -8,6 +8,13 @@ class AssetController:
     def __init__(self, folder: str = "") -> None:
         self.folder = folder
 
+    def blindGetAsset(self, fileName: str) -> Path | None:
+        for item in self.iterateDirectory(""):
+            if not item.name.startswith(fileName):
+                continue
+
+            return item
+
     def getAsset(self, relativePath: str) -> Path:
         return ROOT_ASSET_DIRECTORY / self.folder / relativePath
     

@@ -124,7 +124,7 @@ class DecorationItem(QGraphicsPixmapItem):
         else:
             self.velocity.setY(0.0)
 
-    def softSeperateColliders(self):
+    def softSeparateColliders(self):
         if self.isDragging:
             return
         
@@ -240,11 +240,13 @@ class DecorationController(QWidget):
         self.view.setGeometry(self.rect())
 
         self.childDecorations: list[DecorationItem] = []
-        self.deltaTime = self.refreshRate / 1000.0
+        self.deltaTime = 1.0 / max(1.0, float(refreshRate))
 
         self.updateTimer = QTimer(self)
         self.updateTimer.timeout.connect(self.stepDecorations)
-        self.updateTimer.start(self.refreshRate)
+        self.updateTimer.start(
+            max(1, 1000 // refreshRate)
+        )
 
         self._updateSceneBounds()
         self.show()
@@ -359,7 +361,7 @@ class DecorationController(QWidget):
         
         for i in range(2):
             for decor in self.childDecorations:
-                decor.softSeperateColliders()
+                decor.softSeparateColliders()
 
 class DecorationSystem:
     def __init__(

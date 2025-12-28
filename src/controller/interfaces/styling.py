@@ -1,4 +1,8 @@
+from ..asset import AssetController
+
 from PySide6.QtGui import QColor, QFont
+
+ICON_ASSETS = AssetController("images/icons")
 
 ANIMATION_OPACITY_DURATION = 200
 
