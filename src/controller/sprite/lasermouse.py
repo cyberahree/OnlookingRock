@@ -41,9 +41,10 @@ class LaserMouseController:
         t = (1.0 - (distance / self.minDistance)) ** 2
 
         strength = t * self.maxOffset
+        scale = self.sprite.currentSpriteScale
         return QPointF(
-            self._clamp((mouseX / distance) * strength, -self.maxOffset, self.maxOffset),
-            self._clamp((mouseY / distance) * strength, -self.maxOffset, self.maxOffset)
+            self._clamp((mouseX / distance) * strength, -self.maxOffset, self.maxOffset) * scale,
+            self._clamp((mouseY / distance) * strength, -self.maxOffset, self.maxOffset) * scale
         )
 
     def update(self):

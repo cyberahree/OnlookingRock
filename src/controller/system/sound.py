@@ -167,9 +167,12 @@ class SoundManager(QObject):
     # category methods
     def setCategoryVolume(
         self,
-        category: SoundCategory,
+        category: SoundCategory | str,
         volume: Annotated[float, VOLUME_RANGE]
     ) -> None:
+        if isinstance(category, str):
+            category = SoundCategory[category.upper()]
+
         self.soundCategories[category].volume = clamp(volume, VOLUME_RANGE)
         self._updateCategoryHandler(category)
     

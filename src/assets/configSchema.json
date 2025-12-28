@@ -1,0 +1,59 @@
+{
+  "sections": [
+    {
+      "title": "Sprite",
+      "items": [
+        {
+          "path": "sprite.scale",
+          "label": "Scale",
+          "type": "float",
+          "widget": "slider",
+          "min": 0.5,
+          "max": 2.0,
+          "step": 0.1
+        },
+        {
+          "path": "sprite.chattiness",
+          "label": "Chattiness",
+          "type": "float",
+          "widget": "slider",
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.1
+        }
+      ]
+    },
+    {
+      "title": "Audio",
+      "items": [
+        {
+          "path": "appVolume.master",
+          "label": "Master Volume",
+          "type": "float",
+          "widget": "slider",
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.1
+        }
+      ]
+    },
+    {
+      "title": "User",
+      "items": [
+        {
+          "path": "user.nickname",
+          "label": "Nickname",
+          "type": "string",
+          "widget": "lineedit"
+        },
+        {
+          "path": "user.languagePreference",
+          "label": "Language",
+          "type": "enum",
+          "widget": "combo",
+          "options": ["en", "ga"]
+        }
+      ]
+    }
+  ]
+}

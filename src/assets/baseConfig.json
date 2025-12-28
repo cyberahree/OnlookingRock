@@ -1,0 +1,20 @@
+{
+    "user": {
+        "nickname": "",
+        "languagePreference": "en"
+    },
+    "sound": {
+        "masterVolume": 0.25,
+        "categoryVolumes": {
+            "EVENT": 1.0,
+            "FEEDBACK": 1.0,
+            "AMBIENT": 0.25,
+            "SPECIAL": 1.0,
+            "SPEECH": 0.6
+        }
+    },
+    "sprite": {
+        "chattiness": 0.5,
+        "scale": 0.75
+    }
+}

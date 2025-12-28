@@ -3,7 +3,7 @@ from ..asset import AssetController
 
 from PySide6.QtGui import QPixmap
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 import time
@@ -78,41 +78,124 @@ EMOTION_DECISION_TABLE: list[ReactionRule] = [
     ),
 ]
 
+@dataclass
+class PixmapCache:
+    Body: QPixmap = field(default_factory=QPixmap)
+    Faces: dict[str, QPixmap] = field(default_factory=dict)
+    Eyes: dict[str, QPixmap] = field(default_factory=dict)
+
 class SpriteSystem:
-    def __init__(self, _spriteParent):
+    def __init__(self, _spriteParent, preloadScale: float = None) -> None:
         self.SpriteAssets = AssetController("images/sprite")
         self.KeyListener = KeyListener()
 
-        self.BodyMap = None
-        self.FaceMaps = {}
-        self.EyeMaps = {}
+        self.cachedPixmaps = {
+            1.0: PixmapCache()
+        }
 
-        self._loadAssets()
+        self._loadAssets(preloadScale)
 
-    def _loadAssets(self):
-        # completely reload all assets
-        self.BodyMap = QPixmap(
-            str(self.SpriteAssets.getAsset("root.png"))
-        )
+    def _loadAssets(self, scale: float = None):
+        loadRescaledCopy = (scale is not None) and (scale != 1.0)
+
+        # load body
+        bodyPixmap = QPixmap(self.SpriteAssets.getAsset("root.png"))
+        self.cachedPixmaps[1.0].Body = bodyPixmap
+
+        if loadRescaledCopy:
+            scaledBody = self._scalePixmap(bodyPixmap, scale)
+            self.cachedPixmaps[scale] = PixmapCache(Body=scaledBody)
         
+        # load eyes
         for eyeFile in self.SpriteAssets.iterateDirectory("eyes", ".png"):
-            self.EyeMaps[eyeFile.stem] = QPixmap(
-                str(eyeFile)
-            )
+            filePixmap = QPixmap(str(eyeFile))
+            self.cachedPixmaps[1.0].Eyes[eyeFile.stem] = filePixmap
 
+            if loadRescaledCopy:
+                scaledPixmap = self._scalePixmap(filePixmap, scale)
+                self.cachedPixmaps[scale].Eyes[eyeFile.stem] = scaledPixmap
+
+        # load faces
         for faceFile in self.SpriteAssets.iterateDirectory("faces", ".png"):
-            self.FaceMaps[faceFile.stem] = QPixmap(
-                str(faceFile)
-            )
+            filePixmap = QPixmap(str(faceFile))
+            self.cachedPixmaps[1.0].Faces[faceFile.stem] = filePixmap
+
+            if loadRescaledCopy:
+                scaledPixmap = self._scalePixmap(filePixmap, scale)
+                self.cachedPixmaps[scale].Faces[faceFile.stem] = scaledPixmap
     
-    def getFace(self, faceName: str) -> QPixmap:
-        return self.FaceMaps.get(
+    def _scalePixmap(self, pixmap: QPixmap, scale: float) -> QPixmap:
+        return pixmap.scaled(
+            pixmap.width() * scale,
+            pixmap.height() * scale
+        )
+
+    def _loadScaledAsset(
+        self,
+        scale: float,
+        type: str,
+        name: str = None
+    ) -> None:
+        if not scale in self.cachedPixmaps:
+            self.cachedPixmaps[scale] = PixmapCache()
+        else:
+            # check if already cached
+            if type == "body":
+                if not self.cachedPixmaps[scale].Body.isNull():
+                    return
+            else:
+                if name in self.cachedPixmaps[scale].__dict__[type.capitalize()]:
+                    return
+
+        # get the full-scale pixmap
+        fullPixmap = None
+
+        if type == "body":
+            fullPixmap = self.cachedPixmaps[1.0].Body
+        else:
+            fullPixmap = getattr(
+                self.cachedPixmaps[1.0],
+                type.capitalize()
+            ).get(name, None)
+        
+        if fullPixmap is None:
+            raise ValueError(f"Asset {type}/{name} not found for scaling")
+        
+        # scale it
+        scaledPixmap = fullPixmap.scaled(
+            fullPixmap.width() * scale,
+            fullPixmap.height() * scale
+        )
+
+        # cache it
+        if type == "body":
+            self.cachedPixmaps[scale].Body = scaledPixmap
+        else:
+            getattr(
+                self.cachedPixmaps[scale],
+                type.capitalize()
+            )[name] = scaledPixmap
+
+    def getBody(self, scale: float = 1.0) -> QPixmap:
+        scale = max(0.1, scale)
+        self._loadScaledAsset(scale, "body")
+
+        return self.cachedPixmaps[scale].Body
+
+    def getFace(self, faceName: str, scale: float = 1.0) -> QPixmap:
+        scale = max(0.1, scale)
+        self._loadScaledAsset(scale, "faces", faceName)
+
+        return self.cachedPixmaps[scale].Faces.get(
             faceName,
             QPixmap()
         )
     
-    def getEyes(self, eyesName: str) -> QPixmap:
-        return self.EyeMaps.get(
+    def getEyes(self, eyesName: str, scale: float = 1.0) -> QPixmap:
+        scale = max(0.1, scale)
+        self._loadScaledAsset(scale, "eyes", eyesName)
+
+        return self.cachedPixmaps[scale].Eyes.get(
             eyesName,
             QPixmap()
         )

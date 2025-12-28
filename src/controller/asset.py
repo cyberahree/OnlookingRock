@@ -5,7 +5,7 @@ from typing import Optional, Union, Tuple
 ROOT_ASSET_DIRECTORY = Path(__file__).resolve().parent.parent / "assets"
 
 class AssetController:
-    def __init__(self, folder: str) -> None:
+    def __init__(self, folder: str = "") -> None:
         self.folder = folder
 
     def getAsset(self, relativePath: str) -> Path:

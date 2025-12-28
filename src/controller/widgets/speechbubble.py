@@ -1,19 +1,27 @@
+from ..interactable.styling import (
+    asRGB,
+    BACKGROUND_COLOR,
+    TEXT_COLOR,
+    DEFAULT_FONT,
+    BORDER_RADIUS,
+    BORDER_MARGIN,
+    PADDING,
+    ANIMATION_OPACITY_DURATION
+)
+
 from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QGraphicsOpacityEffect
 from PySide6.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import QFont, QPainter, QPolygon, QColor
+from PySide6.QtGui import QFont, QPainter, QPolygon
 
 from collections import deque
 
 import random
 
-SPEECH_BACKGROUND_COLOR = QColor(255, 255, 224, 255)
-APPEAR_DURATION = 300
 TAIL_WIDTH = 12
 
 CHARACTERS_PER_SECOND = (25, 45)
 READING_DELAY = 4500
 READING_WPS = (180 / 60) # words per second
-SPEECH_MARGIN = 8
 
 class SpeechBubbleController(QWidget):
     def __init__(self, sprite: QWidget, refreshRate: int = 5):
@@ -53,16 +61,14 @@ class SpeechBubbleController(QWidget):
         self.label.setMaximumWidth(220)
         self.label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
-        font = QFont("Comic Sans MS", 11)
-        self.label.setFont(font)
+        self.label.setFont(DEFAULT_FONT)
 
-        rgba = SPEECH_BACKGROUND_COLOR.getRgb()
         self.label.setStyleSheet(f"""
             QLabel {{
-                background-color: rgba({rgba[0]}, {rgba[1]}, {rgba[2]}, {rgba[3]});
-                color: #222;
-                padding: 8px 10px;
-                border-radius: 10px;
+                background-color: {asRGB(BACKGROUND_COLOR)};
+                color: {asRGB(TEXT_COLOR)};
+                padding: {PADDING}px;
+                border-radius: {BORDER_RADIUS}px;
             }}
         """)
 
@@ -78,7 +84,7 @@ class SpeechBubbleController(QWidget):
         # fade animation
         self.fadeAnimation = QPropertyAnimation(self.windowOpacityEffect, b"opacity")
         self.fadeAnimation.setEasingCurve(QEasingCurve.OutCubic)
-        self.fadeAnimation.setDuration(APPEAR_DURATION)
+        self.fadeAnimation.setDuration(ANIMATION_OPACITY_DURATION)
         self.fadeAnimation.finished.connect(self._onFadeFinished)
 
         # follow sprite
@@ -150,23 +156,25 @@ class SpeechBubbleController(QWidget):
             self.show()
 
         screen = self.sprite.screen().availableGeometry()
-        sprite = self.sprite.geometry()
+        sprite = self.sprite.frameGeometry()
 
-        x = sprite.right() + SPEECH_MARGIN
-        y = sprite.top() - self.height() // 2
+        width, height = self.width(), self.height()
+
+        x = sprite.right() + BORDER_MARGIN
+        y = sprite.top() - height // 2
 
         # flip if need be
-        if x + self.width() > screen.right():
-            x = sprite.left() - self.width() - SPEECH_MARGIN
+        if x + width > screen.right():
+            x = sprite.left() - width - BORDER_MARGIN
 
         # clamp vertically
         y = max(
-            screen.top() + SPEECH_MARGIN,
-            min(y, screen.bottom() - self.height() - SPEECH_MARGIN)
+            screen.top() + BORDER_MARGIN,
+            min(y, screen.bottom() - height - BORDER_MARGIN)
         )
 
         # tail direction
-        bubble_center_x = x + self.width() // 2
+        bubble_center_x = x + width // 2
         sprite_center_x = sprite.center().x()
     
         previous_tail_direciton = self.tailDirection
@@ -220,7 +228,7 @@ class SpeechBubbleController(QWidget):
     def _paintTail(self):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setBrush(SPEECH_BACKGROUND_COLOR)
+        painter.setBrush(BACKGROUND_COLOR)
         painter.setPen(Qt.NoPen)
 
         label_rect = self.label.geometry()
