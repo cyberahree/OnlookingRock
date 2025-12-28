@@ -11,8 +11,8 @@ HEADING_FONT = QFont(FONT_NAME, 16, QFont.Weight.Bold)
 SUBHEADING_FONT = QFont(FONT_NAME, 10, QFont.Weight.Light)
 DEFAULT_FONT = QFont(FONT_NAME, 12)
 
+BORDER_MARGIN = 16
 BORDER_RADIUS = 4
-BORDER_MARGIN = 8
 PADDING = 8
 
 def asRGB(color: QColor) -> str:

@@ -4,14 +4,14 @@ from .config import ConfigController
 from .system.sound import SoundManager, SoundCategory
 from .system.dragger import WindowDragger
 
+from .interfaces.components.startmenu import StartMenuComponent, MenuAction
+from .interfaces.base import InterfaceManager
+
 from .sprite import SpriteSystem, IDLE_COMBINATION, DRAG_COMBINATION
 from .sprite.lasermouse import LaserMouseController
 from .sprite.blinker import BlinkingController
 
-from .interactable.registry import PanelRegistry
-from .interactable.startmenu import SpriteStartMenu
-
-from .widgets.speechbubble import SpeechBubbleController
+from .widgets.speech import SpeechBubbleController
 from .widgets.decoration import DecorationSystem
 
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
@@ -67,16 +67,32 @@ class RockinWindow(QWidget):
             )
         )
 
+        # interfaces
+        self.InterfaceManager = InterfaceManager(self)
+
+        # start menu
+        actions = [
+            MenuAction("quitSprite", "Quit", self.triggerShutdown)
+        ]
+
+        self.StartMenu = StartMenuComponent(
+            self,
+            actions,
+            SECONDARY_REFRESH_RATE
+        )
+
+        self.InterfaceManager.registerComponent(
+            "startMenu",
+            self.StartMenu
+        )
+
         # widgets
-        self.SpeechBubble = SpeechBubbleController(self, SECONDARY_REFRESH_RATE)
         self.Decorations = DecorationSystem(self, SECONDARY_REFRESH_RATE)
 
-        # interactables
-        self.PanelRegistry = PanelRegistry()
-        self.StartMenu = SpriteStartMenu(
+        self.SpeechBubble = SpeechBubbleController(
             self,
-            self.PanelRegistry,
-            SECONDARY_REFRESH_RATE
+            SECONDARY_REFRESH_RATE,
+            occludersProvider=lambda: [self.StartMenu]
         )
 
         # internal states
@@ -183,7 +199,20 @@ class RockinWindow(QWidget):
                 pass
         
         # reposition speech bubble
-        self.SpeechBubble._reposition()
+        self.SpeechBubble.bubble._reposition()
+
+    def triggerShutdown(self):
+        self.spriteReady = False
+        self.updateSpriteFeatures("empty", "shuttingdown", True)
+
+        self.SpeechBubble.shutdown()
+
+        self.Sound.playSound(
+            "applicationEnd.wav",
+            SoundCategory.SPECIAL,
+            onFinish=self.shutdown,
+            finishDelay=500
+        )
 
     # keyboard handlers
     def keyPressEvent(self, event):
@@ -194,22 +223,12 @@ class RockinWindow(QWidget):
             return
 
         if event.key() == Qt.Key_E:
-            self.StartMenu.toggleVisibility()
+            self.StartMenu.open()
             event.accept()
             return
 
         if event.key() == Qt.Key_Escape:
-            self.spriteReady = False
-            self.updateSpriteFeatures("empty", "shuttingdown", True)
-
-            self.SpeechBubble.shutdown()
-
-            self.Sound.playSound(
-                "applicationEnd.wav",
-                SoundCategory.SPECIAL,
-                onFinish=self.shutdown,
-                finishDelay=500
-            )
+            self.triggerShutdown()
             event.accept()
             return
 
@@ -236,11 +255,20 @@ class RockinWindow(QWidget):
 
     # dragging handlers
     def mousePressEvent(self, event):
-        self.Sound.playAmbientAudio("dragging")
-        self.Dragger.handleMousePress(event)
+        btn = event.button()
+
+        if btn == Qt.LeftButton:
+            self.Sound.playAmbientAudio("dragging")
+            self.Dragger.handleMousePress(event)
+            event.accept()
+        elif btn == Qt.RightButton:
+            self.InterfaceManager.toggle("startMenu")
+            event.accept()
+        else:
+            super().mousePressEvent(event)
     
     def mouseMoveEvent(self, event):
-        self.SpeechBubble._reposition()
+        self.SpeechBubble.bubble._reposition()
         self.Dragger.handleMouseMove(event)
 
     def mouseReleaseEvent(self, event):
