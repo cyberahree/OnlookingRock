@@ -16,6 +16,7 @@ DRAG_COMBINATION = ("idle", "dragged")
 IDLE_COMBINATION = ("idle", "idle")
 
 SLEEP_DELTA_THRESHOLD = 120
+SCALING_LIMITS = (0.1, 2.0)
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,12 @@ class PixmapCache:
     faces: dict[str, QPixmap] = field(default_factory=dict)
     eyes: dict[str, QPixmap] = field(default_factory=dict)
 
+def limitScale(scale: float) -> float:
+    return round(
+        max(SCALING_LIMITS[0], min(SCALING_LIMITS[1], scale)),
+        2
+    )
+
 class SpriteSystem:
     def __init__(self, _spriteParent, preloadScale: float = None) -> None:
         self.spriteAssets = AssetController("images/sprite")
@@ -139,7 +146,7 @@ class SpriteSystem:
         assetType: str,
         name: str = None
     ) -> None:
-        scale = round(max(0.1, scale), 2)
+        scale = limitScale(scale)
 
         if not scale in self.cachedPixmaps:
             self.cachedPixmaps[scale] = PixmapCache()
@@ -183,12 +190,12 @@ class SpriteSystem:
             )[name] = scaledPixmap
 
     def getBody(self, scale: float = 1.0) -> QPixmap:
-        scale = round(max(0.1, scale), 2)
+        scale = limitScale(scale)
         self._loadScaledAsset(scale, "body")
         return self.cachedPixmaps[scale].body
 
     def getFace(self, faceName: str, scale: float = 1.0) -> QPixmap:
-        scale = round(max(0.1, scale), 2)
+        scale = limitScale(scale)
         self._loadScaledAsset(scale, "faces", faceName)
 
         return self.cachedPixmaps[scale].faces.get(
@@ -197,7 +204,7 @@ class SpriteSystem:
         )
     
     def getEyes(self, eyesName: str, scale: float = 1.0) -> QPixmap:
-        scale = round(max(0.1, scale), 2)
+        scale = limitScale(scale)
         self._loadScaledAsset(scale, "eyes", eyesName)
 
         return self.cachedPixmaps[scale].eyes.get(

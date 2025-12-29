@@ -10,8 +10,8 @@ from ..styling import (
     PADDING,
 )
 
-from ..positioning import bestCandidate
 from ..base import InterfaceComponent
+from ..mixin import SpriteAnchorMixin
 
 from PySide6.QtWidgets import (
     QFrame, QWidget, QVBoxLayout, QLabel,
@@ -34,7 +34,7 @@ class MenuAction:
     callback: Callable[[], None]
     iconName: Optional[str] = None
 
-class StartMenuComponent(InterfaceComponent):
+class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
     def __init__(
         self,
         sprite: QWidget,
@@ -189,27 +189,12 @@ class StartMenuComponent(InterfaceComponent):
         self._reposition()
 
     def _reposition(self):
-        if not self.sprite:
-            return
-
-        screen = self.sprite.screen().availableGeometry()
-        spriteRect = self.sprite.frameGeometry()
-        size = self.size()
-
-        # right side, bottom aligned
-        preferred = QPoint(
-            spriteRect.right() + BORDER_MARGIN,
-            spriteRect.bottom() - size.height()
+        target = self.anchorNextToSprite(
+            yAlign="bottom",
+            preferredSide="right",
+            margin=BORDER_MARGIN,
+            occluders=[],
         )
-
-        # left side, bottom aligned
-        alt = QPoint(
-            spriteRect.left() - size.width() - BORDER_MARGIN,
-            spriteRect.bottom() - size.height()
-        )
-
-        occluders = []
-        target = bestCandidate(preferred, alt, size, screen, occluders, BORDER_MARGIN)
 
         self.animateTo(target)
 

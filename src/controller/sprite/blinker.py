@@ -14,10 +14,10 @@ class BlinkingController:
         timer: QTimer,
         triggerBlink: Callable,
         completeBlink: Callable,
-        blinkDelayRange: tuple[int, int],
+        blinkIntervalRange: tuple[int, int] = (4000, 12000),
     ):
         self.timer = timer
-        self.blinkDelayRange = blinkDelayRange
+        self.blinkIntervalRange = blinkIntervalRange
 
         self.isBlinking = False
         self.triggerBlink = triggerBlink
@@ -36,10 +36,13 @@ class BlinkingController:
         self.isBlinking = False
         self.completeBlink()
 
+    def setBlinkIntervalRange(self, blinkIntervalRange: tuple[int, int]) -> None:
+        self.blinkIntervalRange = blinkIntervalRange
+
     def getNextBlink(self) -> int:
         return random.randint(
-            self.blinkDelayRange[0],
-            self.blinkDelayRange[1]
+            self.blinkIntervalRange[0],
+            self.blinkIntervalRange[1]
         )
 
     def scheduleBlink(self):

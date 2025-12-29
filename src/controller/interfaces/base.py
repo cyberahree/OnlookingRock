@@ -1,5 +1,7 @@
 from .styling import DEFAULT_FONT, BORDER_MARGIN, ANIMATION_OPACITY_DURATION
 
+from .mixin import FadeableMixin
+
 from PySide6.QtCore import (
     QObject, QEvent, QTimer, QPoint, Qt,
     QPropertyAnimation, QEasingCurve, Signal
@@ -10,7 +12,7 @@ from PySide6.QtGui import QGuiApplication
 
 from typing import Optional
 
-class InterfaceComponent(QWidget):
+class InterfaceComponent(QWidget, FadeableMixin):
     fadeFinished = Signal(float)
 
     def __init__(
@@ -35,20 +37,11 @@ class InterfaceComponent(QWidget):
         self.moveAnimationMinDuration = 80
         self.moveAnimationMaxDuration = 300
 
-        self.moveAnimation = QPropertyAnimation(self, b"pos")
-        self.moveAnimation.setEasingCurve(QEasingCurve.OutCubic)
-
-        self.opacityEffect = QGraphicsOpacityEffect(self)
-        self.setGraphicsEffect(self.opacityEffect)
-        self.opacityEffect.setOpacity(1.0)
-
-        self.fadeAnimation = QPropertyAnimation(self.opacityEffect, b"opacity")
-        self.fadeAnimation.setEasingCurve(QEasingCurve.OutCubic)
-        self.fadeAnimation.setDuration(ANIMATION_OPACITY_DURATION)
-        self.fadeAnimation.finished.connect(self._onFadeFinished)
-
-        self.enableFadeAnimation = True
-        self.fadeHideWhenZero = True
+        self.initFadeable(
+            durationMs=ANIMATION_OPACITY_DURATION,
+            startOpacity=1.0,
+            easing=QEasingCurve.OutCubic,
+        )
 
         self.fadeOnOpen = True
         self.fadeOnClose = True
@@ -68,54 +61,9 @@ class InterfaceComponent(QWidget):
     def updateAnchor(self) -> None:
         pass
 
-    def setOpacity(self, value: float) -> None:
-        self.opacityEffect.setOpacity(max(0.0, min(1.0, float(value))))
-    
-    def fadeTo(
-        self,
-        target: float,
-        *,
-        showIfHidden: bool = True,
-        hideWhenZero: bool = True
-    ) -> None:
-        if not self.enableFadeAnimation:
-            self.setOpacity(target)
-
-            if target <= 0.001 and hideWhenZero:
-                self.hide()
-            elif showIfHidden and self.isHidden():
-                self.show()
-
-            self.fadeFinished.emit(self.opacityEffect.opacity())
-            return
-
-        target = max(0.0, min(1.0, float(target)))
-        self.fadeHideWhenZero = hideWhenZero
-
-        if showIfHidden and target > 0.001 and self.isHidden():
-            self.show()
-
-        self.fadeAnimation.stop()
-        self.fadeAnimation.setStartValue(self.opacityEffect.opacity())
-        self.fadeAnimation.setEndValue(target)
-        self.fadeAnimation.start()
-
-    def fadeIn(self) -> None:
-        self.fadeTo(1.0, showIfHidden=True, hideWhenZero=False)
-
-    def fadeOut(self) -> None:
-        self.fadeTo(0.0, showIfHidden=False, hideWhenZero=True)
-
-    def _onFadeFinished(self) -> None:
-        endOpacity = float(self.opacityEffect.opacity())
-
-        if self.fadeHideWhenZero and endOpacity <= 0.001:
-            self.hide()
-
+    def onFadeFinished(self, endOpacity: float) -> None:
         if endOpacity <= 0.001:
             self._fadeClosePending = False
-
-        self.fadeFinished.emit(endOpacity)
 
     def open(self) -> None:
         self.ensureBuilt()

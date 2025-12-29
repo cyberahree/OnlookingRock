@@ -8,6 +8,7 @@ import tempfile
 import logging
 import json
 import os
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -193,12 +194,47 @@ class ConfigController:
     def listProfiles(self) -> list[str]:
         self.userProfilesDirectory.mkdir(parents=True, exist_ok=True)
 
-        profiles = []
+        profiles = {"default"}
 
         for file in self.userProfilesDirectory.glob("*.json"):
-            profiles.append(file.stem)
+            profiles.add(file.stem)
         
-        return profiles
+        return sorted(profiles)
+
+    def isValidProfileName(self, profile: str) -> bool:
+        pattern = r"^[a-zA-Z0-9_-]{3,32}$"
+        return re.match(pattern, profile) is not None
+
+    def getActiveProfile(self) -> str:
+        return self.userProfilePath.stem
+    
+    def getProfilePath(self, profile: str) -> Path:
+        self.userProfilesDirectory.mkdir(parents=True, exist_ok=True)
+        return self.userProfilesDirectory / f"{profile}.json"
+
+    def createProfile(
+        self,
+        profile: str,
+        overrides: JsonDict = None,
+        overwrite: bool = False
+    ):
+        if not self.isValidProfileName(profile):
+            raise ValueError(f"Invalid profile name: {profile}")
+        
+        profilePath = self.getProfilePath(profile)
+
+        if profilePath.exists() and not overwrite:
+            raise FileExistsError(f"Profile '{profile}' already exists at {profilePath}")
+        
+        atomicWriteJson(
+            profilePath,
+            overrides or {}
+        )
+
+    def deleteProfile(self, profile: str):
+        deleteFileIfExists(
+            self.getProfilePath(profile)
+        )
 
     def switchProfile(self, profile: str):
         # this method does not save the current profile

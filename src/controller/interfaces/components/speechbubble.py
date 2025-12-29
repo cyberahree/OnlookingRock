@@ -6,19 +6,17 @@ from ..styling import (
     BORDER_RADIUS,
     BORDER_MARGIN,
     PADDING,
-    ANIMATION_OPACITY_DURATION,
 )
 
 from ..positioning import bestCandidate
 from ..base import InterfaceComponent
+from ..mixin import SpriteAnchorMixin
 
 from PySide6.QtCore import (
     Qt,
     QTimer,
     QPoint,
     QRect,
-    QPropertyAnimation,
-    QEasingCurve,
     Signal
 )
 
@@ -32,7 +30,7 @@ import random
 CHARACTERS_PER_SECOND = (25, 45)
 TAIL_SIZE = 12
 
-class SpeechBubbleComponent(InterfaceComponent):
+class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
     typingFinished = Signal()
     fadeOutFinished = Signal()
 
@@ -156,7 +154,7 @@ class SpeechBubbleComponent(InterfaceComponent):
         self.fadeIn()
         self.raise_()
         self.followTimer.start()
-        self._restackOccluders()
+        self.restackOccluders()
 
         self.typeTimer.start(self.currentTypingDelay)
     
@@ -215,46 +213,31 @@ class SpeechBubbleComponent(InterfaceComponent):
         if endOpacity <= 0.001:
             self.fadeOutFinished.emit()
     
-    def _reposition(self, force_show: bool = False):
+    def _reposition(self, forceShow: bool = False) -> None:
         if not self.sprite:
             return
 
-        if self.isHidden() and not force_show:
+        if self.isHidden() and not forceShow:
             return
 
-        if force_show:
+        if forceShow:
             self.show()
 
-        screen = self.sprite.screen().availableGeometry()
-        spriteRect = self.sprite.frameGeometry()
-        size = self.size()
+        target = self.anchorNextToSprite(
+            yAlign="center",
+            preferredSide="right",
+            margin=BORDER_MARGIN,
+        )
 
-        # prefer right side, fallback left
-        preferredX = spriteRect.right() + BORDER_MARGIN
-        alternateX = spriteRect.left() - size.width() - BORDER_MARGIN
-
-        # anchor around sprite center (not sprite.top())
-        baseY = spriteRect.center().y() - (size.height() // 2)
-
-        preferred = QPoint(preferredX, baseY)
-        alt = QPoint(alternateX, baseY)
-
-        occluders = list(self._iterateOccludersBounds())
-        target = bestCandidate(preferred, alt, size, screen, occluders, BORDER_MARGIN)
-
-        # tail direction
+        # tail direction (point inwards toward the sprite)
         prev_tail = self.tailDirection
-
-        bubbleCenterX = target.x() + (size.width() // 2)
-        spriteCenterX = spriteRect.center().x()
-
-        self.tailDirection = "left" if spriteCenterX < bubbleCenterX else "right"
+        self.tailDirection = self.inwardHorizontalDirection(target)
 
         if prev_tail != self.tailDirection:
             self.update()
 
         self.animateTo(target)
-    
+            
     # tail painting
     def paintEvent(self, event):
         super().paintEvent(event)

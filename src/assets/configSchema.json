@@ -34,6 +34,51 @@
           "min": 0.0,
           "max": 1.0,
           "step": 0.1
+        },
+        {
+          "path": "sound.categoryVolumes.EVENT",
+          "label": "Event Volume",
+          "type": "float",
+          "widget": "slider",
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.1
+        },
+        {
+          "path": "sound.categoryVolumes.FEEDBACK",
+          "label": "Feedback Volume",
+          "type": "float",
+          "widget": "slider",
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.05
+        },
+        {
+          "path": "sound.categoryVolumes.AMBIENT", 
+          "label": "Ambient Volume", 
+          "type": "float",
+          "widget": "slider",
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.05
+        },
+        {
+          "path": "sound.categoryVolumes.SPECIAL", 
+          "label": "Special Volume", 
+          "type": "float",
+          "widget": "slider",
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.05
+        },
+        {
+          "path": "sound.categoryVolumes.SPEECH",  
+          "label": "Speech Volume",  
+          "type": "float",
+          "widget": "slider",
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.05
         }
       ]
     },
