@@ -15,10 +15,26 @@ logger = logging.getLogger(__name__)
 ASSETS_DIR = AssetController()
 JsonDict = dict[str, Any]
 
+def normalizeProfileName(profile: Any) -> str:
+    """
+    Prevent accidental 'None.json' profiles from being created/used.
+
+    Rules:
+      - None / "" / "None" -> "default"
+    """
+    if profile is None:
+        return "default"
+
+    name = str(profile).strip()
+    if name == "" or name.lower() == "none":
+        return "default"
+
+    return name
+
 def readJSONFile(path: Path) -> JsonDict:
     if not path.exists():
         return {}
-    
+
     with open(path, "r", encoding="utf-8") as file:
         return json.load(file)
 
@@ -38,9 +54,9 @@ def atomicWriteJson(
     path.parent.mkdir(parents=True, exist_ok=True)
 
     fileDescriptor, temporaryFile = tempfile.mkstemp(
-        prefix = path.name,
-        suffix = ".tmp",
-        dir = str(path.parent)
+        prefix=path.name,
+        suffix=".tmp",
+        dir=str(path.parent)
     )
 
     tempFilePath = Path(temporaryFile)
@@ -50,11 +66,11 @@ def atomicWriteJson(
             json.dump(
                 data,
                 file,
-                indent = 4,
-                sort_keys = True
+                indent=4,
+                sort_keys=True
             )
             file.write("\n")
-            
+
         tempFilePath.replace(path)
     finally:
         deleteFileIfExists(tempFilePath)
@@ -78,7 +94,7 @@ def deepMerge(
             out[key] = deepMerge(out[key], value)
         else:
             out[key] = value
-    
+
     return out
 
 def pruneForDefaults(
@@ -99,7 +115,7 @@ def pruneForDefaults(
 
     if type(defaults) != type(current):
         return current
-    
+
     # primitive
     return None if defaults == current else current
 
@@ -112,9 +128,9 @@ def getByPath(
     for part in path.split("."):
         if (not isinstance(current, dict)) or (part not in current):
             raise KeyError(f"Path '{path}' (at part {part}) not found in data")
-        
+
         current = current[part]
-    
+
     return current
 
 def setByPath(
@@ -128,9 +144,9 @@ def setByPath(
     for part in parts[:-1]:
         if part not in current or not isinstance(current[part], dict):
             current[part] = {}
-        
+
         current = current[part]
-    
+
     current[parts[-1]] = value
 
 class ConfigController:
@@ -145,12 +161,13 @@ class ConfigController:
 
         self.appName = appName
         self.baseConfigPath = baseConfigPath
-        
+
         # configuration directory
         self.userProfilesDirectory = Path(
             user_config_dir(appName)
         ) / "profiles"
 
+        profile = normalizeProfileName(profile)
         self.userProfilePath = self.userProfilesDirectory / f"{profile}.json"
 
         self.schema = self.loadSchema()
@@ -190,15 +207,21 @@ class ConfigController:
             self.userProfilePath,
             pruned or {}
         )
-    
+
     def listProfiles(self) -> list[str]:
         self.userProfilesDirectory.mkdir(parents=True, exist_ok=True)
 
         profiles = {"default"}
 
         for file in self.userProfilesDirectory.glob("*.json"):
-            profiles.add(file.stem)
-        
+            stem = file.stem
+
+            # hide accidental "None.json" profiles from old runs
+            if normalizeProfileName(stem) == "default" and stem != "default":
+                continue
+
+            profiles.add(stem)
+
         return sorted(profiles)
 
     def isValidProfileName(self, profile: str) -> bool:
@@ -207,8 +230,9 @@ class ConfigController:
 
     def getActiveProfile(self) -> str:
         return self.userProfilePath.stem
-    
+
     def getProfilePath(self, profile: str) -> Path:
+        profile = normalizeProfileName(profile)
         self.userProfilesDirectory.mkdir(parents=True, exist_ok=True)
         return self.userProfilesDirectory / f"{profile}.json"
 
@@ -218,20 +242,24 @@ class ConfigController:
         overrides: JsonDict = None,
         overwrite: bool = False
     ):
+        profile = normalizeProfileName(profile)
+
         if not self.isValidProfileName(profile):
             raise ValueError(f"Invalid profile name: {profile}")
-        
+
         profilePath = self.getProfilePath(profile)
 
         if profilePath.exists() and not overwrite:
             raise FileExistsError(f"Profile '{profile}' already exists at {profilePath}")
-        
+
         atomicWriteJson(
             profilePath,
             overrides or {}
         )
 
     def deleteProfile(self, profile: str):
+        profile = normalizeProfileName(profile)
+
         deleteFileIfExists(
             self.getProfilePath(profile)
         )
@@ -240,9 +268,10 @@ class ConfigController:
         # this method does not save the current profile
         # it just switches to another one
 
+        profile = normalizeProfileName(profile)
         self.userProfilePath = self.userProfilesDirectory / f"{profile}.json"
         self.loadConfig()
-    
+
     def loadSchema(self) -> JsonDict:
         schemaPath = ASSETS_DIR.getAsset("configSchema.json")
         loadedSchema = readJSONFile(schemaPath)
@@ -254,4 +283,3 @@ class ConfigController:
 
     def setValue(self, path: str, value: Any) -> None:
         return setByPath(self.config, path, value)
-    

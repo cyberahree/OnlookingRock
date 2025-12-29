@@ -5,6 +5,8 @@ from .system.sound import SoundManager, SoundCategory
 from .system.dragger import WindowDragger
 
 from .interfaces.components.startmenu import StartMenuComponent, MenuAction
+# TODO: uncomment when i actually am happy with the settings
+# from .interfaces.components.settingsmodal import SettingsModalComponent
 from .interfaces.base import InterfaceManager
 
 from .sprite import SpriteSystem, limitScale, IDLE_COMBINATION, DRAG_COMBINATION
@@ -28,7 +30,7 @@ SECONDARY_REFRESH_RATE = 30 # frames per second
 class RockinWindow(QWidget):
     def __init__(
         self,
-        configProfile: str = None
+        configProfile: str = "default"
     ) -> None:
         super().__init__()
 
@@ -70,23 +72,35 @@ class RockinWindow(QWidget):
             SECONDARY_REFRESH_RATE
         )
 
+        # settings modal
+        """
+        # TODO: uncomment when i actually am happy with the settings
+        self.settingsModal = SettingsModalComponent(
+            self,
+            SECONDARY_REFRESH_RATE,
+        )
+
+        self.interfaceManager.registerComponent(
+            "settings",
+            self.settingsModal
+        )
+        """
+
         # start menu
         self.startMenu = StartMenuComponent(
             self,
             [
-                MenuAction("openSettings", "Settings", lambda: print("Settings opened"), "settings"),
+                MenuAction("openSettings", "Settings", lambda: print("open settings"), "settings"),
                 MenuAction("quitSprite", "Quit", self.triggerShutdown, "power")
             ],
-            SECONDARY_REFRESH_RATE
+            SECONDARY_REFRESH_RATE,
+            #occludersProvider=lambda: [self.settingsModal]
         )
 
         self.interfaceManager.registerComponent(
             "startMenu",
             self.startMenu
         )
-        #
-        # 
-        #
 
         # widgets
         self.decorations = DecorationSystem(self, APP_REFRESH_RATE)
@@ -95,6 +109,7 @@ class RockinWindow(QWidget):
             self,
             SECONDARY_REFRESH_RATE,
             occludersProvider=lambda: [self.startMenu]
+            #occludersProvider=lambda: [self.startMenu, self.settingsModal]
         )
 
         self.interfaceManager.registerComponent(

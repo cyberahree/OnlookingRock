@@ -100,11 +100,7 @@ class SoundManager(QObject):
         return clamp(volume * self.masterVolume, VOLUME_RANGE)
 
     def _getCategoryByEnum(self, category: SoundCategory) -> CategoryConfig:
-        for (cat, _path), instances in self.soundCache.items():
-            if cat != category:
-                continue
-
-            return instances
+        return self.soundCategories[category]
 
     def _updateCategoryHandler(self, category: SoundCategory) -> None:
         categoryConfig = self._getCategoryByEnum(category)

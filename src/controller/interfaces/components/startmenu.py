@@ -22,7 +22,7 @@ from PySide6.QtCore import Qt, QPoint, QSize, QTimer, QEvent, QRect
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon, QColor
 
-from typing import Callable, Optional, Sequence
+from typing import Callable, Optional, Sequence, Iterable
 from dataclasses import dataclass
 
 SIZE_CONSTRAINTS = (128, 512)
@@ -39,11 +39,13 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self,
         sprite: QWidget,
         actions: Sequence[MenuAction],
-        refreshRate: int = 10
+        refreshRate: int = 10,
+        occludersProvider: Optional[Callable[[], Iterable[QWidget]]] = (lambda: []),
     ):
         super().__init__(sprite, refreshRate)
 
         self.actions = list(actions)
+        self.occludersProvider = occludersProvider
         
         self.setWindowFlags(
             Qt.Tool |
@@ -193,7 +195,7 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
             yAlign="bottom",
             preferredSide="right",
             margin=BORDER_MARGIN,
-            occluders=[],
+            occludersProvider=self.occludersProvider,
         )
 
         self.animateTo(target)

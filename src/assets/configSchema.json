@@ -10,7 +10,7 @@
           "widget": "slider",
           "min": 0.5,
           "max": 2.0,
-          "step": 0.1
+          "step": 0.05
         },
         {
           "path": "sprite.chattiness",
@@ -33,7 +33,7 @@
           "widget": "slider",
           "min": 0.0,
           "max": 1.0,
-          "step": 0.1
+          "step": 0.05
         },
         {
           "path": "sound.categoryVolumes.EVENT",
@@ -42,7 +42,7 @@
           "widget": "slider",
           "min": 0.0,
           "max": 1.0,
-          "step": 0.1
+          "step": 0.05
         },
         {
           "path": "sound.categoryVolumes.FEEDBACK",

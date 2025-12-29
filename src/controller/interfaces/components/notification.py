@@ -84,6 +84,7 @@ class ToastItem(QFrame, FadeableMixin):
 
         self.closeButton = QPushButton("x", self)
         self.closeButton.setObjectName("toastCloseButton")
+        self.closeButton.setFixedSize(24, 24)
         self.closeButton.setFocusPolicy(Qt.NoFocus)
         self.closeButton.clicked.connect(self.dismissToast)
         
