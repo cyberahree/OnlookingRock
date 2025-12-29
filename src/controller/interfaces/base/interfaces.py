@@ -1,9 +1,10 @@
 from .styling import DEFAULT_FONT, BORDER_MARGIN, ANIMATION_OPACITY_DURATION
 
 from ..mixin import FadeableMixin
+from ...system.timings import TimingClock
 
 from PySide6.QtCore import (
-    QObject, QEvent, QTimer, QPoint, Qt,
+    QObject, QEvent, QPoint, Qt, QTimer,
     QPropertyAnimation, QEasingCurve, Signal
 )
 
@@ -12,13 +13,43 @@ from PySide6.QtGui import QGuiApplication
 
 from typing import Optional
 
+class _FollowConnection(QObject):
+    def __init__(self, timer: QTimer, callback, parent: Optional[QObject] = None):
+        super().__init__(parent)
+        self._timer = timer
+        self._callback = callback
+        self._active = False
+
+    def start(self) -> None:
+        if self._active:
+            return
+
+        try:
+            self._timer.timeout.connect(self._callback)
+        except Exception:
+            # If it was already connected, treat as active.
+            pass
+
+        self._active = True
+
+    def stop(self) -> None:
+        if not self._active:
+            return
+
+        try:
+            self._timer.timeout.disconnect(self._callback)
+        except Exception:
+            pass
+
+        self._active = False
+
 class InterfaceComponent(QWidget, FadeableMixin):
     fadeFinished = Signal(float)
 
     def __init__(
         self,
         sprite: QWidget,
-        refreshRate: int = 10
+        clock: Optional[TimingClock] = None
     ):
         # top-level overlay
         super().__init__(None)
@@ -26,15 +57,17 @@ class InterfaceComponent(QWidget, FadeableMixin):
         self.sprite = sprite
         self.isInterfaceBuilt = False
 
-        self.followTimer = QTimer(self)
-        self.followTimer.setInterval(max(1, 1000 // refreshRate))
-        self.followTimer.timeout.connect(self._reposition)
+        # Most components want to "follow" something while visible (sprite, screen edge, etc.)
+        # but we must NOT start/stop the shared TimingClock timer (it would affect everyone).
+        # So we use a lightweight connect/disconnect wrapper that piggybacks on the clock.
+        self.clock = clock or TimingClock(15, self)
+        self.followTimer = _FollowConnection(self.clock.timer, self._reposition)
 
         self.setFont(DEFAULT_FONT)
         self.anchorMargin = BORDER_MARGIN
 
         self.moveAnimation = QPropertyAnimation(self, b"pos")
-        self.moveAnimation.setDuration(1000 // refreshRate)
+        self.moveAnimation.setDuration(1000 // self.clock.refreshRate)
         self.moveAnimation.setEasingCurve(QEasingCurve.OutCubic)
 
         self.enableMoveAnimation = True

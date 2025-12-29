@@ -35,16 +35,15 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
     def __init__(
         self,
         sprite: QWidget,
-        refreshRate: int = 5,
+        clock,
         blipSound: Optional[Callable[[], None]] = None,
         occludersProvider: Optional[Callable[[], Iterable[QWidget]]] = (lambda: []),
         keepOccludersOnTop: bool = True
     ):
-        super().__init__(sprite, refreshRate)
+        super().__init__(sprite, clock)
 
         self.sprite = sprite
         self.blip = blipSound or (lambda: None)
-        self.refreshRate = refreshRate
 
         self.occludersProvider = occludersProvider
         self.keepOccludersOnTop = keepOccludersOnTop

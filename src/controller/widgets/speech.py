@@ -24,7 +24,7 @@ class SpeechBubbleController(QWidget):
     def __init__(
         self,
         sprite: QWidget,
-        refreshRate: int = 5,
+        clock=None,
         occludersProvider = None,
         **kwargs
     ):
@@ -32,7 +32,7 @@ class SpeechBubbleController(QWidget):
 
         self.bubble = SpeechBubbleComponent(
             sprite,
-            refreshRate,
+            clock,
             sprite.soundManager.playSpeechBlip,
             occludersProvider=occludersProvider,
             **kwargs

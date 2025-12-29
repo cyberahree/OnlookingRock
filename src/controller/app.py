@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
+from .config.settingsstore import SettingsStore
 from .config import ConfigController
 
 from .system.sound import SoundManager, SoundCategory
 from .system.dragger import WindowDragger
+from .system.timings import TimingClock
 
 from .interfaces.components.startmenu import StartMenuComponent, MenuAction
-# TODO: uncomment when i actually am happy with the settings
-# from .interfaces.components.settingsmodal import SettingsModalComponent
 from .interfaces.base import InterfaceManager
 
 from .sprite import SpriteSystem, limitScale, IDLE_COMBINATION, DRAG_COMBINATION
@@ -24,27 +24,87 @@ import sys
 
 APPLICATION = QApplication(sys.argv)
 
-APP_REFRESH_RATE = 60 # frames per second
-SECONDARY_REFRESH_RATE = 30 # frames per second
-
 class RockinWindow(QWidget):
-    def __init__(
-        self,
-        configProfile: str = "default"
-    ) -> None:
+    """
+    
+    initialisation steps:
+    1. config + settings store
+    2. internal state defaults
+    3. clocks (other systems depend on these)
+    4. core managers (used by signals + controllers)
+    5. window flags + labels (needed before scale updates)
+    6. controllers that depend on sprite/window
+    7. interfaces / UI systems
+    8. apply initial sound config
+    9. initial sprite setup
+    10. wire settings signals
+    
+    """
+    def __init__(self, configProfile: str = "default") -> None:
         super().__init__()
 
-        self.config = ConfigController(
-            profile=configProfile
+        ##############################
+        # 1) config + settings store #
+        ##############################
+        self.config = ConfigController(profile=configProfile)
+        self.settings = SettingsStore(self.config, parent=self)
+
+        # local cached settings (used during initial build)
+        self.currentSpriteScale = self.config.getValue("sprite.scale")
+        self.userNickname = self.config.getValue("user.nickname")
+        self.userLanguage = self.config.getValue("user.languagePreference")
+
+        ##############################
+        # 2) internal state defaults #
+        ##############################
+        self.spriteReady = False
+        self.currentFace = None
+        self.currentEyes = None
+
+        #############################################
+        # 3) clocks (other systems depend on these) #
+        #############################################
+        self.primaryClock = TimingClock(
+            self.settings.get("app.refreshRates.primaryLoop"),
+            self
+        )
+        self.secondaryClock = TimingClock(
+            self.settings.get("app.refreshRates.secondaryLoop"),
+            self
         )
 
-        # sound controller
+        ####################################################
+        # 4) core managers (used by signals + controllers) #
+        ####################################################
         self.soundManager = SoundManager(self)
-
-        # sprite controller systems
-        self.currentSpriteScale = self.config.getValue("sprite.scale")
         self.spriteSystem = SpriteSystem(self, self.currentSpriteScale)
-        
+
+        ##########################################################
+        # 5) window flags + labels (needed before scale updates) #
+        ##########################################################
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setWindowFlags(
+            Qt.FramelessWindowHint |
+            Qt.WindowStaysOnTopHint |
+            Qt.Tool
+        )
+
+        self.bodyLabel = QLabel(self)
+        self.faceLabel = QLabel(self)
+        self.eyesLabel = QLabel(self)
+
+        body_pixmap = self.spriteSystem.getBody(self.currentSpriteScale)
+        self.bodyLabel.setPixmap(body_pixmap)
+        self.resize(body_pixmap.size())
+
+        # z-order
+        self.bodyLabel.lower()
+        self.eyesLabel.raise_()
+        self.faceLabel.raise_()
+
+        ###############################################
+        # 6) controllers that depend on sprite/window #
+        ###############################################
         self.dragger = WindowDragger(
             self,
             onDragStart=self.onDragStart,
@@ -65,119 +125,126 @@ class RockinWindow(QWidget):
             )
         )
 
-        # interfaces
+        ##############################
+        # 7) interfaces / UI systems #
+        ##############################
         self.interfaceManager = InterfaceManager(self)
+
         self.notificationController = NotificationController(
             self,
-            SECONDARY_REFRESH_RATE
+            self.secondaryClock
         )
 
-        # settings modal
-        """
-        # TODO: uncomment when i actually am happy with the settings
-        self.settingsModal = SettingsModalComponent(
-            self,
-            SECONDARY_REFRESH_RATE,
-        )
-
-        self.interfaceManager.registerComponent(
-            "settings",
-            self.settingsModal
-        )
-        """
-
-        # start menu
         self.startMenu = StartMenuComponent(
             self,
             [
                 MenuAction("openSettings", "Settings", lambda: print("open settings"), "settings"),
                 MenuAction("quitSprite", "Quit", self.triggerShutdown, "power")
             ],
-            SECONDARY_REFRESH_RATE,
-            #occludersProvider=lambda: [self.settingsModal]
+            self.secondaryClock,
         )
 
-        self.interfaceManager.registerComponent(
-            "startMenu",
-            self.startMenu
-        )
+        self.interfaceManager.registerComponent("startMenu", self.startMenu)
 
-        # widgets
-        self.decorations = DecorationSystem(self, APP_REFRESH_RATE)
+        self.decorations = DecorationSystem(self, self.primaryClock)
 
         self.speechBubble = SpeechBubbleController(
             self,
-            SECONDARY_REFRESH_RATE,
+            self.secondaryClock,
             occludersProvider=lambda: [self.startMenu]
-            #occludersProvider=lambda: [self.startMenu, self.settingsModal]
         )
-
         self.interfaceManager.registerComponent(
             "speechBubbles",
             self.speechBubble.bubble
         )
 
-        # internal states
-        self.spriteReady = False
-
-        self.currentFace = None
-        self.currentEyes = None
-
-        # window setup
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setWindowFlags(
-            Qt.FramelessWindowHint |
-            Qt.WindowStaysOnTopHint |
-            Qt.Tool
-        )
-
-        self.bodyLabel = QLabel(self)
-        self.faceLabel = QLabel(self)
-        self.eyesLabel = QLabel(self)
-        
-        self.bodyLabel.setPixmap(self.spriteSystem.getBody(self.currentSpriteScale))
-        self.resize(
-            self.spriteSystem.getBody(self.currentSpriteScale).size()
-        )
-        
-        # prepare label z-order
-        self.bodyLabel.lower()
-        self.eyesLabel.raise_()
-        self.faceLabel.raise_()
-
-        # apply config
-        self.userNickname = self.config.getValue("user.nickname")
-        self.userLanguage = self.config.getValue("user.languagePreference")
-
+        #################################
+        # 8) apply initial sound config #
+        #################################
         self.soundManager.setMasterVolume(
             self.config.getValue("sound.masterVolume")
         )
-
         for category, volume in self.config.getValue("sound.categoryVolumes").items():
-            self.soundManager.setCategoryVolume(
-                category,
-                volume
-            )
+            self.soundManager.setCategoryVolume(category, volume)
 
-        # sprite
-        self.updateSpriteFeatures(
-            *IDLE_COMBINATION, True
-        )
-
+        ###########################
+        # 9) initial sprite setup #
+        ###########################
+        self.updateSpriteFeatures(*IDLE_COMBINATION, True)
         self.setSpriteScale(self.currentSpriteScale)
 
-        # expression loop
-        self.expressionTimer = QTimer(self)
-        self.expressionTimer.timeout.connect(
-            self.updateSpriteLoop
-        )
+        # main loop
+        self.primaryClock.timer.timeout.connect(self.updateSpriteLoop)
 
-        self.expressionTimer.start(
-            1000 // APP_REFRESH_RATE
-        )
+        ##############################
+        # 10)  wire settings signals #
+        ##############################
+        self._configureSettingSignals()
 
         # show window
         self.show()
+
+    # settings handlers
+    def _configureSettingSignals(self):
+        self.settings.watch(
+            "sprite.scale",
+            lambda v: self.setSpriteScale(v)
+        )
+
+        self.settings.watch(
+            "sprite.chattiness",
+            lambda v: setattr(self, "chattiness", v)
+        )
+
+        self.settings.watch(
+            "sound.masterVolume",
+            lambda v: self.soundManager.setMasterVolume(v)
+        )
+    
+        self.settings.watch(
+            "sound.categoryVolumes.EVENT",
+            lambda v: self.soundManager.setCategoryVolume("EVENT", v)
+        )
+    
+        self.settings.watch(
+            "sound.categoryVolumes.FEEDBACK",
+            lambda v: self.soundManager.setCategoryVolume("FEEDBACK", v)
+        )
+    
+        self.settings.watch(
+            "sound.categoryVolumes.AMBIENT",
+            lambda v: self.soundManager.setCategoryVolume("AMBIENT", v)
+        )
+    
+        self.settings.watch(
+            "sound.categoryVolumes.SPECIAL",
+            lambda v: self.soundManager.setCategoryVolume("SPECIAL", v)
+        )
+    
+        self.settings.watch(
+            "sound.categoryVolumes.SPEECH",
+            lambda v: self.soundManager.setCategoryVolume("SPEECH", v)
+        )
+
+        self.settings.watch(
+            "user.nickname",
+            lambda v: setattr(self, "userNickname", v)
+        )
+    
+        self.settings.watch(
+            "user.languagePreference",
+            lambda v: setattr(self, "userLanguage", v)
+        )
+
+        self.settings.watch(
+            "app.refreshRates.primaryLoop",
+            lambda refreshRate: self.primaryClock.setRefreshRate(refreshRate)
+        )
+
+        self.settings.watch(
+            "app.refreshRates.secondaryLoop",
+            lambda refreshRate: self.secondaryClock.setRefreshRate(refreshRate)
+        )
 
     # events
     def keyPressEvent(self, event):

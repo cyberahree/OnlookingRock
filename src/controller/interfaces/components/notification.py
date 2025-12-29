@@ -187,11 +187,11 @@ class ToastStackComponent(InterfaceComponent, PrimaryScreenAnchorMixin):
     def __init__(
         self,
         sprite: QWidget,
-        refreshRate: int = 10,
+        clock,
         widthPx: int = SIZE_CONSTRAINTS[0],
         maxVisible: int = 5,
     ) -> None:
-        super().__init__(sprite, refreshRate)
+        super().__init__(sprite, clock)
 
         self.widthPx = int(max(SIZE_CONSTRAINTS[0], widthPx))
         self.maxVisible = int(max(1, maxVisible))

@@ -1,4 +1,4 @@
-from .asset import AssetController
+from ..asset import AssetController
 
 from platformdirs import user_config_dir
 from pathlib import Path

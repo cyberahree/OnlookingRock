@@ -16,5 +16,11 @@
     "sprite": {
         "chattiness": 0.5,
         "scale": 0.75
+    },
+    "app": {
+        "refreshRates": {
+            "primaryLoop": 30,
+            "secondaryLoop": 15
+        }
     }
 }

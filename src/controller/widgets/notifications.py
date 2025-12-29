@@ -11,13 +11,13 @@ class NotificationController:
     def __init__(
         self,
         sprite,
-        refreshRate: int = 10,
+        clock=None,
         widthPx: int = 360,
         maxVisible: int = 5,
     ) -> None:
         self.component = ToastStackComponent(
             sprite=sprite,
-            refreshRate=refreshRate,
+            clock=clock,
             widthPx=widthPx,
             maxVisible=maxVisible,
         )

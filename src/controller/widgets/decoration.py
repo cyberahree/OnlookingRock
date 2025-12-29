@@ -197,7 +197,7 @@ class DecorationController(QWidget):
     def __init__(
         self,
         screen,
-        refreshRate: int = 10,
+        clock,
         bottomBand: int = 69,
         overlayHeight: int = 0
     ):
@@ -206,7 +206,7 @@ class DecorationController(QWidget):
         self.decorationAssets = AssetController("images/decorations")
         self.cachedImages = {}
 
-        self.refreshRate = refreshRate
+        self.clock = clock
         self.bottomBand = bottomBand
         self.overlayHeight = overlayHeight
 
@@ -240,13 +240,8 @@ class DecorationController(QWidget):
         self.view.setGeometry(self.rect())
 
         self.childDecorations: list[DecorationItem] = []
-        self.deltaTime = 1.0 / max(1.0, float(refreshRate))
-
-        self.updateTimer = QTimer(self)
-        self.updateTimer.timeout.connect(self.stepDecorations)
-        self.updateTimer.start(
-            max(1, 1000 // refreshRate)
-        )
+        
+        self.clock.timer.timeout.connect(self.stepDecorations)
 
         self._updateSceneBounds()
         self.show()
@@ -357,7 +352,8 @@ class DecorationController(QWidget):
         floorY = self.floorY()
 
         for decor in self.childDecorations:
-            decor.step(self.deltaTime, sceneBounds, floorY)
+            delta = self.clock.lastDelta
+            decor.step(delta, sceneBounds, floorY)
         
         for i in range(2):
             for decor in self.childDecorations:
@@ -367,7 +363,7 @@ class DecorationSystem:
     def __init__(
         self,
         sprite,
-        refreshRate: int = 10,
+        clock=None,
         bottomBand: int = 69,
         overlayHeight: int = 0
     ):
@@ -377,7 +373,7 @@ class DecorationSystem:
         for screen in QGuiApplication.screens():
             controller = DecorationController(
                 screen,
-                refreshRate=refreshRate,
+                clock=clock,
                 bottomBand=bottomBand,
                 overlayHeight=overlayHeight
             )

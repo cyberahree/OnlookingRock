@@ -43,10 +43,10 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self,
         sprite: QWidget,
         actions: Sequence[MenuAction],
-        refreshRate: int = 10,
+        clock,
         occludersProvider: Optional[Callable[[], Iterable[QWidget]]] = (lambda: []),
     ):
-        super().__init__(sprite, refreshRate)
+        super().__init__(sprite, clock)
 
         self.actions = list(actions)
         self.occludersProvider = occludersProvider
