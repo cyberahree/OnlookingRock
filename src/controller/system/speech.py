@@ -1,11 +1,10 @@
 from PySide6.QtCore import QTemporaryFile, QUrl
 from PySide6.QtMultimedia import QSoundEffect
 
-from typing import Any, List, TYPE_CHECKING
+from typing import Any, List
 
 import struct
 import math
-import random
 
 FADE_DURATION = 0.008  # seconds
 SAMPLE_BIT_DEPTH = 16

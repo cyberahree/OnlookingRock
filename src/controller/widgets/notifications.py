@@ -38,7 +38,7 @@ class NotificationController:
             timeoutMs=timeoutMs,
         )
 
-        return MessageHandle(dismiss=item.dismiss)
+        return MessageHandle(dismiss=item.dismissToast)
 
     def info(
         self,

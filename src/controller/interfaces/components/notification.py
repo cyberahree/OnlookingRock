@@ -24,12 +24,10 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QVBoxLayout,
-    QWidget,
-    QGraphicsOpacityEffect,
+    QWidget
 )
 
-from PySide6.QtCore import Qt, QTimer, QPoint, Signal, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import QColor, QGuiApplication
+from PySide6.QtCore import Qt, QTimer, Signal
 
 from typing import Callable, Optional, Sequence, List
 from dataclasses import dataclass
@@ -67,10 +65,7 @@ class ToastItem(QFrame, FadeableMixin):
         self.setFont(DEFAULT_FONT)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-        self.initFadeable(
-            ANIMATION_OPACITY_DURATION,
-            finishedSignal=self.fadeOutFinished,
-        )
+        self.initFadeable(durationMs=ANIMATION_OPACITY_DURATION)
 
         # main layout
         self.outerLayout = QVBoxLayout(self)
@@ -122,7 +117,7 @@ class ToastItem(QFrame, FadeableMixin):
 
         # apply
         self.outerLayout.addLayout(self.headerLayout)
-        self.outerLayout.addLayout(self.bodyLabel)
+        self.outerLayout.addWidget(self.bodyLabel)
         
         if self.actionButtons:
             self.outerLayout.addLayout(self.actionsLayout)
@@ -168,7 +163,7 @@ class ToastItem(QFrame, FadeableMixin):
             color: {asRGB(TEXT_COLOR)};
         }}
 
-        QPushButton#toastButton {{
+        QPushButton#toastActionButton {{
             color: {asRGB(TEXT_COLOR)};
             background-color: rgba(255, 255, 255, 120);
             border: 1px solid rgba(0, 0, 0, 35);
@@ -176,14 +171,16 @@ class ToastItem(QFrame, FadeableMixin):
             padding: 4px 10px;
             outline: none;
         }}
-        QPushButton#toastButton:hover {{
+
+        QPushButton#toastActionButton:hover {{
             background-color: rgba(255, 255, 255, 180);
         }}
-        QPushButton#toastButton:pressed {{
+
+        QPushButton#toastActionButton:pressed {{
             background-color: rgba(0, 0, 0, 18);
         }}
 
-        QPushButton#toastClose {{
+        QPushButton#toastCloseButton {{
             color: {asRGB(TEXT_COLOR)};
             background: transparent;
             border: none;
@@ -191,7 +188,8 @@ class ToastItem(QFrame, FadeableMixin):
             font: {DEFAULT_FONT.pointSize() + 6}px "{DEFAULT_FONT.family()}";
             outline: none;
         }}
-        QPushButton#toastClose:hover {{
+
+        QPushButton#toastCloseButton:hover {{
             background-color: rgba(0, 0, 0, 18);
             border-radius: {BORDER_RADIUS}px;
         }}
@@ -297,13 +295,16 @@ class ToastStackComponent(InterfaceComponent, PrimaryScreenAnchorMixin):
             self.open()
         else:
             self.raise_()
+        
+        if self.sprite:
+            self.sprite.raise_()
 
         self.updateGeometry()
         return item
 
     def clear(self) -> None:
         for item in list(self.toastItems):
-            item.dismiss()
+            item.dismissToast()
 
     def onItemDismissed(self, item: ToastItem) -> None:
         if item in self.toastItems:

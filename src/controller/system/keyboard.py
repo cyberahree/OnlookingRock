@@ -3,7 +3,6 @@ from pynput import keyboard
 
 import threading
 import time
-import math
 
 KEY_HISTORY_MAX = 45
 

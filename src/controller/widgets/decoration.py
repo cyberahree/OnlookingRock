@@ -1,7 +1,7 @@
 from ..asset import AssetController
 
-from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
 from PySide6.QtGui import QGuiApplication, QPainter, QPixmap
+from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
 from PySide6.QtWidgets import (
     QGraphicsItem,
     QGraphicsPixmapItem,

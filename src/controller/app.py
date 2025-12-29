@@ -70,7 +70,7 @@ class RockinWindow(QWidget):
             SECONDARY_REFRESH_RATE
         )
 
-        # start men
+        # start menu
         self.startMenu = StartMenuComponent(
             self,
             [
@@ -84,6 +84,9 @@ class RockinWindow(QWidget):
             "startMenu",
             self.startMenu
         )
+        #
+        # 
+        #
 
         # widgets
         self.decorations = DecorationSystem(self, APP_REFRESH_RATE)
@@ -92,6 +95,11 @@ class RockinWindow(QWidget):
             self,
             SECONDARY_REFRESH_RATE,
             occludersProvider=lambda: [self.startMenu]
+        )
+
+        self.interfaceManager.registerComponent(
+            "speechBubbles",
+            self.speechBubble.bubble
         )
 
         # internal states
@@ -212,6 +220,8 @@ class RockinWindow(QWidget):
             SoundCategory.SPECIAL,
             onFinish=lambda: setattr(self, "spriteReady", True)
         )
+
+        self.notificationController.info("Saved", "Your settings were saved.")
 
         self.speechBubble.addSpeech("gooooodd mythical mornningg :3")
         self.speechBubble.addSpeech("how are you doing today?")

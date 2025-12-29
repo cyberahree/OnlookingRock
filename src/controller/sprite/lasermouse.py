@@ -1,5 +1,5 @@
-from PySide6.QtCore import QTimer, QPoint, QPointF
-from PySide6.QtWidgets import QWidget, QLabel
+from PySide6.QtCore import QPoint, QPointF
+from PySide6.QtWidgets import QWidget
 from PySide6.QtGui import QCursor
 
 from typing import Callable

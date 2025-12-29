@@ -75,7 +75,7 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
 
         self.rootLayout = QVBoxLayout(self.rootFrame)
         self.rootLayout.setContentsMargins(PADDING, PADDING, PADDING, PADDING)
-        self.rootLayout.setSpacing(PADDING / 2)
+        self.rootLayout.setSpacing(PADDING // 2)
 
         self.titleLabel = QLabel("Start Menu")
         self.titleLabel.setObjectName("menuTitle")
@@ -274,20 +274,6 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         super().open()
         QApplication.instance().installEventFilter(self)
         QTimer.singleShot(0, self._recomputeHeightSnap)
-    
-    def _onOpened(self):
-        previous = self.enableMoveAnimation
-        self.enableMoveAnimation = False
-
-        try:
-            self._recomputeHeight()
-            self._reposition()
-        finally:
-            self.enableMoveAnimation = previous
-            self.isOpening = False
-        
-        self.fadeIn()
-        self.followTimer.start()
 
     def hideEvent(self, event) -> None:
         self._resetListVisualState()

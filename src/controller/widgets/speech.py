@@ -1,17 +1,5 @@
-from ..interfaces.styling import (
-    asRGB,
-    BACKGROUND_COLOR,
-    TEXT_COLOR,
-    DEFAULT_FONT,
-    BORDER_RADIUS,
-    BORDER_MARGIN,
-    PADDING,
-    ANIMATION_OPACITY_DURATION
-)
-
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QGraphicsOpacityEffect
-from PySide6.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import QPainter, QPolygon
+from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import QTimer
 
 from ..interfaces.components.speechbubble import SpeechBubbleComponent
 

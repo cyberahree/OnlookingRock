@@ -99,8 +99,16 @@ class SoundManager(QObject):
 
         return clamp(volume * self.masterVolume, VOLUME_RANGE)
 
+    def _getCategoryByEnum(self, category: SoundCategory) -> CategoryConfig:
+        for (cat, _path), instances in self.soundCache.items():
+            if cat != category:
+                continue
+
+            return instances
+
     def _updateCategoryHandler(self, category: SoundCategory) -> None:
-        categoryConfig = self.soundCategories[category]
+        categoryConfig = self._getCategoryByEnum(category)
+
         volume = self._getEffectiveVolume(
             categoryConfig.volume,
             categoryConfig.muted
@@ -111,9 +119,9 @@ class SoundManager(QObject):
             soundInstance.setVolume(volume)
 
     def _updateAllCategoryHandlers(self) -> None:
-        for (category, _path) in self.soundCache.keys():
-            self._updateCategoryHandler(category)
-        
+        for cat in {cat for (cat, _p) in self.soundCache.keys()}:
+            self._updateCategoryHandler(cat)
+
         # seperate for ambient audio
         ambientCategoryConfig = self.soundCategories[SoundCategory.AMBIENT]
 

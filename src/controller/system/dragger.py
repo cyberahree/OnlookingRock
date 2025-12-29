@@ -1,5 +1,5 @@
-from PySide6.QtCore import Qt, QElapsedTimer, QPointF
 from PySide6.QtGui import QGuiApplication
+from PySide6.QtCore import Qt
 
 from typing import Callable, Optional
 

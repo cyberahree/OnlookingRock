@@ -1,6 +1,6 @@
 from PySide6.QtCore import QPoint, QRect, QSize
 
-from typing import Iterable, Sequence, Optional
+from typing import Sequence, Optional
 from dataclasses import dataclass
 
 @dataclass

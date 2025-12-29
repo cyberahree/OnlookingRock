@@ -7,7 +7,7 @@ from PySide6.QtCore import (
     QPropertyAnimation, QEasingCurve, Signal
 )
 
-from PySide6.QtWidgets import QWidget, QGraphicsOpacityEffect
+from PySide6.QtWidgets import QWidget
 from PySide6.QtGui import QGuiApplication
 
 from typing import Optional
@@ -32,6 +32,10 @@ class InterfaceComponent(QWidget, FadeableMixin):
 
         self.setFont(DEFAULT_FONT)
         self.anchorMargin = BORDER_MARGIN
+
+        self.moveAnimation = QPropertyAnimation(self, b"pos")
+        self.moveAnimation.setDuration(1000 // refreshRate)
+        self.moveAnimation.setEasingCurve(QEasingCurve.OutCubic)
 
         self.enableMoveAnimation = True
         self.moveAnimationMinDuration = 80
@@ -74,6 +78,12 @@ class InterfaceComponent(QWidget, FadeableMixin):
 
         self.show()
         self.raise_()
+        
+        if self.sprite:
+            try:
+                self.sprite.raise_()
+            except Exception:
+                pass
 
         # dont steal focus unless we want to
         if (self.focusPolicy() != Qt.NoFocus) and (not self.testAttribute(Qt.WA_ShowWithoutActivating)):
@@ -120,23 +130,15 @@ class InterfaceComponent(QWidget, FadeableMixin):
     def _reposition(self) -> None:
         pass
 
-    def animateTo(self, target: QPoint, snapPx: int = 2) -> None:
+    def animateTo(self, target: QPoint) -> None:
         if not self.isVisible():
             if hasattr(self, "moveAnimation"):
                 self.moveAnimation.stop()
 
             self.move(target)
             return
-                
-        if not getattr(self, "enableMoveAnimation", True):
-            self.move(target)
-            return
 
         if not self.enableMoveAnimation:
-            self.move(target)
-            return
-
-        if (self.pos() - target).manhattanLength() < snapPx:
             self.move(target)
             return
 
