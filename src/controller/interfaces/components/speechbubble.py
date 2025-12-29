@@ -1,4 +1,4 @@
-from ..styling import (
+from ..base.styling import (
     asRGB,
     BACKGROUND_COLOR,
     TEXT_COLOR,

@@ -1,21 +1,25 @@
-from ..styling import (
+from ..base.uikit import applyRockStyle, SurfaceFrame, SubheadingLabel
+from ..base import InterfaceComponent
+
+from ..base.styling import (
     asRGB,
     ICON_ASSETS,
     BACKGROUND_COLOR,
     TEXT_COLOR,
-    SUBHEADING_FONT,
     DEFAULT_FONT,
     BORDER_RADIUS,
     BORDER_MARGIN,
     PADDING,
 )
 
-from ..base import InterfaceComponent
 from ..mixin import SpriteAnchorMixin
 
 from PySide6.QtWidgets import (
-    QFrame, QWidget, QVBoxLayout, QLabel,
-    QListWidget, QListWidgetItem, QAbstractItemView
+    QWidget,
+    QVBoxLayout,
+    QListWidget,
+    QListWidgetItem,
+    QAbstractItemView
 )
 
 from PySide6.QtCore import Qt, QPoint, QSize, QTimer, QEvent, QRect
@@ -68,20 +72,18 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self.setMaximumHeight(SIZE_CONSTRAINTS[1])
 
         # main container
-        self.rootFrame = QFrame(self)
+        self.rootFrame = SurfaceFrame(self, padding=PADDING)
         self.rootFrame.setObjectName("menuRoot")
 
         outerLayout = QVBoxLayout(self)
         outerLayout.setContentsMargins(0, 0, 0, 0)
         outerLayout.addWidget(self.rootFrame)
 
-        self.rootLayout = QVBoxLayout(self.rootFrame)
-        self.rootLayout.setContentsMargins(PADDING, PADDING, PADDING, PADDING)
-        self.rootLayout.setSpacing(PADDING // 2)
+        # SurfaceFrame already created a layout
+        self.rootLayout = self.rootFrame.layout()
 
-        self.titleLabel = QLabel("Start Menu")
+        self.titleLabel = SubheadingLabel("Start Menu")
         self.titleLabel.setObjectName("menuTitle")
-        self.titleLabel.setFont(SUBHEADING_FONT)
         self.titleLabel.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         self.listWidget = QListWidget()
@@ -106,42 +108,40 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self.rootLayout.addWidget(self.titleLabel)
         self.rootLayout.addWidget(self.listWidget)
 
-        # bubble-like stylesheet
+        # menu-specific tweaks on top of the shared theme
         onHoverBackground = QColor(BACKGROUND_COLOR).darker(106)
         onSelectBackground = QColor(BACKGROUND_COLOR).darker(112)
 
-        self.setStyleSheet(f"""
-        QFrame#menuRoot {{
-            background-color: {asRGB(BACKGROUND_COLOR)};
-            border-radius: {BORDER_RADIUS}px;
-        }}
+        applyRockStyle(
+            self,
+            extraQss=f"""
+            QLabel#menuTitle {{
+                color: {asRGB(TEXT_COLOR)};
+                padding: 0px;
+            }}
 
-        QLabel#menuTitle {{
-            color: {asRGB(TEXT_COLOR)};
-            padding: 0px;
-        }}
+            QListWidget#menuList {{
+                background: transparent;
+                border: none;
+                color: {asRGB(TEXT_COLOR)};
+                outline: none;
+            }}
 
-        QListWidget#menuList {{
-            background: transparent;
-            border: none;
-            color: {asRGB(TEXT_COLOR)};
-            outline: none;
-        }}
+            QListWidget#menuList::item {{
+                border-radius: {BORDER_RADIUS}px;
+                padding: 0px;
+                min-height: {DEFAULT_FONT.pointSize()}px;
+            }}
 
-        QListWidget#menuList::item {{
-            border-radius: {BORDER_RADIUS}px;
-            padding: 0px;
-            min-height: {DEFAULT_FONT.pointSize()}px;
-        }}
+            QListWidget#menuList::item:hover {{
+                background-color: {asRGB(onHoverBackground)};
+            }}
 
-        QListWidget#menuList::item:hover {{
-            background-color: {asRGB(onHoverBackground)};
-        }}
-
-        QListWidget#menuList::item:selected {{
-            background-color: {asRGB(onSelectBackground)};
-        }}
-        """)
+            QListWidget#menuList::item:selected {{
+                background-color: {asRGB(onSelectBackground)};
+            }}
+            """,
+        )
     
     def _getSpriteGlobalBounds(self) -> QRect:
         topLeft = self.sprite.mapToGlobal(QPoint(0, 0))

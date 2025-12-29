@@ -1,4 +1,4 @@
-from ..asset import AssetController
+from ...asset import AssetController
 
 from PySide6.QtGui import QColor, QFont
 

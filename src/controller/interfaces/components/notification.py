@@ -1,8 +1,7 @@
-from ..styling import (
+from ..base.styling import (
     asRGB,
     BACKGROUND_COLOR,
     BORDER_COLOR,
-    TEXT_COLOR,
     HEADING_FONT,
     DEFAULT_FONT,
     BORDER_RADIUS,
@@ -14,13 +13,14 @@ from ..styling import (
     ERROR_ACCENT
 )
 
+from ..base.uikit import applyRockStyle, RockButton, HeadingLabel, BodyLabel
+
 from ..mixin import FadeableMixin, PrimaryScreenAnchorMixin
 from ..base import InterfaceComponent
 
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
-    QLabel,
     QPushButton,
     QSizePolicy,
     QVBoxLayout,
@@ -60,6 +60,8 @@ class ToastItem(QFrame, FadeableMixin):
 
         self.setObjectName("toastItem")
         self.setProperty("kind", self.kind)
+        self.setProperty("rockRole", "container")
+        self.setProperty("variant", "card")
 
         # visuals
         self.setFont(DEFAULT_FONT)
@@ -77,25 +79,20 @@ class ToastItem(QFrame, FadeableMixin):
         self.headerLayout.setContentsMargins(0, 0, 0, 0)
         self.headerLayout.setSpacing(PADDING // 2)
 
-        self.titleLabel = QLabel(title, self)
+        self.titleLabel = HeadingLabel(title, self)
         self.titleLabel.setObjectName("toastTitle")
-        self.titleLabel.setFont(HEADING_FONT)
-        self.titleLabel.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
-        self.closeButton = QPushButton("x", self)
+        self.closeButton = RockButton("x", self, variant="ghost", onClick=self.dismissToast)
         self.closeButton.setObjectName("toastCloseButton")
+        self.closeButton.setFont(HEADING_FONT)
         self.closeButton.setFixedSize(24, 24)
-        self.closeButton.setFocusPolicy(Qt.NoFocus)
-        self.closeButton.clicked.connect(self.dismissToast)
         
         self.headerLayout.addWidget(self.titleLabel)
         self.headerLayout.addWidget(self.closeButton)
 
         # body
-        self.bodyLabel = QLabel(message, self)
+        self.bodyLabel = BodyLabel(message, self, wrap=True, selectable=True)
         self.bodyLabel.setObjectName("toastBody")
-        self.bodyLabel.setWordWrap(True)
-        self.bodyLabel.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
         # actions
         self.actionsLayout = QHBoxLayout()
@@ -106,12 +103,13 @@ class ToastItem(QFrame, FadeableMixin):
         self.actionButtons: List[QPushButton] = []
 
         for action in actions or ():
-            button = QPushButton(action.label, self)
-            button.setObjectName("toastActionButton")
-            button.setFocusPolicy(Qt.NoFocus)
-            button.clicked.connect(
-                lambda checked, a=action: self._handleActionClicked(a)
+            button = RockButton(
+                action.label,
+                self,
+                variant="surface",
+                onClick=lambda a=action: self._handleActionClicked(a),
             )
+            button.setObjectName("toastActionButton")
 
             self.actionButtons.append(button)
             self.actionsLayout.addWidget(button)
@@ -134,67 +132,31 @@ class ToastItem(QFrame, FadeableMixin):
         self.applyStyleSheet()
     
     def applyStyleSheet(self) -> None:
-        self.setStyleSheet(f"""
-        QFrame#toastItem {{
-            background-color: {asRGB(BACKGROUND_COLOR)};
-            border: 1px solid {asRGB(BORDER_COLOR)};
-            border-radius: {BORDER_RADIUS}px;
-        }}
+        applyRockStyle(
+            self,
+            extraQss=f"""
+            /* Toast-specific chrome + kind accents */
+            QFrame#toastItem {{
+                background-color: {asRGB(BACKGROUND_COLOR)};
+                border: 1px solid {asRGB(BORDER_COLOR)};
+                border-radius: {BORDER_RADIUS}px;
+            }}
 
-        QFrame#toastItem[kind="info"] {{
-            background-color: {asRGB(BACKGROUND_COLOR)};
-            border-left: 4px solid {asRGB(INFO_ACCENT)};
-        }}
+            QFrame#toastItem[kind=\"info\"] {{
+                border: 2px solid {asRGB(INFO_ACCENT)};
+            }}
 
-        QFrame#toastItem[kind="action"] {{
-            background-color: {asRGB(BACKGROUND_COLOR.lighter(110))};
-            border-left: 4px solid {asRGB(ACTION_ACCENT)};
-        }}
+            QFrame#toastItem[kind=\"action\"] {{
+                background-color: {asRGB(BACKGROUND_COLOR.lighter(110))};
+                border: 2px solid {asRGB(ACTION_ACCENT)};
+            }}
 
-        QFrame#toastItem[kind="error"] {{
-            background-color: {asRGB(BACKGROUND_COLOR.lighter(120))};
-            border-left: 4px solid {asRGB(ERROR_ACCENT)};
-        }}
-
-        QLabel#toastTitle {{
-            color: {asRGB(TEXT_COLOR)};
-        }}
-
-        QLabel#toastBody {{
-            color: {asRGB(TEXT_COLOR)};
-        }}
-
-        QPushButton#toastActionButton {{
-            color: {asRGB(TEXT_COLOR)};
-            background-color: rgba(255, 255, 255, 120);
-            border: 1px solid rgba(0, 0, 0, 35);
-            border-radius: {BORDER_RADIUS}px;
-            padding: 4px 10px;
-            outline: none;
-        }}
-
-        QPushButton#toastActionButton:hover {{
-            background-color: rgba(255, 255, 255, 180);
-        }}
-
-        QPushButton#toastActionButton:pressed {{
-            background-color: rgba(0, 0, 0, 18);
-        }}
-
-        QPushButton#toastCloseButton {{
-            color: {asRGB(TEXT_COLOR)};
-            background: transparent;
-            border: none;
-            padding: 0px 4px;
-            font: {DEFAULT_FONT.pointSize() + 6}px "{DEFAULT_FONT.family()}";
-            outline: none;
-        }}
-
-        QPushButton#toastCloseButton:hover {{
-            background-color: rgba(0, 0, 0, 18);
-            border-radius: {BORDER_RADIUS}px;
-        }}
-        """)
+            QFrame#toastItem[kind=\"error\"] {{
+                background-color: {asRGB(BACKGROUND_COLOR.lighter(120))};
+                border: 2px solid {asRGB(ERROR_ACCENT)};
+            }}
+            """,
+        )
     
     def _handleActionClicked(self, action: PopupAction) -> None:
         if self.isClosed:

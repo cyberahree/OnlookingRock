@@ -1,6 +1,6 @@
 from .styling import DEFAULT_FONT, BORDER_MARGIN, ANIMATION_OPACITY_DURATION
 
-from .mixin import FadeableMixin
+from ..mixin import FadeableMixin
 
 from PySide6.QtCore import (
     QObject, QEvent, QTimer, QPoint, Qt,
