@@ -1,9 +1,25 @@
-from ..positioning import bestCandidate
+from .positioning import bestCandidate
+from .styling import BORDER_MARGIN
 
 from PySide6.QtCore import QPoint, QRect, QSize
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QWidget
 
 from typing import Callable, Iterable, Optional, Sequence
+
+class PrimaryScreenAnchorMixin:
+    def primaryAvailableGeometry(self) -> QRect:
+        screen = QGuiApplication.primaryScreen()
+        return screen.availableGeometry() if screen else QRect(0, 0, 0, 0)
+
+    def anchorBottomRight(self, *, margin: int = BORDER_MARGIN) -> QPoint:
+        screen = self.primaryAvailableGeometry()
+        size = self.size()
+
+        x = screen.left() + screen.width() - size.width() - margin
+        y = screen.top() + screen.height() - size.height() - margin
+
+        return QPoint(x, y)
 
 class SpriteAnchorMixin:
     def spriteFrameGeometry(self) -> QRect:
@@ -41,11 +57,13 @@ class SpriteAnchorMixin:
             widgets = []
 
         visibleWidgets: list[QWidget] = []
-    
+
         for widget in widgets:
             if widget is None:
                 continue
 
+            # this COULD raise exceptions in some cases
+            # we catch them and skip those widgets
             try:
                 if not widget.isVisible():
                     continue
@@ -145,7 +163,7 @@ class SpriteAnchorMixin:
             size,
             screen,
             list(occluders),
-            int(margin)
+            int(margin),
         )
 
     def inwardHorizontalDirection(
@@ -161,4 +179,3 @@ class SpriteAnchorMixin:
         spriteCenterX = spriteRect.center().x()
 
         return "left" if spriteCenterX < widgetCenterX else "right"
-

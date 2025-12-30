@@ -1,37 +1,38 @@
-from ..base.uikit import applyRockStyle, SurfaceFrame, SubheadingLabel
+from ..base.anchor import SpriteAnchorMixin
 from ..base import InterfaceComponent
 
 from ..base.styling import (
-    asRGB,
-    ICON_ASSETS,
+    ACTION_ACCENT,
     BACKGROUND_COLOR,
-    TEXT_COLOR,
-    DEFAULT_FONT,
-    BORDER_RADIUS,
     BORDER_MARGIN,
+    BORDER_RADIUS,
+    DEFAULT_FONT,
+    ICON_ASSETS,
     PADDING,
+    TEXT_COLOR,
+    asRGB,
 )
 
-from ..mixin import SpriteAnchorMixin
+from ..base.lookskit import SubheadingLabel, SurfaceFrame, applyRockStyle
 
-from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QListWidget,
-    QListWidgetItem,
-    QAbstractItemView
-)
-
-from PySide6.QtCore import Qt, QPoint, QSize, QTimer, QEvent, QRect
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt, QPoint, QSize, QEvent, QRect, QTimer
 from PySide6.QtGui import QIcon, QColor
 
-from typing import Callable, Optional, Sequence, Iterable
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QApplication,
+    QListWidget,
+    QListWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
+from typing import Callable, Iterable, Optional, Sequence
 from dataclasses import dataclass
 
 SIZE_CONSTRAINTS = (128, 512)
 
-@dataclass(frozen=True)
+@dataclass
 class MenuAction:
     name: str
     label: str
@@ -50,7 +51,7 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
 
         self.actions = list(actions)
         self.occludersProvider = occludersProvider
-        
+
         self.setWindowFlags(
             Qt.Tool |
             Qt.FramelessWindowHint |
@@ -71,7 +72,6 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self.setFixedWidth(SIZE_CONSTRAINTS[0])
         self.setMaximumHeight(SIZE_CONSTRAINTS[1])
 
-        # main container
         self.rootFrame = SurfaceFrame(self, padding=PADDING)
         self.rootFrame.setObjectName("menuRoot")
 
@@ -79,7 +79,6 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         outerLayout.setContentsMargins(0, 0, 0, 0)
         outerLayout.addWidget(self.rootFrame)
 
-        # SurfaceFrame already created a layout
         self.rootLayout = self.rootFrame.layout()
 
         self.titleLabel = SubheadingLabel("Start Menu")
@@ -108,7 +107,6 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self.rootLayout.addWidget(self.titleLabel)
         self.rootLayout.addWidget(self.listWidget)
 
-        # menu-specific tweaks on top of the shared theme
         onHoverBackground = QColor(BACKGROUND_COLOR).darker(106)
         onSelectBackground = QColor(BACKGROUND_COLOR).darker(112)
 
@@ -142,13 +140,13 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
             }}
             """,
         )
-    
+
     def _getSpriteGlobalBounds(self) -> QRect:
         topLeft = self.sprite.mapToGlobal(QPoint(0, 0))
 
         return QRect(
             topLeft,
-            self.sprite.size()
+            self.sprite.size(),
         )
 
     def _recomputeHeight(self) -> None:
@@ -158,8 +156,8 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self.listWidget.doItemsLayout()
         listCount = self.listWidget.count()
 
-        # collect height of all list rows
         rowsTotalHeight = 0
+
         if listCount > 0:
             for i in range(listCount):
                 h = self.listWidget.sizeHintForRow(i)
@@ -167,17 +165,15 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
                 if h > 0:
                     rowsTotalHeight += h
 
-            # spacing between rows
             rowsTotalHeight += self.listWidget.spacing() * max(0, listCount - 1)
 
         titleHeight = self.titleLabel.sizeHint().height()
         chromeHeight = (PADDING * 2) + titleHeight + self.rootLayout.spacing()
-
         maxListHeight = max(0, SIZE_CONSTRAINTS[1] - chromeHeight)
 
         if rowsTotalHeight <= maxListHeight:
             self.listWidget.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-            listHeight = max(rowsTotalHeight, 1)  # avoid 0-height funkiness
+            listHeight = max(rowsTotalHeight, 1)
             menuHeight = chromeHeight + listHeight
         else:
             self.listWidget.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
@@ -187,8 +183,36 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self.listWidget.setFixedHeight(listHeight)
         self.setFixedHeight(menuHeight)
 
-        # reposition because size changed
         self._reposition()
+
+    def _resetListVisualState(self) -> None:
+        if not hasattr(self, "listWidget"):
+            return
+
+        listWidget = self.listWidget
+
+        listWidget.clearSelection()
+        listWidget.setCurrentRow(-1)
+        listWidget.clearFocus()
+
+        viewport = listWidget.viewport()
+        QApplication.sendEvent(viewport, QEvent(QEvent.Leave))
+        viewport.update()
+
+    def _onClicked(self, item: QListWidgetItem) -> None:
+        if not item.flags():
+            return
+
+        actionName = item.data(Qt.UserRole)
+        self._resetListVisualState()
+
+        for action in self.actions:
+            if action.name != actionName:
+                continue
+
+            self.close()
+            action.callback()
+            break
 
     def _reposition(self):
         target = self.anchorNextToSprite(
@@ -200,70 +224,37 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
 
         self.animateTo(target)
 
-    def _resetListVisualState(self) -> None:
-        if not hasattr(self, "listWidget"):
-            return
-
-        listWidget = self.listWidget
-
-        # clear selection/current
-        listWidget.clearSelection()
-        listWidget.setCurrentRow(-1)
-        listWidget.clearFocus()
-
-        # force-hover reset
-        viewport = listWidget.viewport()
-        QApplication.sendEvent(viewport, QEvent(QEvent.Leave))
-        viewport.update()
-
-    def _onClicked(self, item: QListWidgetItem) -> None:
-        if not item.flags():
-            return
-
-        actionName = item.data(Qt.UserRole)
-        self._resetListVisualState()
-        
-        for action in self.actions:
-            if action.name != actionName:
-                continue
-
-            self.close()
-            action.callback()
-
-            break
-    
     def eventFilter(self, watched, event) -> bool:
         if (not self.isVisible()) or (not self.sprite):
             return False
-        
+
         if event.type() == QEvent.ApplicationDeactivate:
             self.close()
             return False
-        
+
         if event.type() != QEvent.MouseButtonPress:
             return False
-        
+
         globalPos = event.globalPos()
         widget = QApplication.widgetAt(globalPos)
 
-        # we are not interested in clicks inside ourselves or the sprite
         if widget is None:
             self.close()
             return False
-        
+
         if (widget is self) or (self.isAncestorOf(widget)):
             return False
-        
+
         if (widget is self.sprite) or (self.sprite.isAncestorOf(widget)):
             return False
-        
+
         self.close()
         return False
 
     def _recomputeHeightSnap(self) -> None:
         if not self.isVisible():
             return
-        
+
         previous = self.enableMoveAnimation
         self.enableMoveAnimation = False
 
@@ -284,3 +275,4 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
             QApplication.instance().removeEventFilter(self)
         finally:
             super().hideEvent(event)
+

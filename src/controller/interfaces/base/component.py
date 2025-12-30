@@ -1,11 +1,16 @@
-from .styling import DEFAULT_FONT, BORDER_MARGIN, ANIMATION_OPACITY_DURATION
-
-from ..mixin import FadeableMixin
 from ...system.timings import TimingClock
 
+from .styling import DEFAULT_FONT, BORDER_MARGIN, ANIMATION_OPACITY_DURATION
+from .animation import FadeableMixin
+
 from PySide6.QtCore import (
-    QObject, QEvent, QPoint, Qt, QTimer,
-    QPropertyAnimation, QEasingCurve, Signal
+    QObject,
+    QPoint,
+    Qt,
+    QTimer,
+    QPropertyAnimation,
+    QEasingCurve,
+    Signal,
 )
 
 from PySide6.QtWidgets import QWidget
@@ -14,7 +19,11 @@ from PySide6.QtGui import QGuiApplication
 from typing import Optional
 
 class _FollowConnection(QObject):
-    def __init__(self, timer: QTimer, callback, parent: Optional[QObject] = None):
+    def __init__(
+        self,
+        timer: QTimer,
+        callback, parent: Optional[QObject] = None
+    ):
         super().__init__(parent)
         self._timer = timer
         self._callback = callback
@@ -27,7 +36,6 @@ class _FollowConnection(QObject):
         try:
             self._timer.timeout.connect(self._callback)
         except Exception:
-            # If it was already connected, treat as active.
             pass
 
         self._active = True
@@ -49,17 +57,13 @@ class InterfaceComponent(QWidget, FadeableMixin):
     def __init__(
         self,
         sprite: QWidget,
-        clock: Optional[TimingClock] = None
+        clock: Optional[TimingClock] = None,
     ):
-        # top-level overlay
         super().__init__(None)
 
         self.sprite = sprite
         self.isInterfaceBuilt = False
 
-        # Most components want to "follow" something while visible (sprite, screen edge, etc.)
-        # but we must NOT start/stop the shared TimingClock timer (it would affect everyone).
-        # So we use a lightweight connect/disconnect wrapper that piggybacks on the clock.
         self.clock = clock or TimingClock(15, self)
         self.followTimer = _FollowConnection(self.clock.timer, self._reposition)
 
@@ -67,8 +71,16 @@ class InterfaceComponent(QWidget, FadeableMixin):
         self.anchorMargin = BORDER_MARGIN
 
         self.moveAnimation = QPropertyAnimation(self, b"pos")
-        self.moveAnimation.setDuration(1000 // self.clock.refreshRate)
+        self.moveAnimation.setDuration(self.clock.timer.interval())
         self.moveAnimation.setEasingCurve(QEasingCurve.OutCubic)
+
+        # link to refreshRate updates
+        try:
+            self.clock.refreshRateChanged.connect(
+                lambda interval: self.moveAnimation.setDuration(interval)
+            )
+        except Exception:
+            pass
 
         self.enableMoveAnimation = True
         self.moveAnimationMinDuration = 80
@@ -85,16 +97,15 @@ class InterfaceComponent(QWidget, FadeableMixin):
         self._fadeClosePending = False
 
     def build(self) -> None:
-        # create widgets/layouts
         pass
 
     def ensureBuilt(self) -> None:
         if self.isInterfaceBuilt:
             return
-        
+
         self.build()
         self.isInterfaceBuilt = True
-    
+
     def updateAnchor(self) -> None:
         pass
 
@@ -111,14 +122,13 @@ class InterfaceComponent(QWidget, FadeableMixin):
 
         self.show()
         self.raise_()
-        
+
         if self.sprite:
             try:
                 self.sprite.raise_()
             except Exception:
                 pass
 
-        # dont steal focus unless we want to
         if (self.focusPolicy() != Qt.NoFocus) and (not self.testAttribute(Qt.WA_ShowWithoutActivating)):
             self.activateWindow()
 
@@ -126,10 +136,8 @@ class InterfaceComponent(QWidget, FadeableMixin):
             self.fadeIn()
 
         self.followTimer.start()
-    
+
     def close(self) -> bool:
-        # if fading out, do NOT call *.close()
-        # hint: it hides immediately
         if self.fadeOnClose and self.isVisible():
             self._fadeClosePending = True
             self.followTimer.stop()
@@ -137,29 +145,29 @@ class InterfaceComponent(QWidget, FadeableMixin):
             return True
 
         return super().close()
-    
+
     def closeEvent(self, event) -> None:
         self.followTimer.stop()
-        
+
         if hasattr(self, "fadeAnimation"):
             self.fadeAnimation.stop()
-        
+
         if hasattr(self, "moveAnimation"):
             self.moveAnimation.stop()
 
         super().closeEvent(event)
-    
+
     def hideEvent(self, event) -> None:
         self.followTimer.stop()
-        
+
         if hasattr(self, "fadeAnimation"):
             self.fadeAnimation.stop()
-        
+
         if hasattr(self, "moveAnimation"):
             self.moveAnimation.stop()
 
         super().hideEvent(event)
-    
+
     def _reposition(self) -> None:
         pass
 
@@ -191,75 +199,11 @@ class InterfaceComponent(QWidget, FadeableMixin):
 
         x = max(
             screenGeometry.left(),
-            min(position.x(), screenGeometry.right() - self.width())
+            min(position.x(), screenGeometry.right() - self.width()),
         )
         y = max(
             screenGeometry.top(),
-            min(position.y(), screenGeometry.bottom() - self.height())
+            min(position.y(), screenGeometry.bottom() - self.height()),
         )
 
         return QPoint(x, y)
-
-class InterfaceManager(QObject):
-    def __init__(self, sprite: QWidget):
-        super().__init__()
-        
-        self.sprite = sprite
-        self.components = {}
-
-        self.sprite.installEventFilter(self)
-    
-    def registerComponent(
-        self,
-        name: str,
-        component: InterfaceComponent
-    ) -> None:
-        self.components[name] = component
-    
-    def getComponent(self, name: str) -> Optional[InterfaceComponent]:
-        return self.components.get(name, None)
-    
-    def open(self, name: str) -> None:
-        component = self.getComponent(name)
-        
-        if not component:
-            return
-        
-        component.open()
-    
-    def close(self, name: str) -> None:
-        component = self.getComponent(name)
-        
-        if not component:
-            return
-        
-        component.close()
-
-    def toggle(self, name: str) -> None:
-        component = self.getComponent(name)
-        
-        if not component:
-            return
-        
-        if component.isVisible():
-            component.close()
-        else:
-            component.open()
-    
-    def closeAll(self) -> None:
-        for component in self.components.values():
-            if not component.isVisible():
-                continue
-
-            component.close()
-
-    def eventFilter(self, watched, event):
-        # reposition components on sprite move/resize
-        if (watched is self.sprite) and (event.type() in (QEvent.Move, QEvent.Resize)):
-            for component in self.components.values():
-                if not component.isVisible():
-                    continue
-
-                component._reposition()
-        
-        return super().eventFilter(watched, event)

@@ -1,27 +1,21 @@
-from ..base.styling import (
-    asRGB,
-    BACKGROUND_COLOR,
-    TEXT_COLOR,
-    DEFAULT_FONT,
-    BORDER_RADIUS,
-    BORDER_MARGIN,
-    PADDING,
-)
-
+from ..base.anchor import SpriteAnchorMixin
 from ..base import InterfaceComponent
-from ..mixin import SpriteAnchorMixin
 
-from PySide6.QtCore import (
-    Qt,
-    QTimer,
-    QPoint,
-    Signal
+from ..base.styling import (
+    BACKGROUND_COLOR,
+    BORDER_MARGIN,
+    BORDER_RADIUS,
+    DEFAULT_FONT,
+    PADDING,
+    TEXT_COLOR,
+    asRGB,
 )
 
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt, QTimer, QPoint, Signal
 from PySide6.QtGui import QPainter, QPolygon
 
-from typing import Callable, Optional, Iterable
+from typing import Callable, Iterable, Optional
 
 import random
 
@@ -38,7 +32,7 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         clock,
         blipSound: Optional[Callable[[], None]] = None,
         occludersProvider: Optional[Callable[[], Iterable[QWidget]]] = (lambda: []),
-        keepOccludersOnTop: bool = True
+        keepOccludersOnTop: bool = True,
     ):
         super().__init__(sprite, clock)
 
@@ -51,17 +45,16 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         self.isShuttingDown = False
         self.tailDirection = "right"
 
-        # typing state
         self.fullText = ""
         self.currentCharacterIndex = 0
         self.currentTypingDelay = CHARACTERS_PER_SECOND[0]
 
-        # window setup
         self.setWindowFlags(
             Qt.FramelessWindowHint |
             Qt.WindowStaysOnTopHint |
             Qt.Tool
         )
+
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
         self.setFocusPolicy(Qt.NoFocus)
@@ -69,26 +62,26 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         self.setOpacity(0.0)
         self.fadeFinished.connect(self._handleFadeFinished)
 
-        # label
         self.label = QLabel("")
         self.label.setWordWrap(True)
         self.label.setMaximumWidth(220)
         self.label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.label.setFont(DEFAULT_FONT)
-        self.label.setStyleSheet(f"""
+        self.label.setStyleSheet(
+            f"""
             QLabel {{
                 background-color: {asRGB(BACKGROUND_COLOR)};
                 color: {asRGB(TEXT_COLOR)};
                 padding: {PADDING}px;
                 border-radius: {BORDER_RADIUS}px;
             }}
-        """)
+            """
+        )
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, TAIL_SIZE)
         layout.addWidget(self.label)
 
-        # typing timer
         self.typeTimer = QTimer(self)
         self.typeTimer.timeout.connect(self._typeNextCharacter)
 
@@ -96,25 +89,23 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
 
         self.hide()
 
-    # input handlers
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
         if self.typeTimer.isActive():
             self.skipTyping()
-    
-    # interface methods
-    def startTyping(self, text: str, typingDelay: Optional[int] = None):
+
+    def startTyping(self, text: str, typingDelay: Optional[int] = None) -> None:
         if self.isShuttingDown:
             return
-        
+
         if typingDelay is None:
             typingDelay = random.randint(
                 CHARACTERS_PER_SECOND[0],
-                CHARACTERS_PER_SECOND[1]
+                CHARACTERS_PER_SECOND[1],
             )
 
         self.fullText = text
         self.currentCharacterIndex = 0
-        self.currentTypingDelay = typingDelay
+        self.currentTypingDelay = int(typingDelay)
 
         self.label.setText("")
         self.adjustSize()
@@ -127,24 +118,16 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         if self.sprite:
             self.sprite.raise_()
 
-        self.restackOccluders(
-            self.occludersProvider
-        )
-
+        self.restackOccluders(self.occludersProvider)
         self.typeTimer.start(self.currentTypingDelay)
-    
-    def skipTyping(self):
+
+    def skipTyping(self) -> None:
         if not self.typeTimer.isActive():
             return
 
-        self.stopTyping(
-            showFullText=True
-        )
-        
-    def stopTyping(
-        self,
-        showFullText: bool = False
-    ):
+        self.stopTyping(showFullText=True)
+
+    def stopTyping(self, showFullText: bool = False) -> None:
         if not self.typeTimer.isActive():
             return
 
@@ -153,17 +136,16 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         if showFullText:
             self.label.setText(self.fullText)
             self.adjustSize()
-    
-    def shutdown(self):
+
+    def shutdown(self) -> None:
         self.isShuttingDown = True
         self.followTimer.stop()
         self.typeTimer.stop()
         self.fadeAnimation.stop()
         self.moveAnimation.stop()
         self.hide()
-    
-    # internal methods
-    def _typeNextCharacter(self):
+
+    def _typeNextCharacter(self) -> None:
         if self.isShuttingDown:
             self.typeTimer.stop()
             return
@@ -181,13 +163,15 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         character = self.fullText[self.currentCharacterIndex - 1:self.currentCharacterIndex]
 
         if character.isalnum():
-            self.blip()
-    
-    # fade animation handler
+            try:
+                self.blip()
+            except Exception:
+                pass
+
     def _handleFadeFinished(self, endOpacity: float) -> None:
         if endOpacity <= 0.001:
             self.fadeOutFinished.emit()
-    
+
     def _reposition(self, forceShow: bool = False) -> None:
         if not self.sprite:
             return
@@ -205,7 +189,6 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
             occludersProvider=self.occludersProvider,
         )
 
-        # tail direction (point inwards toward the sprite)
         prev_tail = self.tailDirection
         self.tailDirection = self.inwardHorizontalDirection(target)
 
@@ -213,9 +196,8 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
             self.update()
 
         self.animateTo(target)
-            
-    # tail painting
-    def paintEvent(self, event):
+
+    def paintEvent(self, event) -> None:
         super().paintEvent(event)
         painter = QPainter(self)
 

@@ -1,4 +1,4 @@
-from ..interfaces.components.notification import ToastStackComponent, PopupAction
+from ..interfaces.windows.notifications import ToastStackComponent, PopupAction
 
 from typing import Callable, Optional, Sequence
 from dataclasses import dataclass

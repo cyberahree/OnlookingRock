@@ -1,6 +1,6 @@
 from PySide6.QtCore import QPoint, QRect, QSize
 
-from typing import Sequence, Optional
+from typing import Optional, Sequence
 from dataclasses import dataclass
 
 @dataclass
@@ -8,10 +8,7 @@ class AnchorSpec:
     preferredPoint: QPoint
     alternatePoint: QPoint
 
-def computeIntersectingArea(
-    boundA: QRect,
-    boundB: QRect
-) -> int:
+def computeIntersectingArea(boundA: QRect, boundB: QRect) -> int:
     intersection = boundA.intersected(boundB)
 
     if intersection.isNull():
@@ -19,33 +16,21 @@ def computeIntersectingArea(
 
     return max(0, intersection.width()) * max(0, intersection.height())
 
-def clampToScreen(
-    position: QPoint,
-    size: QSize,
-    screen: QRect,
-    margin: int = 0
-) -> QPoint:
+def clampToScreen(position: QPoint, size: QSize, screen: QRect, margin: int = 0) -> QPoint:
     x = max(
         screen.left() + margin,
-        min(position.x(),screen.right() - size.width() - margin)
+        min(position.x(), screen.right() - size.width() - margin),
     )
 
     y = max(
         screen.top() + margin,
-        min(position.y(), screen.bottom() - size.height() - margin)
+        min(position.y(), screen.bottom() - size.height() - margin),
     )
 
     return QPoint(x, y)
 
-def score(
-    bounds: QRect,
-    preferredTopLeft: QPoint,
-    occluders: Sequence[QRect]
-) -> tuple[int, int]:
-    overlap = sum(
-        computeIntersectingArea(bounds, occluder) for occluder in occluders
-    )
-
+def score(bounds: QRect, preferredTopLeft: QPoint, occluders: Sequence[QRect]) -> tuple[int, int]:
+    overlap = sum(computeIntersectingArea(bounds, occluder) for occluder in occluders)
     distance = (bounds.topLeft() - preferredTopLeft).manhattanLength()
     return (overlap, distance)
 
@@ -55,7 +40,7 @@ def bestCandidate(
     size: QSize,
     screen: QRect,
     occluders: Sequence[QRect],
-    margin: int = 0
+    margin: int = 0,
 ) -> QPoint:
     candidates: list[QPoint] = []
 
@@ -66,10 +51,10 @@ def bestCandidate(
         for occluder in occluders:
             if not baseRectangle.intersects(occluder):
                 continue
-                
+
             candidates.append(QPoint(base.x(), occluder.top() - size.height() - margin))
             candidates.append(QPoint(base.x(), occluder.bottom() + margin))
-    
+
     addBaseplusNudges(preferredPoint)
     addBaseplusNudges(alternatePoint)
 

@@ -8,6 +8,7 @@ def _msFromRefreshRate(RefreshRate: int) -> int:
 
 class TimingClock(QObject):
     tick = Signal(float)
+    refreshRateChanged = Signal(int)
 
     def __init__(self, refreshRate: int = 1, parent = None):
         super().__init__(parent)
@@ -17,6 +18,7 @@ class TimingClock(QObject):
 
         self.elapsedTimer = QElapsedTimer()
         self.elapsedTimer.start()
+        self.refreshRate = 0
         self.lastDelta = 0
 
         self.timer.timeout.connect(self._onTimeout)
@@ -29,5 +31,12 @@ class TimingClock(QObject):
         self.tick.emit(elapsedMs / 1000)
     
     def setRefreshRate(self, refreshRate: int):
-        self.refreshRate = max(1, int(refreshRate))
-        self.timer.setInterval(_msFromRefreshRate(self.refreshRate))
+        newRefreshRate = max(1, int(refreshRate))
+
+        if newRefreshRate == self.refreshRate:
+            return
+
+        self.refreshRate = newRefreshRate
+        self.intervalMs = _msFromRefreshRate(self.refreshRate)
+        self.timer.setInterval(self.intervalMs)
+        self.refreshRateChanged.emit(self.intervalMs)

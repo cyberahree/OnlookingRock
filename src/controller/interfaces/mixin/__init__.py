@@ -1,9 +1,2 @@
-from .fade import FadeableMixin
-from .screen import PrimaryScreenAnchorMixin
-from .spriteanchor import SpriteAnchorMixin
-
-__all__ = [
-    "FadeableMixin",
-    "PrimaryScreenAnchorMixin",
-    "SpriteAnchorMixin",
-]
+from ..base.anchor import PrimaryScreenAnchorMixin, SpriteAnchorMixin
+from ..base.animation import FadeableMixin

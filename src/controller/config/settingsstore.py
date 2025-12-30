@@ -131,9 +131,27 @@ class SettingsStore(QObject):
         self.reloaded.emit()
 
     def switchProfile(self, profile: str) -> None:
+        oldConfig = deepcopy(self._config.config)
+
         self._config.switchProfile(profile)
+
         self._baseline = deepcopy(self._config.config)
         self._draft = None
+
+        changes = _getPathDiffs(oldConfig, self._config.config)
+
+        if changes:
+            self.valuesChanged.emit(changes)
+
+            for path, value in changes.items():
+                self.valueChanged.emit(path, value)
+
+                for callback in self._watchers.get(path, []):
+                    try:
+                        callback(value)
+                    except Exception:
+                        pass
+
         self.reloaded.emit()
 
     # watching
@@ -200,3 +218,10 @@ class SettingsStore(QObject):
             return value if value in options else (options[0] if options else value)
 
         return value
+
+    # profiles
+    def listProfiles(self) -> list[str]:
+        return self._config.listProfiles()
+
+    def activeProfile(self) -> str:
+        return self._config.getActiveProfile()

@@ -6,7 +6,8 @@ from .system.sound import SoundManager, SoundCategory
 from .system.dragger import WindowDragger
 from .system.timings import TimingClock
 
-from .interfaces.components.startmenu import StartMenuComponent, MenuAction
+from .interfaces.windows.startmenu import StartMenuComponent, MenuAction
+from .interfaces.windows.settings import SettingsModalComponent
 from .interfaces.base import InterfaceManager
 
 from .sprite import SpriteSystem, limitScale, IDLE_COMBINATION, DRAG_COMBINATION
@@ -135,24 +136,40 @@ class RockinWindow(QWidget):
             self.secondaryClock
         )
 
+        self.settingsModal = SettingsModalComponent(
+            self,
+            self.settings,
+            self.secondaryClock
+        )
+
         self.startMenu = StartMenuComponent(
             self,
             [
-                MenuAction("openSettings", "Settings", lambda: print("open settings"), "settings"),
+                MenuAction("openSettings", "Settings", lambda: self.interfaceManager.open("settingsModal"), "settings"),
                 MenuAction("quitSprite", "Quit", self.triggerShutdown, "power")
             ],
             self.secondaryClock,
+            occludersProvider=lambda: [self.settingsModal]
         )
-
-        self.interfaceManager.registerComponent("startMenu", self.startMenu)
 
         self.decorations = DecorationSystem(self, self.primaryClock)
 
         self.speechBubble = SpeechBubbleController(
             self,
             self.secondaryClock,
-            occludersProvider=lambda: [self.startMenu]
+            occludersProvider=lambda: [self.settingsModal, self.startMenu]
         )
+
+        self.interfaceManager.registerComponent(
+            "startMenu",
+            self.startMenu
+        )
+
+        self.interfaceManager.registerComponent(
+            "settingsModal",
+            self.settingsModal
+        )
+
         self.interfaceManager.registerComponent(
             "speechBubbles",
             self.speechBubble.bubble
@@ -164,6 +181,7 @@ class RockinWindow(QWidget):
         self.soundManager.setMasterVolume(
             self.config.getValue("sound.masterVolume")
         )
+
         for category, volume in self.config.getValue("sound.categoryVolumes").items():
             self.soundManager.setCategoryVolume(category, volume)
 

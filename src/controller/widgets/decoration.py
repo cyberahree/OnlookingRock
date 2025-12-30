@@ -1,7 +1,7 @@
 from ..asset import AssetController
 
 from PySide6.QtGui import QGuiApplication, QPainter, QPixmap
-from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
+from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtWidgets import (
     QGraphicsItem,
     QGraphicsPixmapItem,
@@ -353,7 +353,7 @@ class DecorationController(QWidget):
 
         for decor in self.childDecorations:
             delta = self.clock.lastDelta
-            decor.step(delta, sceneBounds, floorY)
+            decor.step(delta/1000, sceneBounds, floorY)
         
         for i in range(2):
             for decor in self.childDecorations:

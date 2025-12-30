@@ -1,6 +1,9 @@
 from PySide6.QtCore import QPropertyAnimation, QEasingCurve
 from PySide6.QtWidgets import QGraphicsOpacityEffect
 
+def clamp(value: float) -> float:
+    return max(0.0, min(1.0, float(value)))
+
 class FadeableMixin:
     def initFadeable(
         self,
@@ -9,9 +12,8 @@ class FadeableMixin:
         startOpacity: float = 1.0,
         easing: QEasingCurve = QEasingCurve.OutCubic,
         useWindowOpacity: bool = None,
-    ) -> None:
-        # effect
-        startOpacity = max(0.0, min(1.0, float(startOpacity)))
+    ) -> None:        
+        startOpacity = clamp(startOpacity)
 
         if useWindowOpacity is None:
             try:
@@ -28,14 +30,12 @@ class FadeableMixin:
                 self.setWindowOpacity(startOpacity)
             except Exception:
                 self._fadeable_useWindowOpacity = False
-        
-        # use the effect
+
         if not self._fadeable_useWindowOpacity:
             self.opacityEffect = QGraphicsOpacityEffect(self)
             self.setGraphicsEffect(self.opacityEffect)
             self.opacityEffect.setOpacity(startOpacity)
 
-        # animation
         if self._fadeable_useWindowOpacity:
             self.fadeAnimation = QPropertyAnimation(self, b"windowOpacity", self)
         else:
@@ -45,11 +45,9 @@ class FadeableMixin:
         self.fadeAnimation.setDuration(int(max(1, durationMs)))
         self.fadeAnimation.finished.connect(self._fadeable_onFadeFinished)
 
-        # flags
         self.enableFadeAnimation = True
         self.fadeHideWhenZero = True
 
-    # internal methods
     def _fadeable_emitFinished(self, endOpacity: float) -> None:
         hook = getattr(self, "onFadeFinished", None)
 
@@ -81,11 +79,11 @@ class FadeableMixin:
                 return float(self.windowOpacity())
             except Exception:
                 return 1.0
+
         return float(self.opacityEffect.opacity())
 
-    # exposed methods
     def setOpacity(self, value: float) -> None:
-        value = max(0.0, min(1.0, float(value)))
+        value = clamp(value)
 
         if getattr(self, "_fadeable_useWindowOpacity", False):
             self.setWindowOpacity(value)
@@ -110,7 +108,7 @@ class FadeableMixin:
             self._fadeable_emitFinished(self._fadeable_currentOpacity())
             return
 
-        target = max(0.0, min(1.0, float(target)))
+        target = clamp(target)
         self.fadeHideWhenZero = bool(hideWhenZero)
 
         if showIfHidden and target > 0.001 and self.isHidden():
@@ -128,5 +126,7 @@ class FadeableMixin:
         self.fadeTo(0.0, showIfHidden=False, hideWhenZero=True)
 
     def stopFade(self) -> None:
-        if hasattr(self, "fadeAnimation"):
-            self.fadeAnimation.stop()
+        if not hasattr(self, "fadeAnimation"):
+            return
+        
+        self.fadeAnimation.stop()

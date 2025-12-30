@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QTimer
 
-from ..interfaces.components.speechbubble import SpeechBubbleComponent
+from ..interfaces.widgets.speechbubble import SpeechBubbleComponent
 
 from dataclasses import dataclass
 from collections import deque
