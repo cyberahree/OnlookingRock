@@ -29,7 +29,8 @@ class SpriteAnchorMixin:
             return QRect(0, 0, 0, 0)
 
         try:
-            return sprite.frameGeometry()
+            topLeft = sprite.mapToGlobal(QPoint(0, 0))
+            return QRect(topLeft, sprite.size())
         except Exception:
             return QRect(0, 0, 0, 0)
 

@@ -12,7 +12,7 @@ from ..base.styling import (
 )
 
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
-from PySide6.QtCore import Qt, QTimer, QPoint, Signal
+from PySide6.QtCore import Qt, QTimer, QPoint, Signal, QRect
 from PySide6.QtGui import QPainter, QPolygon
 
 from typing import Callable, Iterable, Optional
@@ -20,6 +20,7 @@ from typing import Callable, Iterable, Optional
 import random
 
 CHARACTERS_PER_SECOND = (25, 45)
+MAX_WIDTH = 220
 TAIL_SIZE = 12
 
 class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
@@ -64,7 +65,7 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
 
         self.label = QLabel("")
         self.label.setWordWrap(True)
-        self.label.setMaximumWidth(220)
+        self.label.setMaximumWidth(MAX_WIDTH)
         self.label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.label.setFont(DEFAULT_FONT)
         self.label.setStyleSheet(

@@ -7,6 +7,7 @@ from .system.timings import TimingClock
 
 from .interfaces.windows.startmenu import StartMenuComponent, MenuAction
 from .interfaces.windows.volume import VolumeWindowComponent
+from .interfaces.windows.sprite import SpriteWindowComponent
 from .interfaces.base import InterfaceManager
 
 from .sprite import SpriteSystem, limitScale, IDLE_COMBINATION, DRAG_COMBINATION
@@ -122,16 +123,22 @@ class RockinWindow(QWidget):
             self.soundManager
         )
 
+        self.spriteEditor = SpriteWindowComponent(
+            self,
+            self.secondaryClock,
+            self.config
+        )
+
         self.startMenu = StartMenuComponent(
             self,
             [
-                MenuAction("settings", "sprite", lambda: print("open settings"), "settings"),
+                MenuAction("settings", "sprite", lambda: self.interfaceManager.open("spriteEditor"), "settings"),
                 MenuAction("editVolume", "volume", lambda: self.interfaceManager.open("volumeEditor"), "sound"),
                 MenuAction("quitSprite", "quit", self.triggerShutdown, "power")
             ],
             lambda: not self.interfaceManager.isAnyOpen(),
             self.secondaryClock,
-            occludersProvider=lambda: [self.volumeEditor],
+            occludersProvider=lambda: [self.volumeEditor, self.spriteEditor],
         )
 
         self.decorations = DecorationSystem(self, self.primaryClock)
@@ -139,7 +146,7 @@ class RockinWindow(QWidget):
         self.speechBubble = SpeechBubbleController(
             self,
             self.secondaryClock,
-            occludersProvider=lambda: [self.startMenu, self.volumeEditor]
+            occludersProvider=lambda: [self.startMenu, self.volumeEditor, self.spriteEditor]
         )
 
         self.interfaceManager.registerComponent(
@@ -150,6 +157,12 @@ class RockinWindow(QWidget):
         self.interfaceManager.registerComponent(
             "volumeEditor",
             self.volumeEditor,
+            False
+        )
+
+        self.interfaceManager.registerComponent(
+            "spriteEditor",
+            self.spriteEditor,
             False
         )
 
@@ -190,11 +203,11 @@ class RockinWindow(QWidget):
             self.setSpriteScale(float(value))
         elif path.startswith("sprite.refreshRates"):
             # refresh rate changes
-            self.primaryClock.updateInterval(
+            self.primaryClock.setRefreshRate(
                 self.config.getValue("sprite.refreshRates.primaryLoop")
             )
 
-            self.secondaryClock.updateInterval(
+            self.secondaryClock.setRefreshRate(
                 self.config.getValue("sprite.refreshRates.secondaryLoop")
             )
         else:
@@ -256,8 +269,27 @@ class RockinWindow(QWidget):
             onFinish=lambda: setattr(self, "spriteReady", True)
         )
 
-        self.speechBubble.addSpeech("gooooodd mythical mornningg :3")
-        self.speechBubble.addSpeech("how are you doing today?")
+        userNick = self.config.getValue("sprite.userNick")
+
+        if userNick is None or userNick == "<USERNAME>":
+            def nameInputted(name):
+                self.config.setValue("sprite.userNick", name)
+                self.speechBubble.addSpeech(f"nice to meet you, {name}! :3")
+                self.speechBubble.addSpeech("i hope you're doing well today! :D")
+
+            self.speechBubble.addSpeech(
+                "hey there! i'm rockin :3"
+            )
+
+            self.speechBubble.askSpeech(
+                "what's your name?",
+                interactive=True,
+                onConfirm=nameInputted,
+                inputPlaceholder="my name is..."
+            )
+        else:
+            self.speechBubble.addSpeech(f"hey there {userNick}! :3")
+            self.speechBubble.addSpeech("how are you doing today?")
 
         sys.exit(APPLICATION.exec_())
 
@@ -283,16 +315,6 @@ class RockinWindow(QWidget):
         self.soundManager.shutdown()
 
         APPLICATION.quit()
-
-    # sound methods
-    def syncVolumesFromConfig(self):
-        masterVolume = self.config.getValue("sound.masterVolume")
-        self.soundManager.setMasterVolume(masterVolume)
-        
-        categoryVolumes = self.config.getValue("sound.categoryVolumes")
-
-        for category, volume in categoryVolumes.items():
-            self.soundManager.setCategoryVolume(category, volume)
 
     # sprite methods
     def setSpriteScale(self, scale: float):

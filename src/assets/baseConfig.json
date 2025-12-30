@@ -1,5 +1,6 @@
 {
     "sprite": {
+        "userNick": "<USERNAME>",
         "scale": 0.75,
 
         "refreshRates": {

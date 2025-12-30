@@ -10,7 +10,7 @@ class LaserMouseController:
         sprite: QWidget,
         canTrack: Callable[[], bool],
         minDistance: int = 1024,
-        maxOffset: int = 6,
+        maxOffset: int = 8,
         smoothing: float = 0.4,
     ):
         self.sprite = sprite
@@ -42,6 +42,7 @@ class LaserMouseController:
 
         strength = t * self.maxOffset
         scale = self.sprite.currentSpriteScale
+
         return QPointF(
             self._clamp((mouseX / distance) * strength, -self.maxOffset, self.maxOffset) * scale,
             self._clamp((mouseY / distance) * strength, -self.maxOffset, self.maxOffset) * scale
