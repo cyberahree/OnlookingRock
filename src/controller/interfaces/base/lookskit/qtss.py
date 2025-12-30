@@ -39,7 +39,6 @@ def _build_base_qss() -> str:
     danger_fill = QColor(ERROR_ACCENT)
     danger_hover = QColor(ERROR_ACCENT).lighter(112)
     danger_pressed = QColor(ERROR_ACCENT).darker(112)
-
     return f"""
     QFrame[rockRole=\"container\"] {{
         background-color: {_rgba(BACKGROUND_COLOR)};
@@ -157,6 +156,38 @@ def _build_base_qss() -> str:
 
     QPushButton[rockRole=\"button\"][variant=\"danger\"]:pressed {{
         background-color: {_rgba(danger_pressed, 235)};
+    }}
+
+    QPushButton[rockRole=\"button\"]:disabled {{
+        color: rgba({TEXT_COLOR.red()}, {TEXT_COLOR.green()}, {TEXT_COLOR.blue()}, 140);
+        background-color: rgba(255, 255, 255, 70);
+        border: 1px solid rgba(0, 0, 0, 25);
+    }}
+
+    QPushButton[rockRole=\"button\"][variant=\"ghost\"]:disabled {{
+        background: transparent;
+        border: none;
+        color: rgba({TEXT_COLOR.red()}, {TEXT_COLOR.green()}, {TEXT_COLOR.blue()}, 120);
+    }}
+
+    QPushButton[rockRole=\"button\"][variant=\"surface\"]:disabled {{
+        background-color: {_rgba(BACKGROUND_COLOR, 120)};
+        border: 1px solid {_rgba(BORDER_COLOR, 80)};
+    }}
+
+    QPushButton[rockRole=\"button\"][variant=\"primary\"]:disabled {{
+        background-color: {_rgba(primary_fill, 140)};
+        border: 1px solid {_rgba(primary_fill.darker(120), 100)};
+    }}
+
+    QPushButton[rockRole=\"button\"][variant=\"info\"]:disabled {{
+        background-color: {_rgba(info_fill, 140)};
+        border: 1px solid {_rgba(info_fill.darker(120), 100)};
+    }}
+
+    QPushButton[rockRole=\"button\"][variant=\"danger\"]:disabled {{
+        background-color: {_rgba(danger_fill, 135)};
+        border: 1px solid {_rgba(danger_fill.darker(120), 100)};
     }}
 
     QFrame[rockRole=\"divider\"] {{

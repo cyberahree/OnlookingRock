@@ -2,7 +2,6 @@ from ..base.anchor import SpriteAnchorMixin
 from ..base import InterfaceComponent
 
 from ..base.styling import (
-    ACTION_ACCENT,
     BACKGROUND_COLOR,
     BORDER_MARGIN,
     BORDER_RADIUS,

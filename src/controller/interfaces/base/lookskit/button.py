@@ -48,7 +48,10 @@ class RockIconButton(QPushButton, _RockWidgetMixin):
         self.setFont(DEFAULT_FONT)
         self.setFocusPolicy(Qt.NoFocus)
 
-        if icon is not None:
+        if type(icon) is str:
+            icon = QIcon(icon)
+
+        if type(icon) is QIcon:
             self.setIcon(icon)
             self.setIconSize(QSize(iconSizePx, iconSizePx))
 

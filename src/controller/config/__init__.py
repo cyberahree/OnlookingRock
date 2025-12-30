@@ -1,4 +1,6 @@
-from ..asset import AssetController
+from ..asset import ROOT_ASSET_DIRECTORY
+
+from PySide6.QtCore import Signal
 
 from platformdirs import user_config_dir
 from pathlib import Path
@@ -8,28 +10,9 @@ import tempfile
 import logging
 import json
 import os
-import re
 
 logger = logging.getLogger(__name__)
-
-ASSETS_DIR = AssetController()
 JsonDict = dict[str, Any]
-
-def normalizeProfileName(profile: Any) -> str:
-    """
-    Prevent accidental 'None.json' profiles from being created/used.
-
-    Rules:
-      - None / "" / "None" -> "default"
-    """
-    if profile is None:
-        return "default"
-
-    name = str(profile).strip()
-    if name == "" or name.lower() == "none":
-        return "default"
-
-    return name
 
 def readJSONFile(path: Path) -> JsonDict:
     if not path.exists():
@@ -75,14 +58,6 @@ def atomicWriteJson(
     finally:
         deleteFileIfExists(tempFilePath)
 
-# i decided there might be (at some rare point in the future)
-# a need for so many different settings that some users
-# might want to:
-# - not use everything
-# - have different settings profiles
-
-# so we can prune for "non-defaults", and save them to a config
-# then overlay them on top of defaults
 def deepMerge(
     base: JsonDict,
     overlay: JsonDict
@@ -150,28 +125,18 @@ def setByPath(
     current[parts[-1]] = value
 
 class ConfigController:
-    def __init__(
-        self,
-        appName: str = "OnlookinRock",
-        baseConfigPath: Path = None,
-        profile: str = "default"
-    ):
-        if baseConfigPath is None:
-            baseConfigPath = ASSETS_DIR.getAsset("baseConfig.json")
+    onValueChanged = Signal(str, object)
 
-        self.appName = appName
-        self.baseConfigPath = baseConfigPath
+    def __init__(self):
+        self.appName = "OnlookinRock"
 
         # configuration directory
         self.userProfilesDirectory = Path(
-            user_config_dir(appName)
+            user_config_dir("OnlookinRock")
         ) / "profiles"
 
-        profile = normalizeProfileName(profile)
-        self.userProfilePath = self.userProfilesDirectory / f"{profile}.json"
-
-        self.schema = self.loadSchema()
-        self.defaults = readJSONFile(self.baseConfigPath)
+        self.userProfilePath = self.userProfilesDirectory / "profile.json"
+        self.defaults = readJSONFile(ROOT_ASSET_DIRECTORY / "baseConfig.json")
         self.currentOverrides = {}
         self.config = {}
 
@@ -208,78 +173,9 @@ class ConfigController:
             pruned or {}
         )
 
-    def listProfiles(self) -> list[str]:
-        self.userProfilesDirectory.mkdir(parents=True, exist_ok=True)
-
-        profiles = {"default"}
-
-        for file in self.userProfilesDirectory.glob("*.json"):
-            stem = file.stem
-
-            # hide accidental "None.json" profiles from old runs
-            if normalizeProfileName(stem) == "default" and stem != "default":
-                continue
-
-            profiles.add(stem)
-
-        return sorted(profiles)
-
-    def isValidProfileName(self, profile: str) -> bool:
-        pattern = r"^[a-zA-Z0-9_-]{3,32}$"
-        return re.match(pattern, profile) is not None
-
-    def getActiveProfile(self) -> str:
-        return self.userProfilePath.stem
-
-    def getProfilePath(self, profile: str) -> Path:
-        profile = normalizeProfileName(profile)
-        self.userProfilesDirectory.mkdir(parents=True, exist_ok=True)
-        return self.userProfilesDirectory / f"{profile}.json"
-
-    def createProfile(
-        self,
-        profile: str,
-        overrides: JsonDict = None,
-        overwrite: bool = False
-    ):
-        profile = normalizeProfileName(profile)
-
-        if not self.isValidProfileName(profile):
-            raise ValueError(f"Invalid profile name: {profile}")
-
-        profilePath = self.getProfilePath(profile)
-
-        if profilePath.exists() and not overwrite:
-            raise FileExistsError(f"Profile '{profile}' already exists at {profilePath}")
-
-        atomicWriteJson(
-            profilePath,
-            overrides or {}
-        )
-
-    def deleteProfile(self, profile: str):
-        profile = normalizeProfileName(profile)
-
-        deleteFileIfExists(
-            self.getProfilePath(profile)
-        )
-
-    def switchProfile(self, profile: str):
-        # this method does not save the current profile
-        # it just switches to another one
-
-        profile = normalizeProfileName(profile)
-        self.userProfilePath = self.userProfilesDirectory / f"{profile}.json"
-        self.loadConfig()
-
-    def loadSchema(self) -> JsonDict:
-        schemaPath = ASSETS_DIR.getAsset("configSchema.json")
-        loadedSchema = readJSONFile(schemaPath)
-
-        return loadedSchema
-
     def getValue(self, path: str) -> Any:
         return getByPath(self.config, path)
 
     def setValue(self, path: str, value: Any) -> None:
+        self.onValueChanged.emit(path, value)
         return setByPath(self.config, path, value)

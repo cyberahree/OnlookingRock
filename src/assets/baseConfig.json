@@ -1,8 +1,4 @@
 {
-    "user": {
-        "nickname": "",
-        "languagePreference": "en"
-    },
     "sound": {
         "masterVolume": 0.25,
         "categoryVolumes": {
@@ -12,10 +8,6 @@
             "SPECIAL": 1.0,
             "SPEECH": 0.6
         }
-    },
-    "sprite": {
-        "chattiness": 0.5,
-        "scale": 0.75
     },
     "app": {
         "refreshRates": {

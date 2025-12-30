@@ -19,12 +19,6 @@ def main():
     parser = argparse.ArgumentParser(description="Rockin' Controller Application")
 
     parser.add_argument(
-        "--profile", "-p",
-        default=None,
-        help="Specify the configuration profile to use"
-    )
-
-    parser.add_argument(
         "--qtargs", "-qt",
         default="",
         help="Additional arguments for the Qt framework"
@@ -44,10 +38,7 @@ def main():
     # start application
     from .app import RockinWindow
 
-    app = RockinWindow(
-        configProfile=arguments.profile,
-    )
-
+    app = RockinWindow()
     app.startWindowLoop()
 
 if __name__ == "__main__":
