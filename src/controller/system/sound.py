@@ -46,14 +46,30 @@ class SoundManager(QObject):
         self.soundAssets = AssetController("sounds")
 
         self.masterMuted = False
-        self.masterVolume = 0.5
+        self.masterVolume = parent.config.getValue("sound.masterVolume") or 0.5
 
         self.soundCategories = {
-            SoundCategory.EVENT: CategoryConfig(maxPolyphony=9),
-            SoundCategory.FEEDBACK: CategoryConfig(),
-            SoundCategory.AMBIENT: CategoryConfig(volume=0.25),
-            SoundCategory.SPECIAL: CategoryConfig(),
-            SoundCategory.SPEECH: CategoryConfig(volume=0.6, maxPolyphony=SPEECH_BLIP_COUNT),
+            SoundCategory.EVENT: CategoryConfig(
+                volume=parent.config.getValue("sound.categoryVolumes.EVENT") or 0.5,
+                maxPolyphony=9
+            ),
+
+            SoundCategory.FEEDBACK: CategoryConfig(
+                volume=parent.config.getValue("sound.categoryVolumes.FEEDBACK") or 0.5
+            ),
+
+            SoundCategory.AMBIENT: CategoryConfig(
+                volume=parent.config.getValue("sound.categoryVolumes.AMBIENT") or 0.3
+            ),
+
+            SoundCategory.SPECIAL: CategoryConfig(
+                volume=parent.config.getValue("sound.categoryVolumes.SPECIAL") or 0.5,
+            ),
+
+            SoundCategory.SPEECH: CategoryConfig(
+                volume=parent.config.getValue("sound.categoryVolumes.SPEECH") or 0.6,
+                maxPolyphony=SPEECH_BLIP_COUNT
+            )
         }
 
         self.soundCache = {}
@@ -110,9 +126,12 @@ class SoundManager(QObject):
             categoryConfig.muted
         )
 
-        categorySoundInstances = self.soundCache.get(category, [])
-        for soundInstance in categorySoundInstances:
-            soundInstance.setVolume(volume)
+        for (cachedCategory, _path), soundInstances in self.soundCache.items():
+            if cachedCategory != category:
+                continue
+
+            for soundInstance in soundInstances:
+                soundInstance.setVolume(volume)
 
     def _updateAllCategoryHandlers(self) -> None:
         for cat in {cat for (cat, _p) in self.soundCache.keys()}:

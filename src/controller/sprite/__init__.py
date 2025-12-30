@@ -71,7 +71,7 @@ EMOTION_DECISION_TABLE: list[ReactionRule] = [
         name="tired_low",
         mood=TIRED_COMBINATION,
         priority=50,
-        predicate=lambda m: (m.idleTime < SLEEP_DELTA_THRESHOLD / 3)
+        predicate=lambda m: (m.idleTime < SLEEP_DELTA_THRESHOLD / (3/4))
         and (m.activityLevel < 0.15 and m.keysPerSecond < 1.5),
     ),
     ReactionRule(
@@ -133,11 +133,11 @@ class SpriteSystem:
             if loadRescaledCopy:
                 scaledPixmap = self._scalePixmap(filePixmap, scale)
                 self.cachedPixmaps[scale].faces[faceFile.stem] = scaledPixmap
-    
+
     def _scalePixmap(self, pixmap: QPixmap, scale: float) -> QPixmap:
         return pixmap.scaled(
-            pixmap.width() * scale,
-            pixmap.height() * scale
+            int(pixmap.width() * scale),
+            int(pixmap.height() * scale)
         )
 
     def _loadScaledAsset(

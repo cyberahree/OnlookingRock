@@ -14,7 +14,13 @@ class InterfaceManager(QObject):
 
         self.sprite.installEventFilter(self)
 
-    def registerComponent(self, name: str, component: InterfaceComponent) -> None:
+    def registerComponent(
+            self,
+            name: str,
+            component: InterfaceComponent,
+            ignoreOpenCheck: bool = False
+        ) -> None:
+        component.ignoreOpenCheck = ignoreOpenCheck
         self.components[name] = component
 
     def getComponent(self, name: str) -> Optional[InterfaceComponent]:
@@ -52,6 +58,18 @@ class InterfaceManager(QObject):
             component.close()
         else:
             component.open()
+
+    def isAnyOpen(self) -> bool:
+        for component in self.components.values():
+            if not component.isVisible():
+                continue
+
+            if component.ignoreOpenCheck:
+                continue
+            
+            return True
+
+        return False
 
     def closeAll(self) -> None:
         for component in self.components.values():

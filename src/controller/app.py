@@ -6,6 +6,7 @@ from .system.dragger import WindowDragger
 from .system.timings import TimingClock
 
 from .interfaces.windows.startmenu import StartMenuComponent, MenuAction
+from .interfaces.windows.volume import VolumeWindowComponent
 from .interfaces.base import InterfaceManager
 
 from .sprite import SpriteSystem, limitScale, IDLE_COMBINATION, DRAG_COMBINATION
@@ -23,21 +24,6 @@ import sys
 APPLICATION = QApplication(sys.argv)
 
 class RockinWindow(QWidget):
-    """
-    
-    initialisation steps:
-    1. config + settings store
-    2. internal state defaults
-    3. clocks (other systems depend on these)
-    4. core managers (used by signals + controllers)
-    5. window flags + labels (needed before scale updates)
-    6. controllers that depend on sprite/window
-    7. interfaces / UI systems
-    8. apply initial sound config
-    9. initial sprite setup
-    10. wire settings signals
-    
-    """
     def __init__(self) -> None:
         super().__init__()
 
@@ -49,7 +35,7 @@ class RockinWindow(QWidget):
         ##############################
         # 2) internal state defaults #
         ##############################
-        self.currentSpriteScale = 0.75
+        self.currentSpriteScale = self.config.getValue("sprite.scale")
         self.spriteReady = False
         self.currentFace = None
         self.currentEyes = None
@@ -57,8 +43,15 @@ class RockinWindow(QWidget):
         #############################################
         # 3) clocks (other systems depend on these) #
         #############################################
-        self.primaryClock = TimingClock(30, self)
-        self.secondaryClock = TimingClock(15, self)
+        self.primaryClock = TimingClock(
+            self.config.getValue("sprite.refreshRates.primaryLoop"),
+            self
+        )
+    
+        self.secondaryClock = TimingClock(
+            self.config.getValue("sprite.refreshRates.secondaryLoop"),
+            self
+        )
 
         ####################################################
         # 4) core managers (used by signals + controllers) #
@@ -84,6 +77,10 @@ class RockinWindow(QWidget):
         body_pixmap = self.spriteSystem.getBody(self.currentSpriteScale)
         self.bodyLabel.setPixmap(body_pixmap)
         self.resize(body_pixmap.size())
+        
+        # size all labels to match window
+        for label in (self.bodyLabel, self.faceLabel, self.eyesLabel):
+            label.resize(body_pixmap.size())
 
         # z-order
         self.bodyLabel.lower()
@@ -118,15 +115,23 @@ class RockinWindow(QWidget):
         ##############################
         self.interfaceManager = InterfaceManager(self)
 
+        self.volumeEditor = VolumeWindowComponent(
+            self,
+            self.secondaryClock,
+            self.config,
+            self.soundManager
+        )
+
         self.startMenu = StartMenuComponent(
             self,
             [
                 MenuAction("settings", "sprite", lambda: print("open settings"), "settings"),
-                MenuAction("editVolume", "volume", lambda: print("edit volume"), "sound"),
+                MenuAction("editVolume", "volume", lambda: self.interfaceManager.open("volumeEditor"), "sound"),
                 MenuAction("quitSprite", "quit", self.triggerShutdown, "power")
             ],
+            lambda: not self.interfaceManager.isAnyOpen(),
             self.secondaryClock,
-            occludersProvider=lambda: []
+            occludersProvider=lambda: [self.volumeEditor],
         )
 
         self.decorations = DecorationSystem(self, self.primaryClock)
@@ -134,7 +139,7 @@ class RockinWindow(QWidget):
         self.speechBubble = SpeechBubbleController(
             self,
             self.secondaryClock,
-            occludersProvider=lambda: [self.startMenu]
+            occludersProvider=lambda: [self.startMenu, self.volumeEditor]
         )
 
         self.interfaceManager.registerComponent(
@@ -143,12 +148,24 @@ class RockinWindow(QWidget):
         )
 
         self.interfaceManager.registerComponent(
-            "speechBubbles",
-            self.speechBubble.bubble
+            "volumeEditor",
+            self.volumeEditor,
+            False
         )
 
+        self.interfaceManager.registerComponent(
+            "speechBubbles",
+            self.speechBubble.bubble,
+            True
+        )
+
+        ###################################
+        # 8) settings value updates       #
+        ###################################
+        self.config.onValueChanged.connect(self.configUpdated)
+
         ###########################
-        # 8) initial sprite setup #
+        # 9) initial sprite setup #
         ###########################
         self.updateSpriteFeatures(*IDLE_COMBINATION, True)
         self.setSpriteScale(self.currentSpriteScale)
@@ -160,6 +177,29 @@ class RockinWindow(QWidget):
         self.show()
 
     # events
+    def configUpdated(self, path: str, value: object):
+        if path.startswith("sound."):
+            # volume changes
+            if path == "sound.masterVolume":
+                self.soundManager.setMasterVolume(float(value))
+            else:
+                category = path[len("sound.categoryVolumes."):]
+                self.soundManager.setCategoryVolume(category, float(value))
+        elif path == "sprite.scale":
+            # scale changes
+            self.setSpriteScale(float(value))
+        elif path.startswith("sprite.refreshRates"):
+            # refresh rate changes
+            self.primaryClock.updateInterval(
+                self.config.getValue("sprite.refreshRates.primaryLoop")
+            )
+
+            self.secondaryClock.updateInterval(
+                self.config.getValue("sprite.refreshRates.secondaryLoop")
+            )
+        else:
+            pass
+
     def keyPressEvent(self, event):
         if not self.isActiveWindow():
             return
@@ -244,6 +284,16 @@ class RockinWindow(QWidget):
 
         APPLICATION.quit()
 
+    # sound methods
+    def syncVolumesFromConfig(self):
+        masterVolume = self.config.getValue("sound.masterVolume")
+        self.soundManager.setMasterVolume(masterVolume)
+        
+        categoryVolumes = self.config.getValue("sound.categoryVolumes")
+
+        for category, volume in categoryVolumes.items():
+            self.soundManager.setCategoryVolume(category, volume)
+
     # sprite methods
     def setSpriteScale(self, scale: float):
         scale = limitScale(scale)
@@ -258,7 +308,6 @@ class RockinWindow(QWidget):
         scaledBodyPixmap = self.spriteSystem.getBody(scale)
         newRootSize = scaledBodyPixmap.size()
 
-        print(newRootSize)
         self.resize(newRootSize)
 
         for label in (
@@ -266,6 +315,9 @@ class RockinWindow(QWidget):
             self.faceLabel,
             self.eyesLabel
         ):
+            # Resize label to match new window size
+            label.resize(newRootSize)
+            
             # get scaled pixmap
             if label == self.bodyLabel:
                 label.setPixmap(scaledBodyPixmap)
@@ -283,8 +335,6 @@ class RockinWindow(QWidget):
                         scale
                     )
                 )
-            else:
-                pass
         
         # reposition speech bubble
         self.speechBubble.bubble._reposition()

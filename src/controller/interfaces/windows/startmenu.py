@@ -43,11 +43,13 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self,
         sprite: QWidget,
         actions: Sequence[MenuAction],
+        canOpen: callable[[], bool],
         clock,
         occludersProvider: Optional[Callable[[], Iterable[QWidget]]] = (lambda: []),
     ):
         super().__init__(sprite, clock)
 
+        self.canOpen = canOpen
         self.actions = list(actions)
         self.occludersProvider = occludersProvider
 
@@ -263,6 +265,9 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
             self.enableMoveAnimation = previous
 
     def open(self) -> None:
+        if not self.canOpen():
+            return
+
         super().open()
         QApplication.instance().installEventFilter(self)
         QTimer.singleShot(0, self._recomputeHeightSnap)

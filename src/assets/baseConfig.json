@@ -1,4 +1,12 @@
 {
+    "sprite": {
+        "scale": 0.75,
+
+        "refreshRates": {
+            "primaryLoop": 30,
+            "secondaryLoop": 15
+        }
+    },
     "sound": {
         "masterVolume": 0.25,
         "categoryVolumes": {
@@ -7,12 +15,6 @@
             "AMBIENT": 0.25,
             "SPECIAL": 1.0,
             "SPEECH": 0.6
-        }
-    },
-    "app": {
-        "refreshRates": {
-            "primaryLoop": 30,
-            "secondaryLoop": 15
         }
     }
 }

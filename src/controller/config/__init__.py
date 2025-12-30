@@ -1,8 +1,9 @@
 from ..asset import ROOT_ASSET_DIRECTORY
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, QObject
 
 from platformdirs import user_config_dir
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -62,13 +63,13 @@ def deepMerge(
     base: JsonDict,
     overlay: JsonDict
 ) -> JsonDict:
-    out = dict(base)
+    out = deepcopy(base)
 
     for (key, value) in overlay.items():
         if isinstance(value, dict) and isinstance(out.get(key), dict):
             out[key] = deepMerge(out[key], value)
         else:
-            out[key] = value
+            out[key] = deepcopy(value)
 
     return out
 
@@ -78,15 +79,31 @@ def pruneForDefaults(
 ) -> JsonDict:
     if isinstance(defaults, dict) and isinstance(current, dict):
         out: JsonDict = {}
+        hasChanges = False
 
         for (key, value) in current.items():
             defaultValue = defaults.get(key)
-            difference = pruneForDefaults(defaultValue, value)
+            
+            # key doesn't exist in defaults, keep it
+            if defaultValue is None:
+                out[key] = value
+                hasChanges = True
+                continue
+            
+            # check nested dicts
+            if isinstance(value, dict) and isinstance(defaultValue, dict):
+                difference = pruneForDefaults(defaultValue, value)
+                if difference is not None:
+    
+                    out[key] = value
+                    hasChanges = True
+            elif type(defaultValue) == type(value) and defaultValue == value:
+                continue
+            else:
+                out[key] = value
+                hasChanges = True
 
-            if difference is not None:
-                out[key] = difference
-
-        return out if len(out) > 0 else None
+        return out if hasChanges else None
 
     if type(defaults) != type(current):
         return current
@@ -124,10 +141,11 @@ def setByPath(
 
     current[parts[-1]] = value
 
-class ConfigController:
+class ConfigController(QObject):
     onValueChanged = Signal(str, object)
 
     def __init__(self):
+        super().__init__()
         self.appName = "OnlookinRock"
 
         # configuration directory
