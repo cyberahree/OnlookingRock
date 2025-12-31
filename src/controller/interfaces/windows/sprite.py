@@ -5,6 +5,7 @@ from ..base.lookskit import (
     BodyLabel,
     CloseButton,
     Divider,
+    RockDropdown,
     SubheadingLabel,
     SurfaceFrame,
     applyRockStyle,
@@ -97,17 +98,30 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         rootLayout.addWidget(Divider())
 
         # User Nickname
-        rootLayout.addWidget(self._makeTextRow("User Nickname", key="userNick"))
+        nickRow, self._nickEdit = self._makeTextRow("User Nickname", key="userNick")
+        rootLayout.addWidget(nickRow)
+        rootLayout.addWidget(Divider())
+
+        # Hat selection
+        hatRow, self.hatDropdown = self._makeDropdownRow(
+            "Hat",
+            key="hat",
+            items=self.sprite.allHats
+        )
+        rootLayout.addWidget(hatRow)
         rootLayout.addWidget(Divider())
 
         # Scale slider
-        rootLayout.addWidget(self._makeScaleSliderRow("Scale", key="scale"))
+        scaleRow, self._scaleSlider, self._scaleLabel = self._makeScaleSliderRow("Scale", key="scale")
+        rootLayout.addWidget(scaleRow)
         rootLayout.addWidget(Divider())
 
         # Refresh Rates
         rootLayout.addWidget(BodyLabel("Refresh Rates", selectable=False))
-        rootLayout.addWidget(self._makeRefreshRateSpinBox("Primary Loop", key="primaryLoop"))
-        rootLayout.addWidget(self._makeRefreshRateSpinBox("Secondary Loop", key="secondaryLoop"))
+        primaryRow, self._primaryLoopSpinBox = self._makeRefreshRateSpinBox("Primary Loop", key="primaryLoop")
+        rootLayout.addWidget(primaryRow)
+        secondaryRow, self._secondaryLoopSpinBox = self._makeRefreshRateSpinBox("Secondary Loop", key="secondaryLoop")
+        rootLayout.addWidget(secondaryRow)
 
         # style
         onHoverBackground = QColor(BACKGROUND_COLOR).darker(106)
@@ -120,7 +134,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             }}
 
             QSlider::groove:horizontal {{
-                height: 6px;
+                height: {PADDING // 2}px;
                 background: rgba(0, 0, 0, 25);
                 border-radius: 3px;
             }}
@@ -146,7 +160,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
 
         self._syncFromConfig()
 
-    def _makeTextRow(self, label: str, *, key: str) -> QWidget:
+    def _makeTextRow(self, label: str, *, key: str) -> tuple:
         row = QWidget()
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -160,15 +174,32 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         textEdit.setMaxLength(32)
         layout.addWidget(textEdit, 1)
 
-        self._nickEdit = textEdit
-
         def onChanged(text: str) -> None:
             self._applyKeyValue(key, text)
 
         textEdit.textChanged.connect(onChanged)
-        return row
+        return row, textEdit
 
-    def _makeScaleSliderRow(self, label: str, *, key: str) -> QWidget:
+    def _makeDropdownRow(self, label: str, *, key: str, items: list) -> tuple:
+        row = QWidget()
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(PADDING // 2)
+
+        nameLabel = BodyLabel(label, selectable=False)
+        nameLabel.setFixedWidth(120)
+        layout.addWidget(nameLabel, 0)
+
+        dropdown = RockDropdown(items=items)
+        layout.addWidget(dropdown, 1)
+
+        def onChanged(text: str) -> None:
+            self._applyKeyValue(key, text)
+
+        dropdown.currentTextChanged.connect(onChanged)
+        return row, dropdown
+
+    def _makeScaleSliderRow(self, label: str, *, key: str) -> tuple:
         row = QWidget()
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -190,12 +221,8 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         valueLabel.setFixedWidth(42)
         layout.addWidget(valueLabel, 0)
 
-        self._scaleSlider = slider
-        self._scaleLabel = valueLabel
-
         def onChanged(v: int) -> None:
-            scale = v / 100.0
-            self._scaleLabel.setText(f"{scale:.2f}x")
+            valueLabel.setText(f"{v / 100.0:.2f}x")
 
         def onReleased() -> None:
             scale = slider.value() / 100.0
@@ -203,9 +230,9 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
 
         slider.valueChanged.connect(onChanged)
         slider.sliderReleased.connect(onReleased)
-        return row
+        return row, slider, valueLabel
 
-    def _makeRefreshRateSpinBox(self, label: str, *, key: str) -> QWidget:
+    def _makeRefreshRateSpinBox(self, label: str, *, key: str) -> tuple:
         row = QWidget()
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -222,21 +249,17 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         spinBox.setSuffix(" Hz")
         layout.addWidget(spinBox, 1)
 
-        if key == "primaryLoop":
-            self._primaryLoopSpinBox = spinBox
-        else:
-            self._secondaryLoopSpinBox = spinBox
-
         def onChanged(v: int) -> None:
             self._applyKeyValue(key, v)
 
         spinBox.valueChanged.connect(onChanged)
-        return row
+        return row, spinBox
 
     def _applyKeyValue(self, key: str, value) -> None:
-        # config + sound
         if key == "userNick":
             self.config.setValue("sprite.userNick", value)
+        elif key == "hat":
+            self.config.setValue("sprite.hat", value)
         elif key == "scale":
             scale = clamp(value, 0.25, 2.0)
             self.config.setValue("sprite.scale", scale)
@@ -269,6 +292,20 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._nickEdit.blockSignals(True)
         self._nickEdit.setText(userNick)
         self._nickEdit.blockSignals(False)
+
+        # hat
+        try:
+            hat = str(self.config.getValue("sprite.hat"))
+        except Exception:
+            hat = "None"
+
+        self.hatDropdown.blockSignals(True)
+        index = self.hatDropdown.findText(hat)
+
+        if index >= 0:
+            self.hatDropdown.setCurrentIndex(index)
+
+        self.hatDropdown.blockSignals(False)
 
         # scale
         try:
@@ -332,6 +369,9 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             return False
 
         if (widget is self.sprite) or (self.sprite.isAncestorOf(widget)):
+            return False
+
+        if self.hatDropdown.isAncestorOf(widget) or (self.hatDropdown.view() and self.hatDropdown.view().isVisible()):
             return False
 
         self.close()

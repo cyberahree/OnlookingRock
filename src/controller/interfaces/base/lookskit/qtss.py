@@ -5,6 +5,7 @@ from ..styling import (
     BORDER_RADIUS,
     ERROR_ACCENT,
     INFO_ACCENT,
+    PADDING,
     TEXT_COLOR,
     asRGB,
 )
@@ -95,7 +96,7 @@ def _build_base_qss() -> str:
     QPushButton[rockRole=\"button\"][variant=\"ghost\"] {{
         background: transparent;
         border: none;
-        padding: 2px 6px;
+        padding: 2px {PADDING // 2}px;
     }}
 
     QPushButton[rockRole=\"button\"][variant=\"ghost\"]:hover {{
@@ -194,6 +195,43 @@ def _build_base_qss() -> str:
         background-color: rgba(0, 0, 0, 35);
         min-height: 1px;
         max-height: 1px;
+    }}
+
+    QComboBox[rockRole=\"dropdown\"] {{
+        color: {_rgba(TEXT_COLOR)};
+        background-color: rgba(255, 255, 255, 120);
+        border: 1px solid rgba(0, 0, 0, 35);
+        border-radius: {BORDER_RADIUS}px;
+        padding: 0px {PADDING // 2}px;
+        outline: none;
+    }}
+
+    QComboBox[rockRole=\"dropdown\"]::drop-down {{
+        border: none;
+        width: 20px;
+    }}
+
+    QComboBox[rockRole=\"dropdown\"]::drop-down:hover {{
+        background-color: rgba(0, 0, 0, 18);
+    }}
+
+    QComboBox[rockRole=\"dropdown\"][variant=\"surface\"] {{
+        background-color: {_rgba(BACKGROUND_COLOR)};
+        border: 1px solid {_rgba(BORDER_COLOR)};
+    }}
+
+    QComboBox[rockRole=\"dropdown\"][variant=\"surface\"]:hover {{
+        background-color: {_rgba(hover_surface)};
+    }}
+
+    QComboBox[rockRole=\"dropdown\"][variant=\"primary\"] {{
+        background-color: {_rgba(primary_fill, 230)};
+        border: 1px solid {_rgba(primary_fill.darker(120))};
+        color: white;
+    }}
+
+    QComboBox[rockRole=\"dropdown\"][variant=\"primary\"]:hover {{
+        background-color: {_rgba(primary_hover, 235)};
     }}
     """.strip()
 

@@ -93,7 +93,8 @@ class RockinWindow(QWidget):
         self.faceLabel.raise_()
 
         # sprite hat
-        self.currentHat = self.spriteSystem.spriteAssets.getRandom("hats")
+        self.allHats = [str(path.stem) for path in self.spriteSystem.spriteAssets.listDirectory("hats")]
+        self.currentHat = self.config.getValue("sprite.hat")
 
         self.hatOverlay.setHatPixmap(
             self.spriteSystem.getHat(
@@ -110,6 +111,10 @@ class RockinWindow(QWidget):
             onDragStart=self.onDragStart,
             onDragEnd=self.onDragEnd
         )
+        
+        #
+        # yieLExqVhHJi4FF84cdHafxhmx4tRr5tT3
+        #
 
         self.blinkController = BlinkingController(
             QTimer(self),
@@ -215,6 +220,14 @@ class RockinWindow(QWidget):
         elif path == "sprite.scale":
             # scale changes
             self.setSpriteScale(float(value))
+        elif path == "sprite.hat":
+            self.currentHat = str(value)
+            self.hatOverlay.setHatPixmap(
+                self.spriteSystem.getHat(
+                    self.currentHat,
+                    self.currentSpriteScale
+                )
+            )
         elif path.startswith("sprite.refreshRates"):
             # refresh rate changes
             self.primaryClock.setRefreshRate(

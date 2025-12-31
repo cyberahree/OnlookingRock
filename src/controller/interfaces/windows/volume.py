@@ -125,7 +125,7 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             }}
 
             QSlider::groove:horizontal {{
-                height: 6px;
+                height: {PADDING // 2}px;
                 background: rgba(0, 0, 0, 25);
                 border-radius: 3px;
             }}
