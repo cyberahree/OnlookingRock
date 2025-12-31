@@ -11,8 +11,8 @@ from ..base.styling import (
     asRGB,
 )
 
-from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
-from PySide6.QtCore import Qt, QTimer, QPoint, Signal, QRect
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget, QLineEdit, QHBoxLayout
+from PySide6.QtCore import Qt, QTimer, QPoint, Signal, QSize
 from PySide6.QtGui import QPainter, QPolygon
 
 from typing import Callable, Iterable, Optional
@@ -63,6 +63,22 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         self.setOpacity(0.0)
         self.fadeFinished.connect(self._handleFadeFinished)
 
+        # main bubble body (includes label + optional input)
+        self.body = QWidget(self)
+        self.body.setObjectName("speechBody")
+        self.body.setStyleSheet(
+            f"""
+            QWidget#speechBody {{
+                background-color: {asRGB(BACKGROUND_COLOR)};
+                border-radius: {BORDER_RADIUS}px;
+            }}
+            """
+        )
+
+        bodyLayout = QVBoxLayout(self.body)
+        bodyLayout.setContentsMargins(PADDING, PADDING, PADDING, PADDING)
+        bodyLayout.setSpacing(max(4, PADDING // 2))
+
         self.label = QLabel("")
         self.label.setWordWrap(True)
         self.label.setMaximumWidth(MAX_WIDTH)
@@ -71,32 +87,113 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         self.label.setStyleSheet(
             f"""
             QLabel {{
-                background-color: {asRGB(BACKGROUND_COLOR)};
+                background: transparent;
                 color: {asRGB(TEXT_COLOR)};
-                padding: {PADDING}px;
-                border-radius: {BORDER_RADIUS}px;
             }}
             """
         )
 
+        # prevent size hint issues
+        self.label.setSizePolicy(
+            self.label.sizePolicy().horizontalPolicy(),
+            self.label.sizePolicy().verticalPolicy()
+        )
+
+        bodyLayout.addWidget(self.label)
+
+        # input row (hidden by default)
+        self.inputContainer = QWidget(self.body)
+        inputLayout = QHBoxLayout(self.inputContainer)
+        inputLayout.setContentsMargins(0, 0, 0, 0)
+        inputLayout.setSpacing(0)
+
+        inputLayout.addStretch(1)
+
+        self.inputField = QLineEdit(self.inputContainer)
+        self.inputField.setMaximumWidth(MAX_WIDTH)
+        self.inputField.setAlignment(Qt.AlignRight)
+        self.inputField.setFont(DEFAULT_FONT)
+        self.inputField.setStyleSheet(
+            f"""
+            QLineEdit {{
+                background-color: {asRGB(BACKGROUND_COLOR)};
+                color: {asRGB(TEXT_COLOR)};
+                border: none;
+            }}
+            """
+        )
+
+        inputLayout.addWidget(self.inputField, 0, Qt.AlignRight)
+
+        self.inputContainer.hide()
+        bodyLayout.addWidget(self.inputContainer)
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, TAIL_SIZE)
-        layout.addWidget(self.label)
+        layout.addWidget(self.body)
 
         self.typeTimer = QTimer(self)
         self.typeTimer.timeout.connect(self._typeNextCharacter)
 
         self.followTimer.start()
 
+        # hacky fix:
+        # prevent qt geometry warnings
+        # i hate you qt
+        self.setMinimumSize(40, 40)
+        self.setMaximumSize(MAX_WIDTH + PADDING * 2 + 20, 16777215)  # Qt's default max height
+
         self.hide()
+
+    def setInputVisible(self, visible: bool) -> None:
+        if visible:
+            self.inputContainer.show()
+
+            # allow focusing/typing into the input
+            self.setAttribute(Qt.WA_ShowWithoutActivating, False)
+            self.setFocusPolicy(Qt.StrongFocus)
+            self.inputField.setFocus(Qt.OtherFocusReason)
+            try:
+                self.activateWindow()
+            except Exception:
+                pass
+        else:
+            self.inputContainer.hide()
+
+            # restore non-interactive behavior
+            self.setAttribute(Qt.WA_ShowWithoutActivating, True)
+            self.setFocusPolicy(Qt.NoFocus)
+            self.inputField.clearFocus()
+
+        self._updateSize()
+        self._reposition(forceShow=self.isVisible())
+
+    def configureInput(self, placeholder: str = "", text: str = "") -> None:
+        self.inputField.setPlaceholderText(placeholder or "")
+        self.inputField.setText(text or "")
+        self.inputField.setCursorPosition(len(self.inputField.text()))
 
     def mousePressEvent(self, event) -> None:
         if self.typeTimer.isActive():
             self.skipTyping()
 
-    def startTyping(self, text: str, typingDelay: Optional[int] = None) -> None:
+    def startTyping(
+        self,
+        text: str,
+        typingDelay: Optional[int] = None,
+        showInput: bool = False,
+        inputPlaceholder: str = "",
+        inputText: str = "",
+    ) -> None:
         if self.isShuttingDown:
             return
+
+        # reset interactive mode unless requested
+        if showInput:
+            self.configureInput(inputPlaceholder, inputText)
+            self.setInputVisible(True)
+        else:
+            self.setInputVisible(False)
 
         if typingDelay is None:
             typingDelay = random.randint(
@@ -109,8 +206,16 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         self.currentTypingDelay = int(typingDelay)
 
         self.label.setText("")
-        self.adjustSize()
+        self._updateSize()
         self._reposition(forceShow=True)
+
+        if showInput:
+            # (re)focus after showing, otherwise focus calls before .show() can be ignored.
+            try:
+                self.inputField.setFocus(Qt.OtherFocusReason)
+                self.activateWindow()
+            except Exception:
+                pass
 
         self.fadeIn()
         self.raise_()
@@ -136,7 +241,7 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
 
         if showFullText:
             self.label.setText(self.fullText)
-            self.adjustSize()
+            self._updateSize()
 
     def shutdown(self) -> None:
         self.isShuttingDown = True
@@ -144,6 +249,12 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         self.typeTimer.stop()
         self.fadeAnimation.stop()
         self.moveAnimation.stop()
+
+        try:
+            self.inputField.clearFocus()
+        except Exception:
+            pass
+
         self.hide()
 
     def _typeNextCharacter(self) -> None:
@@ -158,7 +269,7 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
 
         self.currentCharacterIndex += 1
         self.label.setText(self.fullText[:self.currentCharacterIndex])
-        self.adjustSize()
+        self._updateSize()
         self._reposition()
 
         character = self.fullText[self.currentCharacterIndex - 1:self.currentCharacterIndex]
@@ -172,6 +283,36 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
     def _handleFadeFinished(self, endOpacity: float) -> None:
         if endOpacity <= 0.001:
             self.fadeOutFinished.emit()
+
+    def _updateSize(self) -> None:
+        # let the label calculate its size based on content
+        # and update the body to fit content
+        self.label.adjustSize()
+        self.body.adjustSize()
+        
+        # calculate desired size
+        desired_size = self.body.sizeHint()
+        
+        # tail margin
+        final_height = desired_size.height() + TAIL_SIZE
+        final_width = desired_size.width()
+        
+        # enforce constraints
+        min_size = self.minimumSize()
+        max_size = self.maximumSize()
+        
+        final_width = max(min_size.width(), min(final_width, max_size.width()))
+        final_height = max(min_size.height(), min(final_height, max_size.height()))
+        
+        # use .setFixedSize() temporarily to avoid Qt geometry conflicts
+        self.setFixedSize(final_width, final_height)
+        
+        # then restore the constraints
+        QTimer.singleShot(0, lambda: self._restoreSizeConstraints())
+    
+    def _restoreSizeConstraints(self) -> None:
+        self.setMinimumSize(40, 40)
+        self.setMaximumSize(MAX_WIDTH + PADDING * 2 + 20, 16777215)
 
     def _reposition(self, forceShow: bool = False) -> None:
         if not self.sprite:
@@ -209,7 +350,7 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         painter.setBrush(BACKGROUND_COLOR)
         painter.setPen(Qt.NoPen)
 
-        label_rect = self.label.geometry()
+        label_rect = self.body.geometry()
         base_x = label_rect.center().x()
         base_y = label_rect.bottom()
 
