@@ -87,6 +87,7 @@ class PixmapCache:
     body: QPixmap = field(default_factory=QPixmap)
     faces: dict[str, QPixmap] = field(default_factory=dict)
     eyes: dict[str, QPixmap] = field(default_factory=dict)
+    hats: dict[str, QPixmap] = field(default_factory=dict)
 
 def limitScale(scale: float) -> float:
     return round(
@@ -133,6 +134,15 @@ class SpriteSystem:
             if loadRescaledCopy:
                 scaledPixmap = self._scalePixmap(filePixmap, scale)
                 self.cachedPixmaps[scale].faces[faceFile.stem] = scaledPixmap
+        
+        # load hats
+        for hatFile in self.spriteAssets.iterateDirectory("hats", ".png"):
+            filePixmap = QPixmap(str(hatFile))
+            self.cachedPixmaps[1.0].hats[hatFile.stem] = filePixmap
+
+            if loadRescaledCopy:
+                scaledPixmap = self._scalePixmap(filePixmap, scale)
+                self.cachedPixmaps[scale].hats[hatFile.stem] = scaledPixmap
 
     def _scalePixmap(self, pixmap: QPixmap, scale: float) -> QPixmap:
         return pixmap.scaled(
@@ -209,6 +219,15 @@ class SpriteSystem:
 
         return self.cachedPixmaps[scale].eyes.get(
             eyesName,
+            QPixmap()
+        )
+    
+    def getHat(self, hatName: str, scale: float = 1.0) -> QPixmap:
+        scale = limitScale(scale)
+        self._loadScaledAsset(scale, "hats", hatName)
+
+        return self.cachedPixmaps[scale].hats.get(
+            hatName,
             QPixmap()
         )
 

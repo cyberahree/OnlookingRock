@@ -13,6 +13,7 @@ from .interfaces.base import InterfaceManager
 from .sprite import SpriteSystem, limitScale, IDLE_COMBINATION, DRAG_COMBINATION
 from .sprite.lasermouse import LaserMouseController
 from .sprite.blinker import BlinkingController
+from .sprite.hat import HatOverlayWindow
 
 from .widgets.speech import SpeechBubbleController
 from .widgets.decoration import DecorationSystem
@@ -40,6 +41,7 @@ class RockinWindow(QWidget):
         self.spriteReady = False
         self.currentFace = None
         self.currentEyes = None
+        self.currentHat = None
 
         #############################################
         # 3) clocks (other systems depend on these) #
@@ -71,10 +73,12 @@ class RockinWindow(QWidget):
             Qt.Tool
         )
 
+        self.hatOverlay = HatOverlayWindow(self)
         self.bodyLabel = QLabel(self)
         self.faceLabel = QLabel(self)
         self.eyesLabel = QLabel(self)
 
+        # set body pixmap and resize sprite window
         body_pixmap = self.spriteSystem.getBody(self.currentSpriteScale)
         self.bodyLabel.setPixmap(body_pixmap)
         self.resize(body_pixmap.size())
@@ -87,6 +91,16 @@ class RockinWindow(QWidget):
         self.bodyLabel.lower()
         self.eyesLabel.raise_()
         self.faceLabel.raise_()
+
+        # sprite hat
+        self.currentHat = self.spriteSystem.spriteAssets.getRandom("hats")
+
+        self.hatOverlay.setHatPixmap(
+            self.spriteSystem.getHat(
+                self.currentHat,
+                self.currentSpriteScale
+            )
+        )
 
         ###############################################
         # 6) controllers that depend on sprite/window #
@@ -211,6 +225,15 @@ class RockinWindow(QWidget):
                 self.config.getValue("sprite.refreshRates.secondaryLoop")
             )
         else:
+            pass
+
+    def moveEvent(self, event):
+        super().moveEvent(event)
+
+        try:
+            self.hatOverlay.reposition()
+            self.hatOverlay.raise_()
+        except Exception:
             pass
 
     def keyPressEvent(self, event):
@@ -356,9 +379,18 @@ class RockinWindow(QWidget):
                         scale
                     )
                 )
+
+        # resize hat overlay
+        self.hatOverlay.setHatPixmap(
+            self.spriteSystem.getHat(
+                self.currentHat,
+                self.currentSpriteScale
+            )
+        )
         
-        # reposition speech bubble
+        # reposition widgets
         self.speechBubble.bubble._reposition()
+        self.startMenu._reposition()
 
     def updateSpriteLoop(self):
         if not self.spriteReady:

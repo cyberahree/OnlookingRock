@@ -1,8 +1,12 @@
-from pathlib import Path
 from typing import Optional, Union, Tuple
+from pathlib import Path
+
+import random
 
 # i wonder if there's a better way to do this
 ROOT_ASSET_DIRECTORY = Path(__file__).resolve().parent.parent / "assets"
+
+anySuffixes = Optional[Union[str, Tuple[str, ...]]]
 
 class AssetController:
     def __init__(self, folder: str = "") -> None:
@@ -18,7 +22,18 @@ class AssetController:
     def getAsset(self, relativePath: str) -> Path:
         return ROOT_ASSET_DIRECTORY / self.folder / relativePath
     
-    def iterateDirectory(self, relativePath: str, suffixes: Optional[Union[str, Tuple[str, ...]]] = None):
+    def getRandom(self, relativePath: str, suffixes: anySuffixes = None, removeSuffix: bool = True) -> Path | None:
+        items = self.listDirectory(relativePath, suffixes)
+        
+        if not items:
+            return None
+
+        return random.choice(items).stem
+
+    def listDirectory(self, relativePath: str, suffixes: anySuffixes = None) -> list[Path]:
+        return list(self.iterateDirectory(relativePath, suffixes))
+
+    def iterateDirectory(self, relativePath: str, suffixes: anySuffixes = None):
         directory = self.getAsset(relativePath)
         
         if suffixes is None:
