@@ -11,9 +11,10 @@ from .interfaces.windows.sprite import SpriteWindowComponent
 from .interfaces.base import InterfaceManager
 
 from .sprite import SpriteSystem, limitScale, IDLE_COMBINATION, DRAG_COMBINATION
-from .sprite.lasermouse import LaserMouseController
-from .sprite.blinker import BlinkingController
-from .sprite.hat import HatOverlayWindow
+from .sprite.petting import CircularPettingController
+from .sprite.eyetrack import LaserMouseController
+from .sprite.blinking import BlinkingController
+from .sprite.cosmetic import HatOverlayWindow
 
 from .widgets.speech import SpeechBubbleController
 from .widgets.decoration import DecorationSystem
@@ -39,6 +40,8 @@ class RockinWindow(QWidget):
         ##############################
         self.currentSpriteScale = self.config.getValue("sprite.scale")
         self.spriteReady = False
+        self.spritePetting = False
+
         self.currentFace = None
         self.currentEyes = None
         self.currentHat = None
@@ -111,15 +114,20 @@ class RockinWindow(QWidget):
             onDragStart=self.onDragStart,
             onDragEnd=self.onDragEnd
         )
-        
-        #
-        # yieLExqVhHJi4FF84cdHafxhmx4tRr5tT3
-        #
 
         self.blinkController = BlinkingController(
             QTimer(self),
             self.triggerBlink,
-            self.updateSpriteLoop
+            self.updateSpriteLoop,
+            lambda: not self.spritePetting
+        )
+
+        self.pettingController = CircularPettingController(
+            self,
+            canPet=lambda: (
+                (not self.blinkController.isBlinking) and
+                (not self.dragger.isDragging)
+            )
         )
 
         self.laserMouse = LaserMouseController(
@@ -409,8 +417,20 @@ class RockinWindow(QWidget):
         if not self.spriteReady:
             return
         
-        self.laserMouse.update()
+        # 1) if the sprite is being pet, set the features of
+        #    sprite to petting state
+        self.spritePetting = self.pettingController.update()
+
+        if self.spritePetting:
+            self.updateSpriteFeatures(
+                "idle", "petting", True
+            )
+
+            return
         
+        # 2) otherwise, update sprite features based on keyboard
+        #    state or a dragging state
+        self.laserMouse.update()
         self.updateSpriteFeatures(
             *self.spriteSystem.getMoodCombination()
             if not self.dragger.isDragging

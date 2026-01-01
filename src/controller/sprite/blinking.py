@@ -14,12 +14,14 @@ class BlinkingController:
         timer: QTimer,
         triggerBlink: Callable,
         completeBlink: Callable,
+        canBlink: Callable[[], bool] = lambda: True,
         blinkIntervalRange: tuple[int, int] = (4000, 12000),
     ):
         self.timer = timer
         self.blinkIntervalRange = blinkIntervalRange
 
         self.isBlinking = False
+        self.canBlink = canBlink
         self.triggerBlink = triggerBlink
         self.completeBlink = completeBlink
 
@@ -29,6 +31,9 @@ class BlinkingController:
         self.scheduleBlink()
 
     def _onBlink(self) -> None:
+        if not self.canBlink():
+            return
+
         self.isBlinking = True
         self.triggerBlink()
     
