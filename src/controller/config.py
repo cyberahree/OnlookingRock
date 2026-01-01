@@ -1,4 +1,4 @@
-from ..asset import ROOT_ASSET_DIRECTORY
+from .asset import ROOT_ASSET_DIRECTORY
 
 from PySide6.QtCore import Signal, QObject
 

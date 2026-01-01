@@ -1,7 +1,16 @@
 from ..asset import AssetController
 
-from PySide6.QtGui import QGuiApplication, QPainter, QPixmap
 from PySide6.QtCore import QPointF, QRectF, Qt
+
+from PySide6.QtGui import (
+    QGuiApplication,
+    QPainter,
+    QPixmap,
+    QColor,
+    QBrush,
+    QPen
+)
+
 from PySide6.QtWidgets import (
     QGraphicsItem,
     QGraphicsPixmapItem,
@@ -10,11 +19,88 @@ from PySide6.QtWidgets import (
     QWidget
 )
 
+from typing import Any, Callable, Optional
+from copy import deepcopy
+
 import random
+import uuid
 
 PUSHOUT_STRENGTH = 0.75
 MAX_FALL_TIME = 1.25
 RESTITUTION = 0.15
+
+class RemoveItemButton(QGraphicsItem):
+    def __init__(
+        self,
+        parent: QGraphicsItem,
+        onClick: Optional[Callable[[], None]] = None,
+        radius: float = 16.0
+    ):
+        super().__init__(parent)
+
+        self.onClick = onClick
+        self.radius = radius
+
+        self.setAcceptedMouseButtons(Qt.LeftButton)
+        self.setAcceptHoverEvents(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setZValue(9999) # should be good enough
+    
+    @property
+    def buttonBounds(self) -> QRectF:
+        return QRectF(
+            -self.radius,
+            -self.radius,
+            self.radius * 2.0,
+            self.radius * 2.0
+        )
+
+    def paint(
+        self,
+        painter: QPainter
+    ) -> None:
+        painter.setRenderHint(QPainter.Antialiasing, True)
+
+        # base circle
+        painter.setPen(
+            # stroke
+            QPen(QColor(160, 40, 40, 255), 1)
+        )
+
+        painter.setBrush(
+            # fill
+            QBrush(QColor(220, 70, 70, 220))
+        )
+
+        painter.drawEllipse(self.boundingRect())
+
+        # cross
+        painter.setPen(
+            QPen(
+                QColor(255, 255, 255, 255),
+                2,
+                Qt.SolidLine,
+                Qt.RoundCap
+            )
+        )
+
+        radius = self.radius * 0.6
+
+        painter.drawLine(
+            -radius, -radius,
+            radius, radius
+        )
+
+        painter.drawLine(
+            -radius, radius,
+            radius, -radius
+        )
+    
+    def mousePressEvent(self, event):
+        try:
+            self.onClick()
+        finally:
+            event.accept()
 
 class DecorationItem(QGraphicsPixmapItem):
     def __init__(

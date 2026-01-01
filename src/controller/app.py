@@ -12,12 +12,10 @@ from .interfaces.base import InterfaceManager
 
 from .sprite import SpriteSystem, limitScale, IDLE_COMBINATION, DRAG_COMBINATION
 from .sprite.petting import CircularPettingController
+from .sprite.speech import SpeechBubbleController
 from .sprite.eyetrack import LaserMouseController
 from .sprite.blinking import BlinkingController
 from .sprite.cosmetic import HatOverlayWindow
-
-from .widgets.speech import SpeechBubbleController
-from .widgets.decoration import DecorationSystem
 
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
 from PySide6.QtCore import Qt, QTimer
@@ -159,16 +157,14 @@ class RockinWindow(QWidget):
         self.startMenu = StartMenuComponent(
             self,
             [
+                MenuAction("scene", "scene", lambda: print("open scene"), "scene"),
                 MenuAction("settings", "sprite", lambda: self.interfaceManager.open("spriteEditor"), "settings"),
                 MenuAction("editVolume", "volume", lambda: self.interfaceManager.open("volumeEditor"), "sound"),
                 MenuAction("quitSprite", "quit", self.triggerShutdown, "power")
             ],
             lambda: not self.interfaceManager.isAnyOpen(),
-            self.secondaryClock,
-            occludersProvider=lambda: [self.volumeEditor, self.spriteEditor],
+            self.secondaryClock
         )
-
-        self.decorations = DecorationSystem(self, self.primaryClock)
 
         self.speechBubble = SpeechBubbleController(
             self,
@@ -354,7 +350,6 @@ class RockinWindow(QWidget):
 
     def shutdown(self):
         self.config.saveConfig()
-        self.decorations.shutdown()
         self.soundManager.shutdown()
 
         APPLICATION.quit()

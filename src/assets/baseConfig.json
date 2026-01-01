@@ -18,5 +18,9 @@
             "SPECIAL": 1.0,
             "SPEECH": 0.6
         }
+    },
+    "scene": {
+        "startupDecorationSpawnCount": 5,
+        "persistentDecorations": []
     }
 }
