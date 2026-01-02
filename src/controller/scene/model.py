@@ -1,7 +1,7 @@
 from PySide6.QtCore import QObject, Signal, QPointF
 
-from typing import Dict, Iterable, Optional
 from dataclasses import dataclass
+from typing import Dict, Optional
 
 MIN_POSITION_SHIFT = 0.01
 

@@ -4,9 +4,12 @@ from .config import ConfigController
 from .system.sound import SoundManager, SoundCategory
 from .system.timings import TimingClock
 
+from .scene import SceneSystem
+
 from .interfaces.windows.startmenu import StartMenuComponent, MenuAction
 from .interfaces.windows.volume import VolumeWindowComponent
 from .interfaces.windows.sprite import SpriteWindowComponent
+from .interfaces.windows.scene import SceneWindowComponent
 from .interfaces.base import InterfaceManager
 
 from .sprite import SpriteSystem, limitScale, IDLE_COMBINATION, DRAG_COMBINATION
@@ -57,11 +60,12 @@ class RockinWindow(QWidget):
             self
         )
 
-        ####################################################
-        # 4) core managers (used by signals + controllers) #
-        ####################################################
+        ####################
+        # 4) core managers #
+        ####################
         self.soundManager = SoundManager(self)
         self.spriteSystem = SpriteSystem(self)
+        self.sceneSystem = SceneSystem(self, self.primaryClock)
 
         ##########################################################
         # 5) window flags + labels (needed before scale updates) #
@@ -154,10 +158,17 @@ class RockinWindow(QWidget):
             self.config
         )
 
+        self.sceneEditor = SceneWindowComponent(
+            self,
+            self.secondaryClock,
+            self.config,
+            self.sceneSystem
+        )
+
         self.startMenu = StartMenuComponent(
             self,
             [
-                MenuAction("scene", "scene", lambda: print("open scene"), "scene"),
+                MenuAction("scene", "scene", lambda: self.interfaceManager.open("sceneEditor"), "scene"),
                 MenuAction("settings", "sprite", lambda: self.interfaceManager.open("spriteEditor"), "settings"),
                 MenuAction("editVolume", "volume", lambda: self.interfaceManager.open("volumeEditor"), "sound"),
                 MenuAction("quitSprite", "quit", self.triggerShutdown, "power")
@@ -169,7 +180,12 @@ class RockinWindow(QWidget):
         self.speechBubble = SpeechBubbleController(
             self,
             self.secondaryClock,
-            occludersProvider=lambda: [self.startMenu, self.volumeEditor, self.spriteEditor]
+            occludersProvider=lambda: [
+                self.startMenu,
+                self.volumeEditor,
+                self.spriteEditor,
+                self.sceneEditor
+            ]
         )
 
         self.interfaceManager.registerComponent(
@@ -180,6 +196,12 @@ class RockinWindow(QWidget):
         self.interfaceManager.registerComponent(
             "volumeEditor",
             self.volumeEditor,
+            False
+        )
+
+        self.interfaceManager.registerComponent(
+            "sceneEditor",
+            self.sceneEditor,
             False
         )
 

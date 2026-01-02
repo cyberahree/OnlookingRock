@@ -22,13 +22,19 @@ class AssetController:
     def getAsset(self, relativePath: str) -> Path:
         return ROOT_ASSET_DIRECTORY / self.folder / relativePath
     
-    def getRandom(self, relativePath: str = "", suffixes: anySuffixes = None, removeSuffix: bool = True) -> Path | None:
+    def getRandom(
+        self,
+        relativePath: str = "",
+        suffixes: anySuffixes = None,
+        removeSuffix: bool = True,
+    ) -> Optional[Union[str, Path]]:
         items = self.listDirectory(relativePath, suffixes)
         
         if not items:
             return None
 
-        return random.choice(items).stem
+        choice = random.choice(items)
+        return choice.stem if removeSuffix else choice
 
     def listDirectory(self, relativePath: str = "", suffixes: anySuffixes = None) -> list[Path]:
         return list(self.iterateDirectory(relativePath, suffixes))

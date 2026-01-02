@@ -1,53 +1,84 @@
-from ..interfaces.base.styling import CLOSE_STR
-
 from .editor import SceneEditorController
 
-from PySide6.QtGui import QColor, QPainter, QPixmap
+from PySide6.QtWidgets import QGraphicsItem, QGraphicsPixmapItem
+from PySide6.QtGui import QColor, QPainter, QPen, QPixmap
 from PySide6.QtCore import QPointF, QRectF, Qt
-
-from PySide6.QtWidgets import (
-    QGraphicsItem,
-    QGraphicsPixmapItem,
-    QGraphicsProxyWidget,
-    QToolButton
-)
 
 BUTTON_RADIUS = 8
 
-class RemoveDecorationButton(QGraphicsProxyWidget):
+class RemoveDecorationButton(QGraphicsItem):
     def __init__(
         self,
-        parent: QGraphicsItem,
-        onClick = None
+        parent:
+        QGraphicsItem,
+        onClick,
+        radius: int = BUTTON_RADIUS,
+        padding: int = 4
     ):
         super().__init__(parent)
+        self.radius = float(radius)
+        self.padding = float(padding)
+        self.onClick = onClick
+        self.isHovering = False
 
-        self.setZValue(999999) # should be good enough :>
+        self.setZValue(999999)
+        self.setAcceptedMouseButtons(Qt.LeftButton)
+        self.setAcceptHoverEvents(True)
+        self.setCursor(Qt.PointingHandCursor)
 
-        button = QToolButton()
-        button.setCursor(Qt.PointingHandCursor)
-        button.setText("✕")
-        button.setFixedSize(BUTTON_RADIUS * 2, BUTTON_RADIUS * 2)
+    # override to give it a larger area
+    def boundingRect(self) -> QRectF:
+        radius = self.radius + self.padding
+        return QRectF(-radius, -radius, 2 * radius, 2 * radius)
 
-        # TODO: change styling later... too tired rn
-        button.setStyleSheet(
-            f"""
-            QToolButton {{
-                border: 1px solid rgba(160,40,40,255);
-                border-radius: {BUTTON_RADIUS}px;
-                background: rgba(220,70,70,220);
-                color: rgba(255,255,255,255);
-                font-weight: 700;
-                padding: 0px;
-            }}
+    def paint(self, painter: QPainter, option, widget=None):
+        painter.setRenderHint(QPainter.Antialiasing, True)
 
-            QToolButton:hover {{ background: rgba(235,90,90,235); }}
-            QToolButton:pressed {{ background: rgba(190,55,55,235); }}
-            """
+        # Background
+        background = QColor(235, 90, 90, 235) if self.isHovering else QColor(220, 70, 70, 220)
+        border = QColor(160, 40, 40, 255)
+
+        painter.setPen(QPen(border, 1.0))
+        painter.setBrush(background)
+        painter.drawEllipse(
+            QRectF(
+                -self.radius,
+                -self.radius,
+                2 * self.radius,
+                2 * self.radius
+            )
         )
 
-        button.clicked.connect(onClick)
-        self.setWidget(button)
+        # x mark
+        pen = QPen(QColor(255, 255, 255, 255), 2.0)
+        pen.setCapStyle(Qt.RoundCap)
+        painter.setPen(pen)
+
+        lineDistance = self.radius * 0.45
+        painter.drawLine(QPointF(-lineDistance, -lineDistance), QPointF(lineDistance, lineDistance))
+        painter.drawLine(QPointF(-lineDistance, lineDistance), QPointF(lineDistance, -lineDistance))
+
+    def hoverEnterEvent(self, event):
+        self.isHovering = True
+        self.update()
+        super().hoverEnterEvent(event)
+
+    def hoverLeaveEvent(self, event):
+        self.isHovering = False
+        self.update()
+        super().hoverLeaveEvent(event)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            try:
+                if self.onClick is not None:
+                    self.onClick()
+            finally:
+                event.accept()
+
+            return
+
+        super().mousePressEvent(event)
 
 class DecorationGraphicsItem(QGraphicsPixmapItem):
     def __init__(
@@ -55,56 +86,56 @@ class DecorationGraphicsItem(QGraphicsPixmapItem):
         entityId: str,
         name: str,
         pixmap: QPixmap,
-        editor: SceneEditorController = None,
-        grabWidget = None
+        editor: SceneEditorController | None = None,
+        grabWidget=None,
     ):
         super().__init__(pixmap)
 
         self.entityId = entityId
         self.name = name
-
         self.editor = editor
         self.grabWidget = grabWidget
 
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
         self.setAcceptedMouseButtons(Qt.LeftButton)
 
-        self.removeButton = RemoveDecorationButton(
+        self.removeHandle = RemoveDecorationButton(
             self,
-            onClick=self.onRemoveClicked
+            onClick=lambda: (
+                self.editor.attemptRemove(self.entityId) if self.editor else None
+            )
         )
 
-        self.removeButton.setVisible(False)
-        self._repositionRemoveButton()
-    
+        self.removeHandle.setVisible(False)
+        self._repositionRemoveHandle()
+
     def setEditMode(self, visible: bool):
-        self.removeButton.setVisible(visible)
-    
+        self.removeHandle.setVisible(bool(visible))
+
     def setPixmap(self, pixmap: QPixmap):
         super().setPixmap(pixmap)
-        self._repositionRemoveButton()
+        self._repositionRemoveHandle()
 
     def mousePressEvent(self, event):
-        if (event.button() != Qt.LeftButton) or (not self.editor.canEdit):
+        # clicking the remove handle is handled by the child item.
+        if (event.button() != Qt.LeftButton) or (not getattr(self.editor, "canEdit", False)):
             super().mousePressEvent(event)
             return
-        
-        mouseGlobalPosition = self.editor.getGlobalPositionFromEvent(event)
 
-        self.editor.beginDrag(
-            self.entityId,
-            grabWidget=self.grabWidget,
-            mouseGlobal=mouseGlobalPosition
-        )
+        mouseGlobalPosition = self.editor.getGlobalPositionFromEvent(event) if self.editor else QPointF(0, 0)
+
+        if self.editor:
+            self.editor.beginDrag(
+                self.entityId,
+                grabWidget=self.grabWidget,
+                mouseGlobal=mouseGlobalPosition,
+            )
 
         event.accept()
 
-    def _repositionRemoveButton(self):
+    def _repositionRemoveHandle(self):
         try:
             center = self.boundingRect().center()
-            self._removeButton.setPos(
-                center - QPointF(BUTTON_RADIUS, BUTTON_RADIUS)
-            )
-
+            self.removeHandle.setPos(center)
         except Exception:
             pass

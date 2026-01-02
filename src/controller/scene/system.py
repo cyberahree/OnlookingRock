@@ -6,8 +6,8 @@ from .editor import SceneEditorController
 from .layout import ScreenLayoutHandler
 from .model import SceneModel
 
-from PySide6.QtGui import QGuiApplication, QPixmap
-from PySide6.QtCore import QPoint, QPointF
+from PySide6.QtGui import QGuiApplication, QPixmap, QCursor
+from PySide6.QtCore import QPoint, QPointF, QTimer
 
 from typing import Dict
 
@@ -35,7 +35,7 @@ class SceneSystem:
         # viewport management
         self.viewports: list[SceneViewportWindow] = []
 
-        for screen in self.config.getScreens():
+        for screen in QGuiApplication.screens():
             viewportController = SceneViewportWindow(
                 screen=screen,
                 clock=self.clock,
@@ -59,6 +59,12 @@ class SceneSystem:
         # ensure viewports mirror current model immediately
         for entity in self.model.entitesList.values():
             self.model.entityUpdated.emit(entity)
+
+        # ghost preview updates should not depend on mouse-move delivery
+        # some platforms won't deliver move events to non-activating tool windows
+        self._ghostTimer = QTimer(self.sprite)
+        self._ghostTimer.setInterval(33)
+        self._ghostTimer.timeout.connect(self._tickGhost)
     
     def shutdown(self):
         for viewport in self.viewports:
@@ -69,16 +75,14 @@ class SceneSystem:
 
     # assets methods
     def listDecorations(self) -> list[str]:
-        return sorted(
-            [decoration.stem for decoration in self.assets.listAssets()]
-        )
+        return sorted([p.stem for p in self.assets.listDirectory("")])
 
     def getDecorationPixmap(self, name: str) -> QPixmap:
         if name in self.assetsCache:
             return self.assetsCache[name]
         
         path = self.assets.blindGetAsset(name)
-        pixmap = QPixmap(path) if path is not None else QPixmap()
+        pixmap = QPixmap(str(path)) if path is not None else QPixmap()
 
         self.assetsCache[name] = pixmap
         return pixmap
@@ -94,32 +98,39 @@ class SceneSystem:
     # viewport methods
     def getViewportAtPoint(self, globalPoint: QPointF):
         try:
-            point = QPoint(
-                int(globalPoint.x()),
-                int(globalPoint.y())
-            )
+            pointX = float(globalPoint.x())
+            pointY = float(globalPoint.y())
         except Exception:
-            point = QPoint(0, 0)
+            pointX, pointY = 0.0, 0.0
 
-        # prefer qt screen mapping
+        # 1) explicit bounds check
+        for viewport in self.viewports:
+            try:
+                if viewport.globalBounds().contains(pointX, pointY):
+                    return viewport
+            except Exception:
+                pass
+
+        # 2) fallback: Qt screen mapping
         try:
+            point = QPoint(int(pointX), int(pointY))
             screen = QGuiApplication.screenAt(point)
         except Exception:
             screen = None
 
         if screen is not None:
-            screenName = getattr(screen, 'name', lambda: '')()
+            try:
+                screenName = screen.name()
+            except Exception:
+                screenName = ""
 
             for viewport in self.viewports:
-                if viewport.screen.name != screenName:
-                    continue
+                try:
+                    if viewport.screen.name() == screenName:
+                        return viewport
+                except Exception:
+                    pass
 
-                return viewport
-
-        for viewport in self.viewports:
-            if viewport.screen.boundsGlobal.contains(point):
-                return viewport
-        
         return self.viewports[0] if self.viewports else None
     
     def getSpriteViewport(self) -> SceneViewportWindow:
@@ -151,13 +162,87 @@ class SceneSystem:
         self,
         decorationName: str
     ) -> None:
+        # placement implies edit-capable interaction.
+        if not self.editor.canEdit:
+            self.setEditMode(True)
+
         self.editor.beginPlacement(decorationName)
 
         for viewport in self.viewports:
-            viewport.setPlacementCursor(decorationName)
-    
+            viewport.setPlacementCursor()
+
+        # start continuous ghost updates
+        try:
+            self._ghostTimer.start()
+        except Exception:
+            pass
+
+        # show ghost immediately (no need to move the mouse)
+        try:
+            self._tickGhost()
+        except Exception:
+            pass
+
     def endPlacement(self) -> None:
         self.editor.emptyPlacement()
 
+        try:
+            self._ghostTimer.stop()
+        except Exception:
+            pass
+
         for viewport in self.viewports:
             viewport.clearPlacementCursor()
+            viewport.clearGhost()
+
+    def _tickGhost(self) -> None:
+        name = getattr(self.editor, "placementName", None)
+
+        if not name:
+            # no placement active
+            for viewport in self.viewports:
+                try:
+                    viewport.clearGhost()
+                except Exception:
+                    pass
+            return
+
+        try:
+            cursorPosition = QCursor.pos()
+
+            cursorPos = QPointF(
+                float(cursorPosition.x()),
+                float(cursorPosition.y())
+            )
+        except Exception:
+            return
+
+        targetViewport = self.getViewportAtPoint(cursorPos)
+
+        if targetViewport is None:
+            return
+
+        width, height = self.getDecorationSize(str(name))
+        bounds = targetViewport.globalBounds()
+
+        target = QPointF(
+            cursorPos.x() - width / 2.0,
+            cursorPos.y() - height / 2.0
+        )
+
+        clampedX = max(bounds.left(), min(bounds.right() - width, target.x()))
+        clampedY = max(bounds.top(), min(bounds.bottom() - height, target.y()))
+        clamped = QPointF(clampedX, clampedY)
+
+        for viewport in self.viewports:
+            if viewport is targetViewport:
+                continue
+            try:
+                viewport.clearGhost()
+            except Exception:
+                pass
+
+        try:
+            targetViewport.showGhostAt(clamped, str(name))
+        except Exception:
+            pass

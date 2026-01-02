@@ -194,6 +194,6 @@ class ConfigController(QObject):
     def getValue(self, path: str) -> Any:
         return getByPath(self.config, path)
 
-    def setValue(self, path: str, value: Any) -> None:
+    def setValue(self, path: str, value: Any):
+        setByPath(self.config, path, value)
         self.onValueChanged.emit(path, value)
-        return setByPath(self.config, path, value)

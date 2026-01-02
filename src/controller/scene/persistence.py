@@ -2,7 +2,7 @@ from ..config import ConfigController
 from ..asset import AssetController
 
 from .model import DecorationEntity, SceneModel
-from .layout import ScreenLayoutHandler, ScreenInfo
+from .layout import ScreenLayoutHandler
 
 from PySide6.QtCore import QObject, QTimer, QPointF
 
@@ -12,7 +12,9 @@ from copy import deepcopy
 import random
 import uuid
 
-SAVE_INTERVAL_SEC = 60
+# debounce persistence for user interactions (dragging/placement) so changes
+# are not lost if the app is closed soon after an edit.
+SAVE_DEBOUNCE_MS = 600
 
 class ScenePersistence(QObject):
     def __init__(
@@ -32,8 +34,8 @@ class ScenePersistence(QObject):
 
         self._saveTimer = QTimer(self)
         self._saveTimer.setSingleShot(True)
-        self._saveTimer.setInterval(SAVE_INTERVAL_SEC * 1000)
-        self._saveTimer.timeout.connect(self.saveToConfig)
+        self._saveTimer.setInterval(SAVE_DEBOUNCE_MS)
+        self._saveTimer.timeout.connect(self._saveConfigNow)
 
         self.assets = AssetController("images/decorations")
 
@@ -165,11 +167,11 @@ class ScenePersistence(QObject):
     def scheduleSave(self) -> None:
         if self.isLoading:
             return
-        
-        self._saveTimer.start()
-        self._saveTimer.stop()
 
-    def saveToConfig(self) -> None:
+        self._saveTimer.stop()
+        self._saveTimer.start()
+
+    def _saveConfigNow(self) -> None:
         if self.config is None:
             return
         

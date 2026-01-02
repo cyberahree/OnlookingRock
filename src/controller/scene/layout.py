@@ -1,8 +1,8 @@
 from PySide6.QtGui import QGuiApplication, QScreen
 from PySide6.QtCore import QPoint, QRect
 
-from typing import Iterable, Optional
 from dataclasses import dataclass
+from typing import Optional
 
 @dataclass
 class ScreenInfo:
