@@ -158,6 +158,13 @@ class SpriteAnchorMixin:
         if occluders is None:
             occluders = self.getOccluderBounds(occludersProvider)
 
+        # include the sprite itself as an occluder so widgets flip
+        # to the opposite side when the sprite is covering them
+        spriteBounds = self.spriteFrameGeometry()
+
+        if not spriteBounds.isNull():
+            occluders = list(occluders) + [spriteBounds]
+
         return bestCandidate(
             preferred,
             alternate,

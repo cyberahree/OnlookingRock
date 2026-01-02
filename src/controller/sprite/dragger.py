@@ -3,7 +3,7 @@ from PySide6.QtCore import Qt
 
 from typing import Callable, Optional
 
-class WindowDragger:
+class SpriteDragger:
     def __init__(
         self,
         sprite,
@@ -34,19 +34,26 @@ class WindowDragger:
         globalPos = event.globalPosition().toPoint()
         targetPos = globalPos - self.dragDelta
 
-        # get target screen
-        screen = QGuiApplication.screenAt(globalPos)
+        # move freely without clamping during drag
+        self.sprite.move(targetPos.x(), targetPos.y())
 
+    def handleMouseRelease(self, _event) -> None:
+        if not self.isDragging:
+            return
+
+        # determine which screen the sprite is on
+        screen = QGuiApplication.screenAt(self.sprite.pos())
+        
         if screen is None:
             screen = QGuiApplication.primaryScreen()
 
-        # calculate application position restricted to screen bounds
+        # clamp to screen bounds after drag completes
         screenBounds = screen.availableGeometry()
 
         finalX = max(
             screenBounds.left(),
             min(
-                targetPos.x(),
+                self.sprite.x(),
                 screenBounds.right() - self.sprite.width()
             )
         )
@@ -54,16 +61,12 @@ class WindowDragger:
         finalY = max(
             screenBounds.top(),
             min(
-                targetPos.y(),
+                self.sprite.y(),
                 screenBounds.bottom() - self.sprite.height()
             )
         )
 
         self.sprite.move(finalX, finalY)
-
-    def handleMouseRelease(self, _event) -> None:
-        if not self.isDragging:
-            return
 
         self.isDragging = False
         self.dragDelta = None

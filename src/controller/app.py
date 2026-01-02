@@ -2,7 +2,6 @@
 from .config import ConfigController
 
 from .system.sound import SoundManager, SoundCategory
-from .system.dragger import WindowDragger
 from .system.timings import TimingClock
 
 from .interfaces.windows.startmenu import StartMenuComponent, MenuAction
@@ -16,6 +15,7 @@ from .sprite.speech import SpeechBubbleController
 from .sprite.eyetrack import LaserMouseController
 from .sprite.blinking import BlinkingController
 from .sprite.cosmetic import HatOverlayWindow
+from .sprite.dragger import SpriteDragger
 
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
 from PySide6.QtCore import Qt, QTimer
@@ -107,7 +107,7 @@ class RockinWindow(QWidget):
         ###############################################
         # 6) controllers that depend on sprite/window #
         ###############################################
-        self.dragger = WindowDragger(
+        self.dragger = SpriteDragger(
             self,
             onDragStart=self.onDragStart,
             onDragEnd=self.onDragEnd
