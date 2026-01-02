@@ -65,7 +65,6 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self.setFont(DEFAULT_FONT)
 
         self.setOpacity(0.0)
-        self.isOpening = False
 
     def build(self) -> None:
         self.setObjectName("startMenu")

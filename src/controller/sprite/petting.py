@@ -1,10 +1,8 @@
-from __future__ import annotations
-
-from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import QWidget
+from PySide6.QtGui import QCursor
 
-from collections import deque
 from typing import Callable, Deque, Optional, Tuple
+from collections import deque
 
 import math
 import time

@@ -62,10 +62,7 @@ EMOTION_DECISION_TABLE: list[ReactionRule] = [
         mood=("idle", "alert"),
         priority=60,
         predicate=lambda m: (m.idleTime < SLEEP_DELTA_THRESHOLD / 2)
-        and (
-            m.keysPerSecond >= 10
-            #or (m.averageDelta is not None and m.averageDelta < 0.8)
-        ),
+        and (m.keysPerSecond >= 10),
     ),
     ReactionRule(
         name="tired_low",

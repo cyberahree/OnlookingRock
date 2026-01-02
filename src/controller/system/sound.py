@@ -11,6 +11,7 @@ from enum import Enum
 
 import random
 
+# Number of speech blip sound variations to generate
 SPEECH_BLIP_COUNT = 6
 
 class SoundCategory(Enum):

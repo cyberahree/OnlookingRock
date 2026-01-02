@@ -146,7 +146,6 @@ class ConfigController(QObject):
 
     def __init__(self):
         super().__init__()
-        self.appName = "OnlookinRock"
 
         # configuration directory
         self.userProfilesDirectory = Path(
@@ -167,9 +166,12 @@ class ConfigController(QObject):
         profileToLoad = (configurationFile if configurationFile is not None else self.userProfilePath)
 
         try:
-            assert profileToLoad.exists()
-            self.currentOverrides = readJSONFile(profileToLoad)
-        except BaseException:
+            if profileToLoad.exists():
+                self.currentOverrides = readJSONFile(profileToLoad)
+            else:
+                self.currentOverrides = {}
+        except (OSError, ValueError, KeyError) as e:
+            logger.warning(f"Failed to load config from {profileToLoad}: {e}")
             self.currentOverrides = {}
 
         self.config = deepMerge(

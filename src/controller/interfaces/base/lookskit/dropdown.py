@@ -3,9 +3,9 @@ from .primitives import _RockWidgetMixin
 
 from PySide6.QtWidgets import QComboBox, QWidget
 from PySide6.QtCore import Qt
+
 from typing import Callable, List, Optional
 from dataclasses import dataclass
-
 
 @dataclass
 class DropdownSpec:

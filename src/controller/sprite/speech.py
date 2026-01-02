@@ -1,19 +1,19 @@
-from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import QTimer, QEvent, Qt
-
 from ..interfaces.widgets.speechbubble import SpeechBubbleComponent
 
+from PySide6.QtCore import QTimer, QEvent, Qt
+from PySide6.QtWidgets import QWidget
+
+from typing import Callable, Optional
 from dataclasses import dataclass
 from collections import deque
-from typing import Callable, Optional
 
 import random
 
 TAIL_WIDTH = 12
 
 CHARACTERS_PER_SECOND = (25, 45)
-READING_DELAY = 4500
-READING_WORDS_PER_SECOND = (180 / 60) # words per second
+READING_DELAY_MS = 4500
+READING_WORDS_PER_SECOND = (180 / 60)  # words per second
 
 @dataclass
 class SpeechItem:
@@ -84,7 +84,7 @@ class SpeechBubbleController(QWidget):
             timeTyping = characterCount * typingDelay
             timeReading = (wordCount / READING_WORDS_PER_SECOND) * 1000
 
-            duration = max(timeTyping + timeReading + READING_DELAY, 3000)
+            duration = max(timeTyping + timeReading + READING_DELAY_MS, 3000)
     
         self.queue.append(
             SpeechItem(
