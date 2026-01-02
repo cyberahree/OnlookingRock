@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 
 from typing import Callable, List, Optional
 
-def make_text_input_row(
+def buildTextInputRow(
     label: str,
     on_changed: Optional[Callable[[str], None]] = None,
     max_length: int = 32,
@@ -41,7 +41,7 @@ def make_text_input_row(
 
     return row, text_edit
 
-def make_dropdown_row(
+def buildDropdownRow(
     label: str,
     items: List[str],
     *,
@@ -67,7 +67,7 @@ def make_dropdown_row(
 
     return row, dropdown
 
-def make_slider_row(
+def buildSliderRow(
     label: str,
     min_val: int = 0,
     max_val: int = 100,
@@ -119,7 +119,7 @@ def make_slider_row(
 
     return row, slider, value_label
 
-def make_spinbox_row(
+def buildSpinboxRow(
     label: str,
     min_val: int = 0,
     max_val: int = 100,
@@ -150,7 +150,7 @@ def make_spinbox_row(
 
     return row, spinbox
 
-def make_scale_slider_row(
+def buildScaleSliderRow(
     label: str,
     min_scale: float = 0.25,
     max_scale: float = 2.0,

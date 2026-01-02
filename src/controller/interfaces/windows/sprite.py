@@ -8,10 +8,10 @@ from ..base.lookskit import (
     SubheadingLabel,
     SurfaceFrame,
     applyRockStyle,
-    make_text_input_row,
-    make_dropdown_row,
-    make_scale_slider_row,
-    make_spinbox_row,
+    buildTextInputRow,
+    buildDropdownRow,
+    buildScaleSliderRow,
+    buildSpinboxRow,
 )
 
 from ..base.styling import (
@@ -121,7 +121,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         rootLayout.addWidget(Divider())
 
         # User Nickname
-        nickRow, self._nickEdit = make_text_input_row(
+        nickRow, self._nickEdit = buildTextInputRow(
             "User Nickname",
             on_changed=lambda text: self._applyKeyValue("userNick", text),
         )
@@ -129,7 +129,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         rootLayout.addWidget(Divider())
 
         # Hat selection
-        hatRow, self.hatDropdown = make_dropdown_row(
+        hatRow, self.hatDropdown = buildDropdownRow(
             "Hat",
             items=self.sprite.allHats,
             on_changed=lambda text: self._applyKeyValue("hat", text),
@@ -138,7 +138,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         rootLayout.addWidget(Divider())
 
         # Scale slider
-        scaleRow, self._scaleSlider, self._scaleLabel = make_scale_slider_row(
+        scaleRow, self._scaleSlider, self._scaleLabel = buildScaleSliderRow(
             "Scale",
             min_scale=0.25,
             max_scale=2.0,
@@ -150,7 +150,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
 
         # Refresh Rates
         rootLayout.addWidget(BodyLabel("Refresh Rates", selectable=False))
-        primaryRow, self._primaryLoopSpinBox = make_spinbox_row(
+        primaryRow, self._primaryLoopSpinBox = buildSpinboxRow(
             "Primary Loop",
             min_val=1,
             max_val=240,
@@ -159,7 +159,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             on_changed=lambda v: self._applyKeyValue("primaryLoop", v),
         )
         rootLayout.addWidget(primaryRow)
-        secondaryRow, self._secondaryLoopSpinBox = make_spinbox_row(
+        secondaryRow, self._secondaryLoopSpinBox = buildSpinboxRow(
             "Secondary Loop",
             min_val=1,
             max_val=240,

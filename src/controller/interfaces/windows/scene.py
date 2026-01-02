@@ -10,7 +10,8 @@ from ..base.lookskit import (
     SubheadingLabel,
     SurfaceFrame,
     applyRockStyle,
-    make_spinbox_row,
+    buildSpinboxRow,
+    makeIconSquare,
 )
 
 from ..base.styling import (
@@ -128,7 +129,7 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         rootLayout.addWidget(Divider())
 
         # startup spawn count
-        spawnRow, self.spawnSpin = make_spinbox_row(
+        spawnRow, self.spawnSpin = buildSpinboxRow(
             "Startup spawn",
             min_val=0,
             max_val=50,
@@ -218,7 +219,7 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         for path in assets:
             name = str(path.stem)
             pixmap = QPixmap(str(path))
-            icon = QIcon(pixmap) if (not pixmap.isNull()) else QIcon()
+            icon = makeIconSquare(pixmap)
 
             item = QListWidgetItem(icon, name)
             item.setData(Qt.UserRole, name)

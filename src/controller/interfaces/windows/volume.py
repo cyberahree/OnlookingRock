@@ -7,7 +7,7 @@ from ..base.lookskit import (
     SubheadingLabel,
     SurfaceFrame,
     applyRockStyle,
-    make_slider_row,
+    buildSliderRow,
 )
 
 from ..base.styling import (
@@ -122,7 +122,7 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         # sliders
         self._rows: dict[str, tuple] = {}
 
-        rootRow, rootSlider, rootLabel = make_slider_row(
+        rootRow, rootSlider, rootLabel = buildSliderRow(
             "Master",
             min_val=0,
             max_val=100,
@@ -141,7 +141,7 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             SoundCategory.SPECIAL,
             SoundCategory.SPEECH,
         ):
-            catRow, catSlider, catLabel = make_slider_row(
+            catRow, catSlider, catLabel = buildSliderRow(
                 cat.name.title(),
                 min_val=0,
                 max_val=100,
