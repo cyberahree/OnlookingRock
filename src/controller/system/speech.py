@@ -19,6 +19,19 @@ def generateBlipWav(
     duration: float = 0.055,
     sampleRate: int = 44100,
 ) -> QTemporaryFile:
+    """
+    generate a temporary WAV file containing a simple blip sound at the specified frequency.
+    
+    :param frequency: The frequency of the blip in hertz
+    :type frequency: float
+    :param duration: The duration of the blip in seconds
+    :type duration: float
+    :param sampleRate: The sample rate in hertz
+    :type sampleRate: int
+    :return: A temporary file containing the WAV data
+    :rtype: QTemporaryFile
+    """
+
     samplesCount = int(sampleRate * duration)
     fadeLength = int(sampleRate * FADE_DURATION) 
 
@@ -97,6 +110,26 @@ def buildSpeechBlips(
     sampleRate: int = 44100,
     volume: float = 0.5,
 ) -> None:
+    """
+    build and load speech blip sound effects into the sound controller.
+    
+    :param soundController: The sound controller to load blips into
+    :param speechCategory: The sound category for speech blips
+    :type speechCategory: Any
+    :param blipCount: The number of blip variations to generate
+    :type blipCount: int
+    :param baseFrequency: The base frequency in hertz
+    :type baseFrequency: float
+    :param pitchVariance: The pitch variance as a fraction of base frequency
+    :type pitchVariance: float
+    :param duration: The duration of each blip in seconds
+    :type duration: float
+    :param sampleRate: The sample rate in hertz
+    :type sampleRate: int
+    :param volume: The volume level from 0.0 to 1.0
+    :type volume: float
+    """
+
     global _tempFileStorage
     
     # clear existing temp files

@@ -3,16 +3,27 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt
 
 class HatOverlayWindow(QWidget):
-    def __init__(self, spriteWindow: QWidget):
+    """
+    manages a transparent overlay window for displaying cosmetic hats on the sprite
+    """
+
+    def __init__(self, sprite: QWidget):
+        """
+        initialise the hat overlay window as a transparent overlay on the sprite.
+        
+        :param sprite: The sprite widget to overlay
+        :type sprite: QWidget
+        """
+
         super().__init__(
-            spriteWindow,
+            sprite,
             Qt.FramelessWindowHint |
             Qt.WindowStaysOnTopHint |
             Qt.WindowTransparentForInput |
             Qt.Tool
         )
 
-        self.spriteWindow = spriteWindow
+        self.spriteWindow = sprite
 
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_AlwaysStackOnTop, True)
@@ -29,6 +40,13 @@ class HatOverlayWindow(QWidget):
         self._pixmap = QPixmap()
 
     def setHatPixmap(self, pixmap: QPixmap) -> None:
+        """
+        set the pixmap to display as the hat and reposition the window.
+        
+        :param pixmap: The hat image pixmap to display
+        :type pixmap: QPixmap
+        """
+
         self._pixmap = pixmap or QPixmap()
 
         if self._pixmap.isNull():
@@ -44,6 +62,10 @@ class HatOverlayWindow(QWidget):
             self.show()
 
     def reposition(self) -> None:
+        """
+        reposition the hat overlay to centre on the sprite.
+        """
+
         if self._pixmap.isNull():
             return
 
@@ -55,6 +77,10 @@ class HatOverlayWindow(QWidget):
         self.move(newX, newY)
 
     def shutdown(self) -> None:
+        """
+        shut down the overlay window and clean up resources.
+        """
+
         try:
             self.hide()
         finally:

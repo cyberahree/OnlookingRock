@@ -17,13 +17,30 @@ import uuid
 SAVE_DEBOUNCE_MS = 600
 
 class ScenePersistence(QObject):
+    """
+    handles saving and loading decoration scene state to persistent storage
+    """
+
     def __init__(
         self,
         model: SceneModel,
         config: Optional[ConfigController],
         layout: ScreenLayoutHandler,
-        sprite: QObject = None
+        sprite: Optional[QObject] = None
     ):
+        """
+        initialise the persistence system with model and configuration references.
+        
+        :param model: The scene model
+        :type model: SceneModel
+        :param config: The configuration controller
+        :type config: Optional[ConfigController]
+        :param layout: The screen layout handler
+        :type layout: ScreenLayoutHandler
+        :param sprite: Optional parent widget
+        :type sprite: QObject
+        """
+
         super().__init__(sprite)
 
         self.model = model
@@ -44,12 +61,26 @@ class ScenePersistence(QObject):
         self.model.entityRemoved.connect(lambda _entityId: self.scheduleSave())
     
     def getStartupDecorationSpawnCount(self) -> int:
+        """
+        get the number of decorations to spawn per screen on startup.
+        
+        :return: Number of decorations to spawn
+        :rtype: int
+        """
+
         if self.config is None:
             return 0
         
         return self.config.getValue("scene.startupDecorationSpawnCount")
     
     def getSavedDecorations(self) -> List[Dict[str, Any]]:
+        """
+        retrieve saved decoration records from configuration storage.
+        
+        :return: List of decoration records
+        :rtype: List[Dict[str, Any]]
+        """
+
         if self.config is None:
             return []
         
@@ -73,6 +104,13 @@ class ScenePersistence(QObject):
         return out
 
     def setSavedDecorations(self, records: List[Dict[str, Any]]):
+        """
+        save decoration records to persistent storage.
+        
+        :param records: List of decoration records to save
+        :type records: List[Dict[str, Any]]
+        """
+
         if self.config is None:
             return
         
@@ -82,6 +120,10 @@ class ScenePersistence(QObject):
         )
     
     def loadOrSpawn(self) -> None:
+        """
+        load saved decorations or spawn default decorations if none exist.
+        """
+
         self.isLoading = True
 
         try:
@@ -95,6 +137,13 @@ class ScenePersistence(QObject):
             self.isLoading = False
     
     def loadFromRecords(self, records: List[Dict[str, Any]]) -> None:
+        """
+        load decoration entities from saved records into the model.
+        
+        :param records: List of decoration records to load
+        :type records: List[Dict[str, Any]]
+        """
+
         for record in records:
             id = record.get("id", None)
             name = record.get("name", None)
@@ -120,6 +169,10 @@ class ScenePersistence(QObject):
             self.model.addEntity(newEntity)
     
     def spawnDefaults(self) -> None:
+        """
+        spawn random default decorations on each screen.
+        """
+
         decorationsList = [decoration.stem for decoration in self.assets.listDirectory()]
 
         if not decorationsList:
@@ -165,6 +218,10 @@ class ScenePersistence(QObject):
         self.scheduleSave()
 
     def scheduleSave(self) -> None:
+        """
+        schedule a debounced save of the current decoration state.
+        """
+
         if self.isLoading:
             return
 
@@ -172,6 +229,10 @@ class ScenePersistence(QObject):
         self._saveTimer.start()
 
     def _saveConfigNow(self) -> None:
+        """
+        save current decoration state to configuration storage immediately.
+        """
+
         if self.config is None:
             return
         

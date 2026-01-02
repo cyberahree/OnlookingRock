@@ -25,6 +25,10 @@ def unwrapDelta(dtheta: float) -> float:
 # - if total signed rotation reaches roughlty one full turn
 #   in either direction, we treat it as a petting loop
 class CircularPettingController:
+    """
+    detects circular petting gestures on the sprite by analysing cursor movement patterns
+    """
+
     def __init__(
         self,
         sprite: QWidget,
@@ -44,6 +48,31 @@ class CircularPettingController:
         holdMs: int = 950,
         cooldownMs: int = 600,
     ):
+        """
+        initialise the petting gesture detector with tuning parameters.
+
+        :param sprite: The sprite widget to detect petting on
+        :type sprite: QWidget
+        :param canPet: Callable that returns True if petting is allowed
+        :type canPet: Callable[[], bool]
+        :param windowMs: Time window for cursor samples in milliseconds
+        :type windowMs: int
+        :param maxSampleGapMs: Maximum time gap between samples before reset
+        :type maxSampleGapMs: int
+        :param loopsRequired: Number of loops required to trigger petting (0-1)
+        :type loopsRequired: float
+        :param minPathPxAtScale1: Minimum cursor path length at scale 1
+        :type minPathPxAtScale1: float
+        :param minMeanRadiusPxAtScale1: Minimum mean radius at scale 1
+        :type minMeanRadiusPxAtScale1: float
+        :param maxRadiusStdRatio: Maximum standard deviation ratio for radius
+        :type maxRadiusStdRatio: float
+        :param holdMs: Duration to hold petting state after detection
+        :type holdMs: int
+        :param cooldownMs: Cooldown period between detections
+        :type cooldownMs: int
+        """
+
         self.sprite = sprite
         self.canPet = canPet
 
@@ -64,23 +93,52 @@ class CircularPettingController:
         self._lastSampleMs: Optional[float] = None
 
     def reset(self) -> None:
+        """
+        clear all collected cursor samples and reset detection state.
+        """
+
         self._samples.clear()
         self._lastSampleMs = None
 
     def nowMs(self) -> float:
+        """
+        get the current time in milliseconds.
+        
+        :return: Current time in milliseconds
+        :rtype: float
+        """
+
         return time.time() * 1000.0
 
     @property
     def spriteScale(self) -> float:
-        # sprite has `currentSpriteScale`.
-        return float(getattr(self.sprite, "currentSpriteScale", 1.0))
+        """
+        get the current scale factor of the sprite.
+        
+        :return: The sprite's scale factor
+        :rtype: float
+        """
+
+        return float(self.sprite.currentSpriteScale)
 
     def isPetting(self) -> bool:
+        """
+        check if the sprite is currently in a petting state.
+        
+        :return: True if petting state is active, False otherwise
+        :rtype: bool
+        """
+
         return self.nowMs() <= self._pettingUntilMs
 
     def update(self) -> bool:
-        # sample cursor and update petting detection state.
-        # returns True if the sprite should be considered "petting" right now.
+        """
+        sample cursor position and check for petting gesture patterns.
+        
+        :return: True if petting is active, False otherwise
+        :rtype: bool
+        """
+
         now = self.nowMs()
 
         if not self.canPet():
@@ -121,6 +179,15 @@ class CircularPettingController:
         return self.isPetting()
 
     def _checkCircle(self, now: float) -> bool:
+        """
+        check if cursor samples form a complete circular pattern.
+        
+        :param now: Current time in milliseconds
+        :type now: float
+        :return: True if a circular pattern was detected, False otherwise
+        :rtype: bool
+        """
+
         if (now - self._lastTriggerMs) < float(self.cooldownMs):
             return False
 

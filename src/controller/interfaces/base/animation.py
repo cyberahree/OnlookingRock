@@ -1,18 +1,44 @@
 from PySide6.QtCore import QPropertyAnimation, QEasingCurve
 from PySide6.QtWidgets import QGraphicsOpacityEffect
 
+from typing import Optional
+
 def clamp(value: float) -> float:
+    """
+    clamp a float value between 0.0 and 1.0.
+
+    :param value: The value to clamp
+    :type value: float
+    :return: The clamped value
+    :rtype: float
+    """
     return max(0.0, min(1.0, float(value)))
 
 class FadeableMixin:
+    """
+    mixin providing fade in/out animation capabilities
+    """
+
     def initFadeable(
         self,
         *,
         durationMs: int,
         startOpacity: float = 1.0,
         easing: QEasingCurve = QEasingCurve.OutCubic,
-        useWindowOpacity: bool = None,
-    ) -> None:        
+        useWindowOpacity: Optional[bool] = None,
+    ) -> None:
+        """
+        Initialize fade animation properties.
+
+        :param durationMs: Duration of fade animation in milliseconds
+        :type durationMs: int
+        :param startOpacity: Initial opacity value, defaults to 1.0
+        :type startOpacity: float
+        :param easing: Easing curve for animation, defaults to OutCubic
+        :type easing: QEasingCurve
+        :param useWindowOpacity: Whether to use window opacity instead of graphics effect, defaults to None
+        :type useWindowOpacity: bool
+        """        
         startOpacity = clamp(startOpacity)
 
         if useWindowOpacity is None:
@@ -49,6 +75,12 @@ class FadeableMixin:
         self.fadeHideWhenZero = True
 
     def _fadeable_emitFinished(self, endOpacity: float) -> None:
+        """
+        Emit fade finished signal or call callback hook.
+
+        :param endOpacity: Final opacity value when fade completes
+        :type endOpacity: float
+        """
         hook = getattr(self, "onFadeFinished", None)
 
         if callable(hook):
@@ -66,6 +98,9 @@ class FadeableMixin:
                 pass
 
     def _fadeable_onFadeFinished(self) -> None:
+        """
+        Handle fade animation completion.
+        """
         endOpacity = self._fadeable_currentOpacity()
 
         if getattr(self, "fadeHideWhenZero", True) and endOpacity <= 0.001:
@@ -74,6 +109,12 @@ class FadeableMixin:
         self._fadeable_emitFinished(endOpacity)
 
     def _fadeable_currentOpacity(self) -> float:
+        """
+        Get the current opacity value.
+
+        :return: Current opacity between 0.0 and 1.0
+        :rtype: float
+        """
         if getattr(self, "_fadeable_useWindowOpacity", False):
             try:
                 return float(self.windowOpacity())
@@ -83,6 +124,12 @@ class FadeableMixin:
         return float(self.opacityEffect.opacity())
 
     def setOpacity(self, value: float) -> None:
+        """
+        Set the opacity value immediately.
+
+        :param value: Opacity value to set between 0.0 and 1.0
+        :type value: float
+        """
         value = clamp(value)
 
         if getattr(self, "_fadeable_useWindowOpacity", False):
@@ -97,6 +144,16 @@ class FadeableMixin:
         showIfHidden: bool = True,
         hideWhenZero: bool = True,
     ) -> None:
+        """
+        Animate fade to a target opacity value.
+
+        :param target: Target opacity value between 0.0 and 1.0
+        :type target: float
+        :param showIfHidden: Show widget if it's hidden and target > 0, defaults to True
+        :type showIfHidden: bool
+        :param hideWhenZero: Hide widget when opacity reaches 0, defaults to True
+        :type hideWhenZero: bool
+        """
         if not getattr(self, "enableFadeAnimation", True):
             self.setOpacity(target)
 
@@ -120,12 +177,21 @@ class FadeableMixin:
         self.fadeAnimation.start()
 
     def fadeIn(self) -> None:
+        """
+        Fade the widget in to full opacity.
+        """
         self.fadeTo(1.0, showIfHidden=True, hideWhenZero=False)
 
     def fadeOut(self) -> None:
+        """
+        Fade the widget out to zero opacity.
+        """
         self.fadeTo(0.0, showIfHidden=False, hideWhenZero=True)
 
     def stopFade(self) -> None:
+        """
+        Stop the fade animation immediately.
+        """
         if not hasattr(self, "fadeAnimation"):
             return
         

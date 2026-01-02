@@ -1,3 +1,5 @@
+from ..system.timings import TimingClock
+
 from .items import DecorationGraphicsItem, PlacementIndicator
 from .model import DecorationEntity, SceneModel
 from .editor import SceneEditorController
@@ -6,7 +8,7 @@ from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QWidget, QGraphicsP
 from PySide6.QtGui import QPainter, QPixmap, QScreen, QCursor
 from PySide6.QtCore import QPointF, QRectF, Qt
 
-from typing import Dict
+from typing import Dict, Optional
 
 # Z-values for layering
 Z_PLACEMENT_INDICATOR = 998999
@@ -16,17 +18,42 @@ Z_GHOST = 999000
 GHOST_OPACITY = 0.55
 
 class DecorationScene(QGraphicsScene):
+    """
+    graphics scene for displaying and managing decoration items in the scene
+    """
+
     def __init__(self, parent=None):
+        """
+        initialise the decoration graphics scene.
+        
+        :param parent: Parent widget
+        """
+
         super().__init__(parent)
         self.setItemIndexMethod(QGraphicsScene.NoIndex)
 
 class DecorationView(QGraphicsView):
+    """
+    graphics view for displaying and interacting with decoration items
+    """
+
     def __init__(
         self,
         viewportWindow: "SceneViewportWindow",
         scene: QGraphicsScene,
         editor: SceneEditorController
     ):
+        """
+        initialise the decoration view with scene and editor.
+        
+        :param viewportWindow: The parent viewport window
+        :type viewportWindow: SceneViewportWindow
+        :param scene: The graphics scene to display
+        :type scene: QGraphicsScene
+        :param editor: The scene editor controller
+        :type editor: SceneEditorController
+        """
+
         super().__init__(viewportWindow)
         self.setScene(scene)
 
@@ -49,6 +76,12 @@ class DecorationView(QGraphicsView):
     # a bunch of safe-exiting event handlers that just pass to the editor
     # if not handled, pass through to super()
     def mousePressEvent(self, event):
+        """
+        handle mouse press events and pass to editor.
+        
+        :param event: The mouse press event
+        """
+
         try:
             if self.editor.handleViewMousePress(self.viewportWindow, event):
                 return
@@ -58,6 +91,12 @@ class DecorationView(QGraphicsView):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
+        """
+        handle mouse move events and pass to editor.
+        
+        :param event: The mouse move event
+        """
+
         try:
             if self.editor.handleViewMouseMove(self.viewportWindow, event):
                 return
@@ -68,6 +107,12 @@ class DecorationView(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        """
+        handle mouse release events and pass to editor.
+        
+        :param event: The mouse release event
+        """
+
         try:
             if self.editor.handleViewMouseRelease(self.viewportWindow, event):
                 return
@@ -77,14 +122,31 @@ class DecorationView(QGraphicsView):
         super().mouseReleaseEvent(event)
 
 class SceneViewportWindow(QWidget):
+    """
+    transparent overlay window for displaying and editing scene decorations
+    """
+
     def __init__(
         self,
         screen: QScreen,
-        clock = None,
-        model: SceneModel = None,
-        editor: SceneEditorController = None,
-        system = None,
+        clock: TimingClock,
+        model: SceneModel,
+        editor: SceneEditorController,
+        system,
     ):
+        """
+        initialise the scene viewport window for a specific screen.
+        
+        :param screen: The screen to display the viewport on
+        :type screen: QScreen
+        :param clock: Optional timing clock
+        :param model: The scene model for decorations
+        :type model: SceneModel
+        :param editor: The scene editor controller
+        :type editor: SceneEditorController
+        :param system: The scene system
+        """
+
         super().__init__(None)
 
         self.screen = screen
@@ -152,12 +214,22 @@ class SceneViewportWindow(QWidget):
 
     # events
     def resizeEvent(self, event):
+        """
+        handle window resize and update scene bounds.
+        
+        :param event: The resize event
+        """
+
         super().resizeEvent(event)
         self.view.setGeometry(self.rect())
         self.updateSceneBounds()
 
     # internal methods
     def updateSceneBounds(self):
+        """
+        update the graphics scene bounds to match the viewport window size.
+        """
+
         self.scene.setSceneRect(
             QRectF(
                 0, 0,
@@ -167,6 +239,13 @@ class SceneViewportWindow(QWidget):
         )
     
     def _viewportOriginalGlobal(self) -> QPointF:
+        """
+        get the top-left corner of the viewport window in global coordinates.
+        
+        :return: The top-left position in global coordinates
+        :rtype: QPointF
+        """
+
         geometry = self.geometry()
 
         return QPointF(
@@ -179,6 +258,17 @@ class SceneViewportWindow(QWidget):
         entity: DecorationEntity,
         pixmap: QPixmap
     ) -> bool:
+        """
+        check if a decoration entity is visible within the viewport bounds.
+        
+        :param entity: The decoration entity to check
+        :type entity: DecorationEntity
+        :param pixmap: The pixmap of the decoration
+        :type pixmap: QPixmap
+        :return: True if entity should be visible, False otherwise
+        :rtype: bool
+        """
+
         width = pixmap.width()
         height = pixmap.height()
         
@@ -195,6 +285,13 @@ class SceneViewportWindow(QWidget):
         self,
         entity: DecorationEntity
     ):
+        """
+        update or create graphics item when a decoration entity changes.
+        
+        :param entity: The decoration entity that changed
+        :type entity: DecorationEntity
+        """
+
         name = entity.name
         pixmap = self.decorationPixmapProvider(entity.name)
 
@@ -250,6 +347,13 @@ class SceneViewportWindow(QWidget):
         self,
         entityId: str
     ):
+        """
+        remove a graphics item when a decoration entity is deleted.
+        
+        :param entityId: The ID of the removed entity
+        :type entityId: str
+        """
+
         item = self.items.pop(entityId, None)
 
         if item is None:
@@ -262,6 +366,13 @@ class SceneViewportWindow(QWidget):
 
     # public methods
     def globalBounds(self) -> QRectF:
+        """
+        get the bounding rectangle of the viewport in global coordinates.
+        
+        :return: The viewport bounds in global coordinates
+        :rtype: QRectF
+        """
+
         # for this overlay, geometry() is in global desktop coordinates.
         geometry = self.geometry()
 
@@ -273,6 +384,13 @@ class SceneViewportWindow(QWidget):
         )
 
     def setGhostDecoration(self, name: str):
+        """
+        set the decoration preview to display as a ghost image.
+        
+        :param name: The name of the decoration
+        :type name: str
+        """
+
         try:
             pixmap = self.decorationPixmapProvider(name)
         except:
@@ -290,6 +408,15 @@ class SceneViewportWindow(QWidget):
             self.ghost.setPixmap(pixmap)
 
     def showGhostAt(self, globalTopLeftPosition: QPointF, name: str):
+        """
+        display the ghost decoration at a specific position.
+        
+        :param globalTopLeftPosition: The position in global coordinates
+        :type globalTopLeftPosition: QPointF
+        :param name: The name of the decoration
+        :type name: str
+        """
+
         self.setGhostDecoration(name)
 
         if self.ghost.pixmap().isNull():
@@ -329,6 +456,10 @@ class SceneViewportWindow(QWidget):
                 pass
 
     def clearGhost(self):
+        """
+        hide and clear the ghost decoration display.
+        """
+
         try:
             self.ghost.setVisible(False)
             self.ghost.setPixmap(QPixmap())
@@ -342,6 +473,13 @@ class SceneViewportWindow(QWidget):
             pass
 
     def _applyInputMode(self, interactive: bool) -> None:
+        """
+        apply mouse input transparency based on interactive mode.
+        
+        :param interactive: True to enable mouse input, False for click-through
+        :type interactive: bool
+        """
+
         transparent = not bool(interactive)
 
         # qt-level (widget) event handling
@@ -398,9 +536,17 @@ class SceneViewportWindow(QWidget):
             pass
 
     def updateMouseInputAttributes(self):
+        """
+        update mouse input transparency based on current edit and placement modes.
+        """
+
         self._applyInputMode(self.inEditMode or self.placementActive)
 
     def setPlacementCursor(self):
+        """
+        enable placement mode and set cross cursor for placement.
+        """
+
         # placement needs mouse input even if edit mode is off
         self.placementActive = True
         self._applyInputMode(self.inEditMode or self.placementActive)
@@ -411,6 +557,10 @@ class SceneViewportWindow(QWidget):
             pass
 
     def clearPlacementCursor(self):
+        """
+        disable placement mode and restore default cursor.
+        """
+
         self.placementActive = False
 
         try:
@@ -437,6 +587,13 @@ class SceneViewportWindow(QWidget):
             pass
 
     def setEditMode(self, enabled: bool):
+        """
+        enable or disable edit mode for all decoration items.
+        
+        :param enabled: True to enable edit mode, False to disable
+        :type enabled: bool
+        """
+
         self.inEditMode = enabled
         self.updateMouseInputAttributes()
 

@@ -7,13 +7,33 @@ from PySide6.QtWidgets import QWidget
 from typing import Optional
 
 class SpriteNudgeController:
+    """
+    controller for nudging a sprite widget to avoid overlapping with modal windows
+    """
+
     def __init__(self, sprite: QWidget, margin: int = BORDER_MARGIN) -> None:
+        """
+        Initialise sprite nudge controller.
+
+        :param sprite: The sprite widget to control
+        :type sprite: QWidget
+        :param margin: Margin from screen edges, defaults to BORDER_MARGIN
+        :type margin: int
+        """
         self.sprite = sprite
         self.margin = margin
 
         self.spriteNudged: bool = False
 
     def nudgeIfOverlapping(self, window: QWidget) -> bool:
+        """
+        Nudge sprite if it overlaps with a modal window.
+
+        :param window: The modal window to check overlap with
+        :type window: QWidget
+        :return: True if sprite was nudged, False otherwise
+        :rtype: bool
+        """
         if not self.sprite or not window:
             return False
 
@@ -61,6 +81,12 @@ class SpriteNudgeController:
         return True
 
     def _availableGeometry(self) -> QRect:
+        """
+        Get the available geometry of the sprite's screen.
+
+        :return: The available screen geometry for positioning
+        :rtype: QRect
+        """
         screen = None
 
         try:

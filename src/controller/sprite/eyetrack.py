@@ -5,6 +5,10 @@ from PySide6.QtGui import QCursor
 from typing import Callable
 
 class LaserMouseController:
+    """
+    controls eye movement to track the mouse cursor with maximum offset limits and smoothing
+    """
+
     def __init__(
         self,
         sprite: QWidget,
@@ -13,6 +17,21 @@ class LaserMouseController:
         maxOffset: int = 8,
         smoothing: float = 0.4,
     ):
+        """
+        initialise the laser mouse controller for eye tracking.
+        
+        :param sprite: The sprite widget containing eyes to track
+        :type sprite: QWidget
+        :param canTrack: Callable that returns True if tracking is allowed
+        :type canTrack: Callable[[], bool]
+        :param minDistance: Minimum distance for eye tracking to start
+        :type minDistance: int
+        :param maxOffset: Maximum pixel offset for eye movement
+        :type maxOffset: int
+        :param smoothing: Smoothing factor for movement interpolation (0-1)
+        :type smoothing: float
+        """
+
         self.sprite = sprite
         self.canTrack = canTrack
         self.offset = QPointF(0.0, 0.0)
@@ -22,9 +41,31 @@ class LaserMouseController:
         self.smoothing = smoothing
 
     def _clamp(self, value: float, minValue: float, maxValue: float) -> float:
+        """
+        clamp a value between minimum and maximum bounds.
+        
+        :param value: The value to clamp
+        :type value: float
+        :param minValue: The minimum bound
+        :type minValue: float
+        :param maxValue: The maximum bound
+        :type maxValue: float
+        :return: The clamped value
+        :rtype: float
+        """
+
         return max(minValue, min(value, maxValue))
 
     def _computeTarget(self, mousePosition: QPoint) -> QPointF:
+        """
+        compute target eye offset based on mouse position relative to sprite centre.
+        
+        :param mousePosition: The mouse position relative to sprite
+        :type mousePosition: QPoint
+        :return: The target offset for eye position
+        :rtype: QPointF
+        """
+
         mouseX = float(mousePosition.x())
         mouseY = float(mousePosition.y())
 
@@ -49,6 +90,10 @@ class LaserMouseController:
         )
 
     def update(self):
+        """
+        update eye position to track mouse cursor with smoothing and constraints.
+        """
+
         eyesLabel = self.sprite.eyesLabel
 
         if not self.canTrack():

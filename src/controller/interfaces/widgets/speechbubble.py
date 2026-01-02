@@ -1,3 +1,5 @@
+from ...system.timings import TimingClock
+
 from ..base.anchor import SpriteAnchorMixin
 from ..base import InterfaceComponent
 
@@ -24,17 +26,37 @@ MAX_WIDTH = 220
 TAIL_SIZE = 12
 
 class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
+    """
+    animated speech bubble component with typing animation and optional text input.
+    
+    Displays text with character-by-character typing animation, renders a tail pointing to the sprite, and supports interactive text input.
+    """
+
     typingFinished = Signal()
     fadeOutFinished = Signal()
 
     def __init__(
         self,
         sprite: QWidget,
-        clock,
+        clock: Optional[TimingClock] = None,
         blipSound: Optional[Callable[[], None]] = None,
         occludersProvider: Optional[Callable[[], Iterable[QWidget]]] = (lambda: []),
         keepOccludersOnTop: bool = True,
     ):
+        """
+        initialise the speech bubble component.
+        
+        :param sprite: the sprite widget to anchor to
+        :type sprite: QWidget
+        :param clock: the timing clock instance
+        :param blipSound: optional callback to play sound on each character
+        :type blipSound: Optional[Callable[[], None]]
+        :param occludersProvider: callable returning occluders to keep above bubble
+        :type occludersProvider: Optional[Callable[[], Iterable[QWidget]]]
+        :param keepOccludersOnTop: whether to restack occluders on top
+        :type keepOccludersOnTop: bool
+        """
+
         super().__init__(sprite, clock)
 
         self.sprite = sprite
@@ -146,6 +168,13 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         self.hide()
 
     def setInputVisible(self, visible: bool) -> None:
+        """
+        show or hide the text input field.
+        
+        :param visible: whether to show the input field
+        :type visible: bool
+        """
+
         if visible:
             self.inputContainer.show()
 
@@ -169,11 +198,26 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         self._reposition(forceShow=self.isVisible())
 
     def configureInput(self, placeholder: str = "", text: str = "") -> None:
+        """
+        configure the input field with placeholder and initial text.
+        
+        :param placeholder: the placeholder text to display
+        :type placeholder: str
+        :param text: the initial text content
+        :type text: str
+        """
+
         self.inputField.setPlaceholderText(placeholder or "")
         self.inputField.setText(text or "")
         self.inputField.setCursorPosition(len(self.inputField.text()))
 
     def mousePressEvent(self, event) -> None:
+        """
+        handle mouse press by skipping typing animation if active.
+        
+        :param event: the mouse press event
+        """
+
         if self.typeTimer.isActive():
             self.skipTyping()
 
@@ -185,6 +229,21 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         inputPlaceholder: str = "",
         inputText: str = "",
     ) -> None:
+        """
+        start typing animation and optionally show input field.
+        
+        :param text: the text to animate
+        :type text: str
+        :param typingDelay: delay in milliseconds between characters (random if None)
+        :type typingDelay: Optional[int]
+        :param showInput: whether to show interactive input field
+        :type showInput: bool
+        :param inputPlaceholder: placeholder text for input field
+        :type inputPlaceholder: str
+        :param inputText: initial text for input field
+        :type inputText: str
+        """
+
         if self.isShuttingDown:
             return
 
@@ -228,12 +287,23 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         self.typeTimer.start(self.currentTypingDelay)
 
     def skipTyping(self) -> None:
+        """
+        skip typing animation and show full text.
+        """
+
         if not self.typeTimer.isActive():
             return
 
         self.stopTyping(showFullText=True)
 
     def stopTyping(self, showFullText: bool = False) -> None:
+        """
+        stop typing animation.
+        
+        :param showFullText: whether to display the remaining text
+        :type showFullText: bool
+        """
+
         if not self.typeTimer.isActive():
             return
 
@@ -244,6 +314,10 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
             self._updateSize()
 
     def shutdown(self) -> None:
+        """
+        shutdown the bubble and clean up resources and timers.
+        """
+
         self.isShuttingDown = True
         self.followTimer.stop()
         self.typeTimer.stop()
@@ -258,6 +332,10 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         self.hide()
 
     def _typeNextCharacter(self) -> None:
+        """
+        display the next character in the typing animation.
+        """
+
         if self.isShuttingDown:
             self.typeTimer.stop()
             return
@@ -281,10 +359,21 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
                 pass
 
     def _handleFadeFinished(self, endOpacity: float) -> None:
+        """
+        emit fadeOutFinished signal when opacity drops to zero.
+        
+        :param endOpacity: the final opacity value
+        :type endOpacity: float
+        """
+
         if endOpacity <= 0.001:
             self.fadeOutFinished.emit()
 
     def _updateSize(self) -> None:
+        """
+        recalculate bubble size based on text content.
+        """
+
         # let the label calculate its size based on content
         # and update the body to fit content
         self.label.adjustSize()
@@ -311,10 +400,21 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         QTimer.singleShot(0, lambda: self._restoreSizeConstraints())
     
     def _restoreSizeConstraints(self) -> None:
+        """
+        restore the minimum and maximum size constraints after temporary fixed size.
+        """
+
         self.setMinimumSize(40, 40)
         self.setMaximumSize(MAX_WIDTH + PADDING * 2 + 20, 16777215)
 
     def _reposition(self, forceShow: bool = False) -> None:
+        """
+        reposition the bubble anchored to the sprite.
+        
+        :param forceShow: whether to show the bubble before repositioning
+        :type forceShow: bool
+        """
+
         if not self.sprite:
             return
 
@@ -340,6 +440,12 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         self.animateTo(target)
 
     def paintEvent(self, event) -> None:
+        """
+        paint the speech bubble tail pointing toward the sprite.
+        
+        :param event: the paint event
+        """
+
         super().paintEvent(event)
         painter = QPainter(self)
 

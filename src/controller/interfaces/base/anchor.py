@@ -8,11 +8,29 @@ from PySide6.QtWidgets import QWidget
 from typing import Callable, Iterable, Optional, Sequence
 
 class PrimaryScreenAnchorMixin:
+    """
+    mixin providing anchor positioning relative to the primary screen
+    """
+
     def primaryAvailableGeometry(self) -> QRect:
+        """
+        Get the available geometry of the primary screen.
+
+        :return: The available geometry of the primary screen, or an empty rect if unavailable
+        :rtype: QRect
+        """
         screen = QGuiApplication.primaryScreen()
         return screen.availableGeometry() if screen else QRect(0, 0, 0, 0)
 
     def anchorBottomRight(self, *, margin: int = BORDER_MARGIN) -> QPoint:
+        """
+        Get the bottom-right anchor point on the primary screen.
+
+        :param margin: Margin from screen edges, defaults to BORDER_MARGIN
+        :type margin: int
+        :return: The bottom-right anchor point
+        :rtype: QPoint
+        """
         screen = self.primaryAvailableGeometry()
         size = self.size()
 
@@ -22,7 +40,17 @@ class PrimaryScreenAnchorMixin:
         return QPoint(x, y)
 
 class SpriteAnchorMixin:
+    """
+    mixin providing anchor positioning relative to a sprite widget
+    """
+
     def spriteFrameGeometry(self) -> QRect:
+        """
+        Get the frame geometry of the sprite widget.
+
+        :return: The frame geometry of the sprite, or an empty rect if sprite is unavailable
+        :rtype: QRect
+        """
         sprite = getattr(self, "sprite", None)
 
         if sprite is None:
@@ -35,6 +63,12 @@ class SpriteAnchorMixin:
             return QRect(0, 0, 0, 0)
 
     def spriteAvailableGeometry(self) -> QRect:
+        """
+        Get the available geometry of the screen containing the sprite.
+
+        :return: The available geometry of the sprite's screen, or an empty rect if unavailable
+        :rtype: QRect
+        """
         sprite = getattr(self, "sprite", None)
 
         if sprite is None:
@@ -50,6 +84,14 @@ class SpriteAnchorMixin:
         self,
         provider: Optional[Callable[[], Iterable[QWidget]]] = None,
     ) -> list[QWidget]:
+        """
+        Get visible occluder widgets from the provider function.
+
+        :param provider: Optional callable that provides iterable of widgets, defaults to None
+        :type provider: Optional[Callable[[], Iterable[QWidget]]]
+        :return: List of visible occluder widgets
+        :rtype: list[QWidget]
+        """
         provider = provider or getattr(self, "occludersProvider", None) or (lambda: [])
 
         try:
@@ -79,6 +121,14 @@ class SpriteAnchorMixin:
         self,
         provider: Optional[Callable[[], Iterable[QWidget]]] = None,
     ) -> list[QRect]:
+        """
+        Get the frame geometry bounds of occluder widgets.
+
+        :param provider: Optional callable that provides iterable of widgets, defaults to None
+        :type provider: Optional[Callable[[], Iterable[QWidget]]]
+        :return: List of occluder widget frame geometries
+        :rtype: list[QRect]
+        """
         rects: list[QRect] = []
 
         for widget in self.getOccluderWidgets(provider):
@@ -93,6 +143,12 @@ class SpriteAnchorMixin:
         self,
         provider: Optional[Callable[[], Iterable[QWidget]]] = None,
     ) -> None:
+        """
+        Restack occluder widgets to keep them on top of the sprite.
+
+        :param provider: Optional callable that provides iterable of widgets, defaults to None
+        :type provider: Optional[Callable[[], Iterable[QWidget]]]
+        """
         if not getattr(self, "keepOccludersOnTop", False):
             return
 

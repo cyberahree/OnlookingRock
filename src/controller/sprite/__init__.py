@@ -4,7 +4,7 @@ from ..asset import AssetController
 from PySide6.QtGui import QPixmap
 
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Callable, Optional
 
 import logging
 import time
@@ -93,7 +93,19 @@ def limitScale(scale: float) -> float:
     )
 
 class SpriteSystem:
-    def __init__(self, _spriteParent, preloadScale: float = None) -> None:
+    """
+    manages sprite assets, scaling, and mood selection based on keyboard activity
+    """
+
+    def __init__(self, _spriteParent, preloadScale: Optional[float] = None) -> None:
+        """
+        Initialise the sprite system.
+        
+        :param _spriteParent: Parent sprite widget
+        :param preloadScale: Optional scale to preload at initialization
+        :type preloadScale: float
+        """
+
         self.spriteAssets = AssetController("images/sprite")
         self.keyListener = KeyListener()
 
@@ -103,7 +115,14 @@ class SpriteSystem:
 
         self._loadAssets(preloadScale)
 
-    def _loadAssets(self, scale: float = None):
+    def _loadAssets(self, scale: Optional[float] = None):
+        """
+        load all sprite assets from disk and cache them.
+        
+        :param scale: Optional scale to preload additional copies at
+        :type scale: float
+        """
+
         loadRescaledCopy = (scale is not None) and (scale != 1.0)
 
         # load body
@@ -142,6 +161,17 @@ class SpriteSystem:
                 self.cachedPixmaps[scale].hats[hatFile.stem] = scaledPixmap
 
     def _scalePixmap(self, pixmap: QPixmap, scale: float) -> QPixmap:
+        """
+        scale a pixmap to a new size.
+        
+        :param pixmap: The pixmap to scale
+        :type pixmap: QPixmap
+        :param scale: Scale factor to apply
+        :type scale: float
+        :return: The scaled pixmap
+        :rtype: QPixmap
+        """
+
         return pixmap.scaled(
             int(pixmap.width() * scale),
             int(pixmap.height() * scale)
@@ -151,8 +181,19 @@ class SpriteSystem:
         self,
         scale: float,
         assetType: str,
-        name: str = None
+        name: Optional[str] = None
     ) -> None:
+        """
+        load and cache a scaled copy of an asset.
+        
+        :param scale: Scale factor to load at
+        :type scale: float
+        :param assetType: Type of asset (body, faces, eyes, hats)
+        :type assetType: str
+        :param name: Name of the asset (required for non-body types)
+        :type name: str
+        """
+
         scale = limitScale(scale)
 
         if not scale in self.cachedPixmaps:
@@ -197,11 +238,32 @@ class SpriteSystem:
             )[name] = scaledPixmap
 
     def getBody(self, scale: float = 1.0) -> QPixmap:
+        """
+        get the body pixmap at the specified scale.
+        
+        :param scale: Scale factor, defaults to 1.0
+        :type scale: float
+        :return: The body pixmap
+        :rtype: QPixmap
+        """
+
         scale = limitScale(scale)
         self._loadScaledAsset(scale, "body")
+
         return self.cachedPixmaps[scale].body
 
     def getFace(self, faceName: str, scale: float = 1.0) -> QPixmap:
+        """
+        get a face pixmap by name at the specified scale.
+        
+        :param faceName: Name of the face to retrieve
+        :type faceName: str
+        :param scale: Scale factor, defaults to 1.0
+        :type scale: float
+        :return: The face pixmap
+        :rtype: QPixmap
+        """
+
         scale = limitScale(scale)
         self._loadScaledAsset(scale, "faces", faceName)
 
@@ -211,6 +273,17 @@ class SpriteSystem:
         )
     
     def getEyes(self, eyesName: str, scale: float = 1.0) -> QPixmap:
+        """
+        get an eyes pixmap by name at the specified scale.
+        
+        :param eyesName: Name of the eyes to retrieve
+        :type eyesName: str
+        :param scale: Scale factor, defaults to 1.0
+        :type scale: float
+        :return: The eyes pixmap
+        :rtype: QPixmap
+        """
+
         scale = limitScale(scale)
         self._loadScaledAsset(scale, "eyes", eyesName)
 
@@ -220,6 +293,17 @@ class SpriteSystem:
         )
     
     def getHat(self, hatName: str, scale: float = 1.0) -> QPixmap:
+        """
+        get a hat pixmap by name at the specified scale.
+        
+        :param hatName: Name of the hat to retrieve
+        :type hatName: str
+        :param scale: Scale factor, defaults to 1.0
+        :type scale: float
+        :return: The hat pixmap
+        :rtype: QPixmap
+        """
+
         scale = limitScale(scale)
         self._loadScaledAsset(scale, "hats", hatName)
 
@@ -229,11 +313,24 @@ class SpriteSystem:
         )
 
     def chooseMood(
-            self,
-            timeIdle: float,
-            metrics: Metrics = None,
-            rules: list[ReactionRule] = EMOTION_DECISION_TABLE
-        ) -> tuple[str, str]:
+        self,
+        timeIdle: float,
+        metrics: Optional[Metrics] = None,
+        rules: list[ReactionRule] = EMOTION_DECISION_TABLE
+    ) -> tuple[str, str]:
+        """
+        choose a mood based on metrics and reaction rules.
+        
+        :param timeIdle: Time idle in seconds
+        :type timeIdle: float
+        :param metrics: Activity metrics, defaults to current keyboard metrics
+        :type metrics: Metrics
+        :param rules: Emotion decision rules to evaluate, defaults to standard table
+        :type rules: list[ReactionRule]
+        :return: Tuple of (body_mood, face_mood)
+        :rtype: tuple[str, str]
+        """
+
         if metrics is None:
             metrics = Metrics(
                 idleTime=timeIdle,
@@ -254,6 +351,13 @@ class SpriteSystem:
         return IDLE_COMBINATION
 
     def getMoodCombination(self) -> tuple[str, str]:
+        """
+        get the current mood combination based on idle time and activity.
+        
+        :return: Tuple of (body_mood, face_mood)
+        :rtype: tuple[str, str]
+        """
+
         if self.keyListener.lastKeyPress is None:
             return IDLE_COMBINATION
         

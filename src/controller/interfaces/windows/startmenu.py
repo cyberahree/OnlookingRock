@@ -1,3 +1,5 @@
+from ...system.timings import TimingClock
+
 from ..base.anchor import SpriteAnchorMixin
 from ..base import InterfaceComponent
 
@@ -39,14 +41,34 @@ class MenuAction:
     iconName: Optional[str] = None
 
 class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
+    """
+    start menu component with actions displayed in a list.
+    
+    Provides a contextual menu anchored to the sprite with clickable action items and event filtering to close on external clicks.
+    """
+
     def __init__(
         self,
         sprite: QWidget,
         actions: Sequence[MenuAction],
-        canOpen: callable[[], bool],
-        clock,
+        canOpen: Callable[[], bool],
+        clock: Optional[TimingClock],
         occludersProvider: Optional[Callable[[], Iterable[QWidget]]] = (lambda: []),
     ):
+        """
+        initialise the start menu component.
+        
+        :param sprite: the sprite widget to anchor the menu to
+        :type sprite: QWidget
+        :param actions: sequence of menu actions to display
+        :type actions: Sequence[MenuAction]
+        :param canOpen: callable to check if menu can open
+        :type canOpen: callable[[], bool]
+        :param clock: the timing clock instance
+        :param occludersProvider: callable returning occluders to avoid
+        :type occludersProvider: Optional[Callable[[], Iterable[QWidget]]]
+        """
+
         super().__init__(sprite, clock)
 
         self.canOpen = canOpen
@@ -67,6 +89,10 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self.setOpacity(0.0)
 
     def build(self) -> None:
+        """
+        construct the menu ui with list widget and styling.
+        """
+
         self.setObjectName("startMenu")
 
         self.setFixedWidth(SIZE_CONSTRAINTS[0])
@@ -142,6 +168,13 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         )
 
     def _getSpriteGlobalBounds(self) -> QRect:
+        """
+        get the global bounding rectangle of the sprite widget.
+        
+        :return: global bounds of sprite
+        :rtype: QRect
+        """
+
         topLeft = self.sprite.mapToGlobal(QPoint(0, 0))
 
         return QRect(
@@ -150,6 +183,10 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         )
 
     def _recomputeHeight(self) -> None:
+        """
+        recalculate menu height based on item count and available space.
+        """
+
         if not hasattr(self, "listWidget"):
             return
 
@@ -186,6 +223,10 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self._reposition()
 
     def _resetListVisualState(self) -> None:
+        """
+        reset the list widget visual state, clearing selection and focus.
+        """
+
         if not hasattr(self, "listWidget"):
             return
 
@@ -200,6 +241,13 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         viewport.update()
 
     def _onClicked(self, item: QListWidgetItem) -> None:
+        """
+        handle list item click by executing the associated action callback.
+        
+        :param item: the clicked list item
+        :type item: QListWidgetItem
+        """
+
         if not item.flags():
             return
 
@@ -215,6 +263,10 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
             break
 
     def _reposition(self):
+        """
+        reposition the menu anchored to the sprite with appropriate margins.
+        """
+
         target = self.anchorNextToSprite(
             yAlign="bottom",
             preferredSide="right",
@@ -225,6 +277,15 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self.animateTo(target)
 
     def eventFilter(self, watched, event) -> bool:
+        """
+        filter events to close menu on clicks outside the menu or sprite.
+        
+        :param watched: the watched object
+        :param event: the event to filter
+        :return: whether the event was handled
+        :rtype: bool
+        """
+
         if (not self.isVisible()) or (not self.sprite):
             return False
 
@@ -252,6 +313,10 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         return False
 
     def _recomputeHeightSnap(self) -> None:
+        """
+        recompute height without animation (snap to final size).
+        """
+
         if not self.isVisible():
             return
 
@@ -264,6 +329,10 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
             self.enableMoveAnimation = previous
 
     def open(self) -> None:
+        """
+        open the menu if allowed by canOpen check.
+        """
+
         if not self.canOpen():
             return
 
@@ -272,6 +341,12 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         QTimer.singleShot(0, self._recomputeHeightSnap)
 
     def hideEvent(self, event) -> None:
+        """
+        handle hide event by cleaning up visual state and removing event filter.
+        
+        :param event: the hide event
+        """
+
         self._resetListVisualState()
 
         try:

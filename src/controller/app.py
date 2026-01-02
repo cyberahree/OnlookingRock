@@ -34,7 +34,17 @@ import sys
 APPLICATION = QApplication(sys.argv)
 
 class RockinWindow(QWidget):
+    """
+    the main application window for the rockin sprite.
+    
+    Manages sprite rendering, user interactions, configuration, and all subsystems including sound, scene, and UI interfaces.
+    """
+
     def __init__(self) -> None:
+        """
+        initialise the rockin window and all subsystems.
+        """
+
         super().__init__()
 
         ##############################
@@ -242,6 +252,15 @@ class RockinWindow(QWidget):
 
     # events
     def configUpdated(self, path: str, value: object):
+        """
+        handle configuration value changes and update relevant systems.
+        
+        :param path: the configuration path that changed
+        :type path: str
+        :param value: the new configuration value
+        :type value: object
+        """
+
         if path.startswith("sound."):
             # volume changes
             if path == "sound.masterVolume":
@@ -273,6 +292,12 @@ class RockinWindow(QWidget):
             pass
 
     def moveEvent(self, event):
+        """
+        handle window move event to reposition hat overlay.
+        
+        :param event: the move event
+        """
+
         super().moveEvent(event)
 
         try:
@@ -282,6 +307,12 @@ class RockinWindow(QWidget):
             pass
 
     def keyPressEvent(self, event):
+        """
+        handle key press events for menu toggle and shutdown.
+        
+        :param event: the key press event
+        """
+
         if not self.isActiveWindow():
             return
 
@@ -301,6 +332,12 @@ class RockinWindow(QWidget):
         super().keyPressEvent(event)
 
     def mousePressEvent(self, event):
+        """
+        handle mouse press for dragging and menu interaction.
+        
+        :param event: the mouse press event
+        """
+
         btn = event.button()
 
         if btn == Qt.LeftButton:
@@ -314,23 +351,47 @@ class RockinWindow(QWidget):
             super().mousePressEvent(event)
     
     def mouseMoveEvent(self, event):
+        """
+        handle mouse move to update speech bubble and dragging.
+        
+        :param event: the mouse move event
+        """
+
         self.speechBubble.bubble._reposition()
         self.dragger.handleMouseMove(event)
 
     def mouseReleaseEvent(self, event):
+        """
+        handle mouse release to end dragging and stop ambient audio.
+        
+        :param event: the mouse release event
+        """
+
         self.soundManager.stopAmbientAudio()
         self.dragger.handleMouseRelease(event)
     
     def onDragStart(self):
+        """
+        handle drag start by switching to drag sprite features.
+        """
+
         self.updateSpriteFeatures(
             *DRAG_COMBINATION
         )
     
     def onDragEnd(self):
+        """
+        handle drag end by updating sprite to default features.
+        """
+
         self.updateSpriteLoop()
 
     # app methods
     def startWindowLoop(self):
+        """
+        start the main application window loop with greeting sequence.
+        """
+
         self.soundManager.playSound(
             "applicationStart.wav",
             SoundCategory.SPECIAL,
@@ -362,6 +423,10 @@ class RockinWindow(QWidget):
         sys.exit(APPLICATION.exec_())
 
     def triggerShutdown(self):
+        """
+        trigger application shutdown with shutdown animation and sound.
+        """
+
         if not self.spriteReady:
             return
 
@@ -377,6 +442,10 @@ class RockinWindow(QWidget):
         )
 
     def shutdown(self):
+        """
+        shutdown the application and clean up resources.
+        """
+
         self.soundManager.shutdown()
 
         self.config.saveConfig()
@@ -384,6 +453,13 @@ class RockinWindow(QWidget):
 
     # sprite methods
     def setSpriteScale(self, scale: float):
+        """
+        set the sprite scale and update all related graphics.
+        
+        :param scale: the new sprite scale factor
+        :type scale: float
+        """
+
         scale = limitScale(scale)
 
         if self.currentSpriteScale == scale:
@@ -437,6 +513,10 @@ class RockinWindow(QWidget):
         self.startMenu._reposition()
 
     def updateSpriteLoop(self):
+        """
+        update sprite animation state on each clock tick.
+        """
+
         if not self.spriteReady:
             return
         
@@ -465,6 +545,17 @@ class RockinWindow(QWidget):
         faceName: str, eyesName: str,
         forceful: bool = False
     ):
+        """
+        update the sprite's face and eyes to given names.
+        
+        :param faceName: the name of the face to display
+        :type faceName: str
+        :param eyesName: the name of the eyes to display
+        :type eyesName: str
+        :param forceful: whether to update even if blinking
+        :type forceful: bool
+        """
+
         if (not self.spriteReady or self.blinkController.isBlinking) and not forceful:
             return
         
@@ -484,6 +575,13 @@ class RockinWindow(QWidget):
         self,
         faceName: str
     ):
+        """
+        update the sprite's face only.
+        
+        :param faceName: the name of the face to display
+        :type faceName: str
+        """
+
         if not self.spriteReady or self.blinkController.isBlinking:
             return
         
@@ -499,6 +597,13 @@ class RockinWindow(QWidget):
         self,
         eyeName: str
     ):
+        """
+        update the sprite's eyes only.
+        
+        :param eyeName: the name of the eyes to display
+        :type eyeName: str
+        """
+
         if not self.spriteReady or self.blinkController.isBlinking:
             return
         
@@ -508,6 +613,10 @@ class RockinWindow(QWidget):
         )
 
     def triggerBlink(self):
+        """
+        trigger a blink animation.
+        """
+
         if (not self.spriteReady):
             return
         

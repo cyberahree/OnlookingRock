@@ -16,7 +16,7 @@ class DropdownSpec:
 class RockDropdown(QComboBox, _RockWidgetMixin):
     def __init__(
         self,
-        items: List[str] = None,
+        items: Optional[List[str]] = None,
         parent: Optional[QWidget] = None,
         *,
         variant: str = "default",

@@ -5,7 +5,7 @@ from .speech import buildSpeechBlips
 from PySide6.QtMultimedia import QSoundEffect, QMediaPlayer, QAudioOutput
 from PySide6.QtCore import QObject, QUrl, QTimer, Signal, QDateTime
 
-from typing import List, Optional, Annotated
+from typing import Callable, List, Optional, Annotated
 from dataclasses import dataclass
 from enum import Enum
 
@@ -42,9 +42,20 @@ def clamp(value: float, rangeValues: ValueRange) -> float:
     return max(rangeValues.minValue, min(rangeValues.maxValue, value))
 
 class SoundManager(QObject):
+    """
+    manages sound playback with support for multiple audio categories and volume control
+    """
+
     mutedSignal = Signal(bool)
     
     def __init__(self, parent: Optional[QObject] = None):
+        """
+        initialise the sound manager.
+        
+        :param parent: Parent QObject
+        :type parent: Optional[QObject]
+        """
+
         super().__init__(parent)
 
         self.soundAssets = AssetController("sounds")
@@ -95,6 +106,17 @@ class SoundManager(QObject):
 
     # internal methods
     def _massLoadSoundInstanceToCategory(self, url: QUrl, category: SoundCategory) -> List[QSoundEffect]:
+        """
+        load multiple sound instances for a category based on polyphony configuration.
+        
+        :param url: URL of the sound file to load
+        :type url: QUrl
+        :param category: Sound category for the instances
+        :type category: SoundCategory
+        :return: List of loaded sound instances
+        :rtype: List[QSoundEffect]
+        """
+
         categoryConfig = self.soundCategories[category]
         
         loadMax = max(1, categoryConfig.maxPolyphony)
@@ -115,15 +137,42 @@ class SoundManager(QObject):
         return soundInstances
 
     def _getEffectiveVolume(self, volume: float, isMuted: bool) -> float:
+        """
+        calculate the effective volume considering master mute and category mute status.
+        
+        :param volume: The requested volume
+        :type volume: float
+        :param isMuted: Whether the category is muted
+        :type isMuted: bool
+        :return: The effective volume to apply
+        :rtype: float
+        """
+
         if self.masterMuted or isMuted:
             return 0.0
 
         return clamp(volume * self.masterVolume, VOLUME_RANGE)
 
     def _getCategoryByEnum(self, category: SoundCategory) -> CategoryConfig:
+        """
+        get category configuration by enum.
+        
+        :param category: Sound category enum
+        :type category: SoundCategory
+        :return: Configuration for the category
+        :rtype: CategoryConfig
+        """
+
         return self.soundCategories[category]
 
     def _updateCategoryHandler(self, category: SoundCategory) -> None:
+        """
+        update volume of all instances in a category.
+        
+        :param category: Sound category to update
+        :type category: SoundCategory
+        """
+
         categoryConfig = self._getCategoryByEnum(category)
 
         volume = self._getEffectiveVolume(
@@ -139,6 +188,10 @@ class SoundManager(QObject):
                 soundInstance.setVolume(volume)
 
     def _updateAllCategoryHandlers(self) -> None:
+        """
+        update volume of all loaded sound instances.
+        """
+
         for cat in {cat for (cat, _p) in self.soundCache.keys()}:
             self._updateCategoryHandler(cat)
 
@@ -153,6 +206,10 @@ class SoundManager(QObject):
         )
     
     def _cleanupAll(self) -> None:
+        """
+        clean up and stop all sounds and timers.
+        """
+
         # stop all scheduled sounds
         for timer in self.scheduledSounds:
             timer.stop()
@@ -169,6 +226,13 @@ class SoundManager(QObject):
         self.soundCache.clear()
 
     def _now(self) -> int:
+        """
+        get current time in milliseconds since epoch.
+        
+        :return: Current milliseconds since epoch
+        :rtype: int
+        """
+
         return int(
             QDateTime.currentMSecsSinceEpoch()
         )
@@ -176,21 +240,46 @@ class SoundManager(QObject):
     # master mix methods
     @property
     def isMasterMuted(self) -> bool:
+        """
+        check if master mute is enabled.
+        
+        :return: True if master is muted, False otherwise
+        :rtype: bool
+        """
+
         return self.masterMuted
 
     def setMasterVolume(
         self,
         volume: Annotated[float, VOLUME_RANGE]
     ) -> None:
+        """
+        set the master volume level.
+        
+        :param volume: Volume level between 0.0 and 1.0
+        :type volume: Annotated[float, VOLUME_RANGE]
+        """
+
         self.masterVolume = clamp(volume, VOLUME_RANGE)
         self._updateAllCategoryHandlers()
     
     def setMasterMuted(self, muted: bool) -> None:
+        """
+        set the master mute state.
+        
+        :param muted: True to mute, False to unmute
+        :type muted: bool
+        """
+
         self.masterMuted = muted
         self.mutedSignal.emit(muted)
         self._updateAllCategoryHandlers()
     
     def toggleMasterMuted(self) -> None:
+        """
+        toggle the master mute state.
+        """
+
         self.setMasterMuted(not self.masterMuted)
 
     # category methods
@@ -199,6 +288,15 @@ class SoundManager(QObject):
         category: SoundCategory | str,
         volume: Annotated[float, VOLUME_RANGE]
     ) -> None:
+        """
+        set volume for a sound category.
+        
+        :param category: Sound category or category name string
+        :type category: SoundCategory | str
+        :param volume: Volume level between 0.0 and 1.0
+        :type volume: Annotated[float, VOLUME_RANGE]
+        """
+
         if isinstance(category, str):
             category = SoundCategory[category.upper()]
 
@@ -210,11 +308,29 @@ class SoundManager(QObject):
         category: SoundCategory,
         muted: bool
     ) -> None:
+        """
+        set mute state for a sound category.
+        
+        :param category: Sound category to mute
+        :type category: SoundCategory
+        :param muted: True to mute, False to unmute
+        :type muted: bool
+        """
+
         self.soundCategories[category].muted = muted
         self._updateCategoryHandler(category)
     
     # playback methods
     def preloadSounds(self, relativePath: str, category: SoundCategory) -> None:
+        """
+        preload sound instances for a file path and category.
+        
+        :param relativePath: Relative path to the sound file
+        :type relativePath: str
+        :param category: Sound category for the instances
+        :type category: SoundCategory
+        """
+
         key = (category, relativePath)
 
         if key in self.soundCache:
@@ -229,9 +345,24 @@ class SoundManager(QObject):
         relativePath: str,
         category: SoundCategory,
         volume: Optional[float] = None,
-        onFinish: Optional[callable] = None,
+        onFinish: Optional[Callable[[], None]] = None,
         finishDelay: int = 0
     ) -> None:
+        """
+        play a sound from file with optional volume and callback.
+        
+        :param relativePath: Relative path to the sound file
+        :type relativePath: str
+        :param category: Sound category for playback
+        :type category: SoundCategory
+        :param volume: Optional volume override (0.0 to 1.0)
+        :type volume: Optional[float]
+        :param onFinish: Optional callback when sound finishes
+        :type onFinish: Optional[Callable[[], None]]
+        :param finishDelay: Delay in milliseconds before calling onFinish
+        :type finishDelay: int
+        """
+
         key = (category, relativePath)
         
         # cooldown check
@@ -297,9 +428,23 @@ class SoundManager(QObject):
     
     # audio playback
     def isAmbientPlaying(self) -> bool:
+        """
+        check if ambient audio is currently playing.
+        
+        :return: True if ambient audio is playing
+        :rtype: bool
+        """
+
         return self.ambientMediaPlayer.playbackState() == QMediaPlayer.PlayingState
 
     def playAmbientAudio(self, relativePath: str) -> None:
+        """
+        play ambient audio that loops continuously.
+        
+        :param relativePath: Relative path to the audio file
+        :type relativePath: str
+        """
+
         if self.isAmbientPlaying():
             return
 
@@ -317,11 +462,19 @@ class SoundManager(QObject):
         self.ambientMediaPlayer.play()
 
     def stopAmbientAudio(self) -> None:
+        """
+        stop the currently playing ambient audio.
+        """
+
         self.ambientMediaPlayer.stop()
         self.ambientMediaPlayer.setSource(QUrl())
 
     # speech blip playback
     def playSpeechBlip(self) -> None:
+        """
+        play a random speech blip sound.
+        """
+
         index = random.randint(0, SPEECH_BLIP_COUNT - 1)
         key = (SoundCategory.SPEECH, f"_blip_{index}")
         
@@ -337,6 +490,17 @@ class SoundManager(QObject):
         relativePath: str,
         category: SoundCategory
     ) -> None:
+        """
+        schedule a sound to repeat at regular intervals.
+        
+        :param intervalMs: Interval in milliseconds between plays
+        :type intervalMs: int
+        :param relativePath: Relative path to the sound file
+        :type relativePath: str
+        :param category: Sound category for playback
+        :type category: SoundCategory
+        """
+
         scheduledTimer = QTimer(self)
         scheduledTimer.setInterval(max(10, intervalMs))
 
@@ -350,4 +514,8 @@ class SoundManager(QObject):
 
     # cleanup
     def shutdown(self) -> None:
+        """
+        shutdown the sound manager and clean up resources.
+        """
+
         self._cleanupAll()

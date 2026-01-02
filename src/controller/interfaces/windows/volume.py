@@ -37,6 +37,10 @@ def clamp(value: float) -> float:
     return max(0.0, min(1.0, float(value)))
 
 class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
+    """
+    volume control window component with master and category sliders
+    """
+
     def __init__(
         self,
         sprite: QWidget,
@@ -45,6 +49,20 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         soundManager: SoundManager,
         occludersProvider: Optional[Callable[[], Iterable[QWidget]]] = (lambda: []),
     ):
+        """
+        Initialise the volume control window.
+        
+        :param sprite: The sprite widget to anchor to
+        :type sprite: QWidget
+        :param clock: Clock for timing
+        :param config: Configuration controller
+        :type config: ConfigController
+        :param soundManager: Sound manager for volume control
+        :type soundManager: SoundManager
+        :param occludersProvider: Provider for occlusion detection
+        :type occludersProvider: Optional[Callable[[], Iterable[QWidget]]]
+        """
+
         super().__init__(sprite, clock)
 
         self.config = config
@@ -71,6 +89,10 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._saveTimer.timeout.connect(self._saveConfigNow)
 
     def build(self) -> None:
+        """
+        build the volume control interface with sliders and styling.
+        """
+
         self.setObjectName("volumeWindow")
 
         self.setFixedWidth(276)
@@ -168,6 +190,15 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._syncFromConfig()
 
     def _applyKeyVolume(self, key: str, value01: float) -> None:
+        """
+        apply volume change to sound manager and config.
+        
+        :param key: Configuration key (master or category name)
+        :type key: str
+        :param value01: Volume value between 0.0 and 1.0
+        :type value01: float
+        """
+
         value01 = clamp(value01)
 
         # UI label
@@ -188,17 +219,29 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._scheduleSave()
 
     def _scheduleSave(self) -> None:
+        """
+        schedule configuration save with debounce timer.
+        """
+
         # restart debounce timer
         self._saveTimer.stop()
         self._saveTimer.start()
 
     def _saveConfigNow(self) -> None:
+        """
+        save configuration to disk immediately.
+        """
+
         try:
             self.config.saveConfig()
         except Exception:
             pass
 
     def _syncFromConfig(self) -> None:
+        """
+        synchronise UI sliders with current configuration values.
+        """
+
         # master
         try:
             master = clamp(self.config.getValue("sound.masterVolume"))
@@ -244,6 +287,10 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
                 label.setText(f"{int(round(volume * 100))}%")
                 
     def _reposition(self):
+        """
+        reposition the window relative to the sprite.
+        """
+
         target = self.anchorNextToSprite(
             yAlign="bottom",
             preferredSide="right",
@@ -254,6 +301,15 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self.animateTo(target)
 
     def eventFilter(self, watched, event) -> bool:
+        """
+        handle application events to close window on click outside.
+        
+        :param watched: The object that was watched
+        :param event: The event that occurred
+        :return: True if event was handled
+        :rtype: bool
+        """
+
         if (not self.isVisible()) or (not self.sprite):
             return False
 
@@ -281,11 +337,21 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         return False
 
     def open(self) -> None:
+        """
+        open the volume window and install event filter.
+        """
+
         super().open()
         self._syncFromConfig()
         QApplication.instance().installEventFilter(self)
 
     def hideEvent(self, event) -> None:
+        """
+        handle window hide event by removing event filter.
+        
+        :param event: The hide event
+        """
+
         try:
             QApplication.instance().removeEventFilter(self)
         finally:

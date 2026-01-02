@@ -42,6 +42,12 @@ from PySide6.QtWidgets import (
 from typing import Callable, Iterable, Optional
 
 class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
+    """
+    scene editor window for managing decorations and startup spawn count.
+    
+    Provides decoration list, placement mode, and configuration persistence for scene items.
+    """
+
     def __init__(
         self,
         sprite: QWidget,
@@ -50,6 +56,20 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         decorations: SceneSystem,
         occludersProvider: Optional[Callable[[], Iterable[QWidget]]] = (lambda: []),
     ):
+        """
+        initialise the scene editor window component.
+        
+        :param sprite: the sprite widget to anchor to
+        :type sprite: QWidget
+        :param clock: the timing clock instance
+        :param config: the configuration controller
+        :type config: ConfigController
+        :param decorations: the scene system instance
+        :type decorations: SceneSystem
+        :param occludersProvider: callable returning occluders to avoid
+        :type occludersProvider: Optional[Callable[[], Iterable[QWidget]]]
+        """
+
         super().__init__(sprite, clock)
 
         self.config = config
@@ -78,6 +98,10 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._saveTimer.timeout.connect(self._saveConfigNow)
     
     def build(self) -> None:
+        """
+        construct the scene editor ui with decoration list and controls.
+        """
+
         self.setObjectName("sceneWindow")
         self.setFixedWidth(360)
 
@@ -180,6 +204,10 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._syncFromConfig()
     
     def _populateDecorList(self) -> None:
+        """
+        populate the decoration list from available decoration assets.
+        """
+
         self.decorList.clear()
 
         # build items from assets
@@ -202,6 +230,10 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             self.decorList.setCurrentRow(0)
     
     def _syncFromConfig(self) -> None:
+        """
+        synchronise the spawn count spinbox with current configuration.
+        """
+
         try:
             value = int(self.config.getValue("scene.startupDecorationSpawnCount"))
         except Exception:
@@ -212,6 +244,13 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self.spawnSpin.blockSignals(False)
 
     def _onSpawnChanged(self, value: int) -> None:
+        """
+        handle spawn count change and trigger config save.
+        
+        :param value: the new spawn count value
+        :type value: int
+        """
+
         self.config.setValue(
             "scene.startupDecorationSpawnCount",
             int(value)
@@ -220,6 +259,10 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._scheduleSave()
 
     def _placeSelected(self) -> None:
+        """
+        begin placement mode for the currently selected decoration.
+        """
+
         item = self.decorList.currentItem()
     
         if item is None:
@@ -233,19 +276,35 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self.decorations.beginPlacement(str(name))
 
     def _cancelPlacement(self) -> None:
+        """
+        cancel the current decoration placement operation.
+        """
+
         self.decorations.endPlacement()
 
     def _scheduleSave(self) -> None:
+        """
+        schedule a debounced config save operation.
+        """
+
         self._saveTimer.stop()
         self._saveTimer.start()
 
     def _saveConfigNow(self) -> None:
+        """
+        immediately save configuration to disk.
+        """
+
         try:
             self.config.saveConfig()
         except Exception:
             pass
 
     def _reposition(self):
+        """
+        reposition the window anchored to the sprite with appropriate margins.
+        """
+
         target = self.anchorNextToSprite(
             yAlign="bottom",
             preferredSide="right",
@@ -256,6 +315,15 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self.animateTo(target)
 
     def eventFilter(self, watched, event) -> bool:
+        """
+        filter events to close window on clicks outside the window or sprite, except in decoration edit mode.
+        
+        :param watched: the watched object
+        :param event: the event to filter
+        :return: whether the event was handled
+        :rtype: bool
+        """
+
         if (not self.isVisible()) or (not self.sprite):
             return False
 
@@ -298,12 +366,22 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         return False
 
     def open(self) -> None:
+        """
+        open the scene editor and enable edit mode.
+        """
+
         super().open()
         self._syncFromConfig()
         self.decorations.setEditMode(True)
         QApplication.instance().installEventFilter(self)
 
     def hideEvent(self, event) -> None:
+        """
+        handle hide event by cancelling placement and disabling edit mode.
+        
+        :param event: the hide event
+        """
+
         try:
             try:
                 self.decorations.endPlacement()
@@ -321,3 +399,5 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
                 pass
         finally:
             super().hideEvent(event)
+        
+        

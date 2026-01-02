@@ -3,9 +3,9 @@ from .asset import ROOT_ASSET_DIRECTORY
 from PySide6.QtCore import Signal, QObject
 
 from platformdirs import user_config_dir
+from typing import Any, Optional
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
 
 import tempfile
 import logging
@@ -142,9 +142,18 @@ def setByPath(
     current[parts[-1]] = value
 
 class ConfigController(QObject):
+    """
+    manages application configuration with persistence to json.
+    merges default configuration with user overrides, provides path-based access to settings, and emits signals on changes.
+    """
+
     onValueChanged = Signal(str, object)
 
     def __init__(self):
+        """
+        initialise the configuration controller and load config from disk.
+        """
+
         super().__init__()
 
         # configuration directory
@@ -161,8 +170,15 @@ class ConfigController(QObject):
 
     def loadConfig(
         self,
-        configurationFile: Path = None
+        configurationFile: Optional[Path] = None
     ):
+        """
+        load configuration from file and merge with defaults.
+        
+        :param configurationFile: optional path to load from instead of default location
+        :type configurationFile: Optional[Path]
+        """
+
         profileToLoad = (configurationFile if configurationFile is not None else self.userProfilePath)
 
         try:
@@ -183,6 +199,10 @@ class ConfigController(QObject):
         return self.config
 
     def saveConfig(self):
+        """
+        save the current configuration to disk, omitting default values.
+        """
+
         pruned = pruneForDefaults(
             self.defaults,
             self.config
@@ -194,8 +214,26 @@ class ConfigController(QObject):
         )
 
     def getValue(self, path: str) -> Any:
+        """
+        get a configuration value by dot-separated path.
+        
+        :param path: the config path (e.g. "sprite.scale")
+        :type path: str
+        :return: the configuration value
+        :rtype: Any
+        """
+
         return getByPath(self.config, path)
 
     def setValue(self, path: str, value: Any):
+        """
+        set a configuration value by dot-separated path and emit change signal.
+        
+        :param path: the config path to set
+        :type path: str
+        :param value: the value to set
+        :type value: Any
+        """
+
         setByPath(self.config, path, value)
         self.onValueChanged.emit(path, value)

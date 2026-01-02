@@ -1,5 +1,7 @@
 from PySide6.QtCore import QObject, QTimer, QElapsedTimer, Signal, Qt
 
+from typing import Optional
+
 def _msFromRefreshRate(RefreshRate: int) -> int:
     return max(
         1,
@@ -7,10 +9,22 @@ def _msFromRefreshRate(RefreshRate: int) -> int:
     )
 
 class TimingClock(QObject):
+    """
+    a timing clock that emits signals at a specified refresh rate
+    """
+
     tick = Signal(float)
     refreshRateChanged = Signal(int)
 
-    def __init__(self, refreshRate: int = 1, parent = None):
+    def __init__(self, refreshRate: int = 1, parent: Optional[QObject] = None):
+        """
+        Initialise the timing clock.
+        
+        :param refreshRate: The refresh rate in hertz
+        :type refreshRate: int
+        :param parent: Parent QObject
+        """
+
         super().__init__(parent)
 
         self.timer = QTimer(self)
@@ -26,11 +40,22 @@ class TimingClock(QObject):
         self.timer.start()
     
     def _onTimeout(self):
+        """
+        handle timer timeout and emit tick signal with elapsed time.
+        """
+
         elapsedMs = self.elapsedTimer.restart()
         self.lastDelta = elapsedMs
         self.tick.emit(elapsedMs / 1000)
     
     def setRefreshRate(self, refreshRate: int):
+        """
+        Set the refresh rate for the timing clock.
+        
+        :param refreshRate: The new refresh rate in hertz
+        :type refreshRate: int
+        """
+
         newRefreshRate = max(1, int(refreshRate))
 
         if newRefreshRate == self.refreshRate:

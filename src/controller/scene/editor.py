@@ -15,11 +15,22 @@ class DragState:
     grabWidget: object # QWidget/QGraphicsWidget
 
 class SceneEditorController(QObject):
+    """
+    manages scene editing including entity dragging and decoration placement
+    """
+
     def __init__(
         self,
         system,
-        sprite = None
+        sprite: Optional[QObject] = None
     ):
+        """
+        initialise the scene editor controller with system references.
+        
+        :param system: The scene system
+        :param sprite: Optional sprite widget parent
+        """
+
         super().__init__(sprite)
 
         self.system = system
@@ -37,6 +48,14 @@ class SceneEditorController(QObject):
 
     # internal methods
     def getGlobalPositionFromEvent(self, event) -> QPointF:
+        """
+        extract global mouse position from event with fallback strategies.
+        
+        :param event: The event object (may be None)
+        :return: The global mouse position
+        :rtype: QPointF
+        """
+
         try:
             return QPointF(event.globalPosition())
         except Exception:
@@ -62,6 +81,17 @@ class SceneEditorController(QObject):
         globalPoint: QPointF,
         decorationName: str
     ) -> QPointF:
+        """
+        clamp a position to the bounds of the viewport containing the point.
+        
+        :param globalPoint: The position to clamp in global coordinates
+        :type globalPoint: QPointF
+        :param decorationName: The decoration name to get size for
+        :type decorationName: str
+        :return: The clamped position
+        :rtype: QPointF
+        """
+
         viewport = self.viewportProvider(globalPoint)
 
         if viewport is None:
@@ -88,6 +118,18 @@ class SceneEditorController(QObject):
         globalPoint: QPointF,
         decorationName: str
     ) -> QPointF:
+        """
+        clamp a position to specific rectangular bounds.
+        
+        :param bounds: The bounding rectangle
+        :param globalPoint: The position to clamp
+        :type globalPoint: QPointF
+        :param decorationName: The decoration name to get size for
+        :type decorationName: str
+        :return: The clamped position
+        :rtype: QPointF
+        """
+
         try:
             width, height = self.decorationSizeProvider(decorationName)
         except Exception:
@@ -109,9 +151,19 @@ class SceneEditorController(QObject):
     def beginDrag(
         self,
         entityId: str,
-        grabWidget = None,
-        mouseGlobal: QPointF = None
+        grabWidget: object | None = None,
+        mouseGlobal: Optional[QPointF] = None
     ):
+        """
+        start dragging a decoration entity.
+        
+        :param entityId: The ID of the entity to drag
+        :type entityId: str
+        :param grabWidget: The widget that grabbed the mouse
+        :param mouseGlobal: The global mouse position (auto-detected if None)
+        :type mouseGlobal: QPointF
+        """
+
         if not self.canEdit:
             return
         
@@ -132,10 +184,26 @@ class SceneEditorController(QObject):
         )
     
     def attemptRemove(self, entityId: str):
+        """
+        attempt to remove a decoration entity from the scene.
+        
+        :param entityId: The ID of the entity to remove
+        :type entityId: str
+        """
+
         self.model.removeEntity(entityId)
 
     # viewport hooks
     def handleViewMousePress(self, viewport, event) -> bool:
+        """
+        handle mouse press in viewport for placement or dragging.
+        
+        :param viewport: The viewport window
+        :param event: The mouse press event
+        :return: True if event was handled, False otherwise
+        :rtype: bool
+        """
+
         if self.placementName is None:
             return False
         
@@ -188,6 +256,15 @@ class SceneEditorController(QObject):
         return True
     
     def handleViewMouseMove(self, viewport, event) -> bool:
+        """
+        handle mouse movement for ghost preview or entity dragging.
+        
+        :param viewport: The viewport window
+        :param event: The mouse move event
+        :return: True if event was handled, False otherwise
+        :rtype: bool
+        """
+
         # placement ghost (no click needed)
         if (self.dragObject is None) and (self.placementName is not None):
             try:
@@ -240,6 +317,15 @@ class SceneEditorController(QObject):
         return True
 
     def handleViewMouseRelease(self, viewport, event) -> bool:
+        """
+        handle mouse release to end entity dragging.
+        
+        :param viewport: The viewport window
+        :param event: The mouse release event
+        :return: True if event was handled, False otherwise
+        :rtype: bool
+        """
+
         if self.dragObject is None:
             return False
 
@@ -250,6 +336,13 @@ class SceneEditorController(QObject):
 
     # public methods
     def setEditing(self, editing: bool):
+        """
+        enable or disable edit mode.
+        
+        :param editing: True to enable editing, False to disable
+        :type editing: bool
+        """
+
         self.canEdit = editing
 
         if not editing:
@@ -258,7 +351,18 @@ class SceneEditorController(QObject):
             self.emptyPlacement()
     
     def beginPlacement(self, name: str):
+        """
+        start placement mode for a decoration type.
+        
+        :param name: The name of the decoration to place
+        :type name: str
+        """
+
         self.placementName = name
     
     def emptyPlacement(self):
+        """
+        clear the current placement type.
+        """
+
         self.placementName = None

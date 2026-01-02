@@ -41,6 +41,12 @@ def clamp(value: float, minVal: float = 0.0, maxVal: float = 1.0) -> float:
     return max(minVal, min(maxVal, float(value)))
 
 class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
+    """
+    sprite settings window with controls for nickname, appearance, and refresh rates.
+    
+    Provides sliders and inputs for configuring sprite display and timing parameters with debounced config persistence.
+    """
+
     def __init__(
         self,
         sprite: QWidget,
@@ -48,6 +54,18 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         config: ConfigController,
         occludersProvider: Optional[Callable[[], Iterable[QWidget]]] = (lambda: []),
     ):
+        """
+        initialise the sprite settings window component.
+        
+        :param sprite: the sprite widget to anchor to
+        :type sprite: QWidget
+        :param clock: the timing clock instance
+        :param config: the configuration controller
+        :type config: ConfigController
+        :param occludersProvider: callable returning occluders to avoid
+        :type occludersProvider: Optional[Callable[[], Iterable[QWidget]]]
+        """
+
         super().__init__(sprite, clock)
 
         self.config = config
@@ -73,6 +91,10 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._saveTimer.timeout.connect(self._saveConfigNow)
 
     def build(self) -> None:
+        """
+        construct the settings ui with input controls and sliders.
+        """
+
         self.setObjectName("spriteWindow")
         self.setFixedWidth(320)
 
@@ -185,6 +207,14 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._syncFromConfig()
 
     def _applyKeyValue(self, key: str, value) -> None:
+        """
+        apply a setting change and trigger config save.
+        
+        :param key: the configuration key to update
+        :type key: str
+        :param value: the new value to set
+        """
+
         if key == "userNick":
             self.config.setValue("sprite.userNick", value)
         elif key == "hat":
@@ -201,17 +231,29 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._scheduleSave()
 
     def _scheduleSave(self) -> None:
+        """
+        schedule a debounced config save operation.
+        """
+
         # restart debounce timer
         self._saveTimer.stop()
         self._saveTimer.start()
 
     def _saveConfigNow(self) -> None:
+        """
+        immediately save configuration to disk.
+        """
+
         try:
             self.config.saveConfig()
         except Exception:
             pass
 
     def _syncFromConfig(self) -> None:
+        """
+        synchronise ui controls with current configuration values.
+        """
+
         # user nickname
         try:
             userNick = str(self.config.getValue("sprite.userNick"))
@@ -267,6 +309,10 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._secondaryLoopSpinBox.blockSignals(False)
 
     def _reposition(self):
+        """
+        reposition the window anchored to the sprite with appropriate margins.
+        """
+
         target = self.anchorNextToSprite(
             yAlign="bottom",
             preferredSide="right",
@@ -277,6 +323,15 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self.animateTo(target)
 
     def eventFilter(self, watched, event) -> bool:
+        """
+        filter events to close window on clicks outside the window or sprite.
+        
+        :param watched: the watched object
+        :param event: the event to filter
+        :return: whether the event was handled
+        :rtype: bool
+        """
+
         if (not self.isVisible()) or (not self.sprite):
             return False
 
@@ -307,11 +362,21 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         return False
 
     def open(self) -> None:
+        """
+        open the settings window and sync controls from config.
+        """
+
         super().open()
         self._syncFromConfig()
         QApplication.instance().installEventFilter(self)
 
     def hideEvent(self, event) -> None:
+        """
+        handle hide event by removing event filter.
+        
+        :param event: the hide event
+        """
+
         try:
             QApplication.instance().removeEventFilter(self)
         finally:

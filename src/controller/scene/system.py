@@ -1,3 +1,4 @@
+from ..system.timings import TimingClock
 from ..asset import AssetController
 
 from .persistence import ScenePersistence
@@ -9,14 +10,25 @@ from .model import SceneModel
 from PySide6.QtGui import QGuiApplication, QPixmap, QCursor
 from PySide6.QtCore import QPoint, QPointF, QTimer
 
-from typing import Dict
+from typing import Dict, Optional
 
 class SceneSystem:
+    """
+    manages decoration scene system including viewports, assets, and persistence
+    """
+
     def __init__(
         self,
         sprite,
-        clock=None
+        clock: Optional[TimingClock] = None
     ):
+        """
+        initialise the scene system with sprite and timing references.
+        
+        :param sprite: The sprite widget
+        :param clock: Optional timing clock
+        """
+
         self.sprite = sprite
         self.config = self.sprite.config
         self.clock = clock
@@ -67,6 +79,10 @@ class SceneSystem:
         self._ghostTimer.timeout.connect(self._tickGhost)
     
     def shutdown(self):
+        """
+        shut down the scene system and close all viewports.
+        """
+
         for viewport in self.viewports:
             try:
                 viewport.close()
@@ -75,9 +91,25 @@ class SceneSystem:
 
     # assets methods
     def listDecorations(self) -> list[str]:
+        """
+        list all available decoration names sorted alphabetically.
+        
+        :return: List of decoration names
+        :rtype: list[str]
+        """
+
         return sorted([p.stem for p in self.assets.listDirectory("")])
 
     def getDecorationPixmap(self, name: str) -> QPixmap:
+        """
+        get the pixmap for a decoration, with caching.
+        
+        :param name: The name of the decoration
+        :type name: str
+        :return: The decoration pixmap
+        :rtype: QPixmap
+        """
+
         if name in self.assetsCache:
             return self.assetsCache[name]
         
@@ -88,6 +120,15 @@ class SceneSystem:
         return pixmap
 
     def getDecorationSize(self, name: str) -> tuple[int, int]:
+        """
+        get the pixel dimensions of a decoration.
+        
+        :param name: The name of the decoration
+        :type name: str
+        :return: Tuple of (width, height) in pixels
+        :rtype: tuple[int, int]
+        """
+
         pixmap = self.getDecorationPixmap(name)
 
         if (pixmap is None) or pixmap.isNull():
@@ -97,6 +138,14 @@ class SceneSystem:
 
     # viewport methods
     def getViewportAtPoint(self, globalPoint: QPointF):
+        """
+        get the viewport window containing a global point.
+        
+        :param globalPoint: The point in global coordinates
+        :type globalPoint: QPointF
+        :return: The viewport at that point or None
+        """
+
         try:
             pointX = float(globalPoint.x())
             pointY = float(globalPoint.y())
@@ -134,6 +183,13 @@ class SceneSystem:
         return self.viewports[0] if self.viewports else None
     
     def getSpriteViewport(self) -> SceneViewportWindow:
+        """
+        get the viewport window where the sprite is currently located.
+        
+        :return: The sprite's viewport or first viewport
+        :rtype: SceneViewportWindow
+        """
+
         try:
             centre = self.sprite.mapToGlobal(
                 QPoint(
@@ -153,6 +209,13 @@ class SceneSystem:
 
     # ui-specific methods
     def setEditMode(self, enabled: bool) -> None:
+        """
+        enable or disable edit mode across all viewports.
+        
+        :param enabled: True to enable editing, False to disable
+        :type enabled: bool
+        """
+
         self.editor.setEditing(enabled)
 
         for viewport in self.viewports:
@@ -162,6 +225,13 @@ class SceneSystem:
         self,
         decorationName: str
     ) -> None:
+        """
+        start placement mode for a decoration across all viewports.
+        
+        :param decorationName: The name of the decoration to place
+        :type decorationName: str
+        """
+
         # placement implies edit-capable interaction.
         if not self.editor.canEdit:
             self.setEditMode(True)
@@ -184,6 +254,10 @@ class SceneSystem:
             pass
 
     def endPlacement(self) -> None:
+        """
+        end placement mode and clear placement state across all viewports.
+        """
+
         self.editor.emptyPlacement()
 
         try:
@@ -196,6 +270,10 @@ class SceneSystem:
             viewport.clearGhost()
 
     def _tickGhost(self) -> None:
+        """
+        update ghost preview position based on current cursor location.
+        """
+
         name = getattr(self.editor, "placementName", None)
 
         if not name:
