@@ -130,11 +130,6 @@ class SceneEditorController(QObject):
             globalOffset=offset,
             grabWidget=grabWidget
         )
-
-        try:
-            grabWidget.grabMouse()
-        except Exception:
-            pass
     
     def attemptRemove(self, entityId: str):
         self.model.removeEntity(entityId)
@@ -248,12 +243,6 @@ class SceneEditorController(QObject):
         if self.dragObject is None:
             return False
 
-        try:
-            if self.dragObject.grabWidget is not None:
-                self.dragObject.grabWidget.releaseMouse()
-        except Exception:
-            pass
-
         self.dragObject = None
         event.accept()
 
@@ -264,13 +253,7 @@ class SceneEditorController(QObject):
         self.canEdit = editing
 
         if not editing:
-            # safety: ensure we don't keep grabbing input
-            try:
-                if self.dragObject and self.dragObject.grabWidget is not None:
-                    self.dragObject.grabWidget.releaseMouse()
-            except Exception:
-                pass
-
+            # safety: ensure we don't keep dragging if edit mode was disabled
             self.dragObject = None
             self.emptyPlacement()
     

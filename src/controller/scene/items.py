@@ -1,9 +1,11 @@
 from .editor import SceneEditorController
 
-from PySide6.QtWidgets import QGraphicsItem, QGraphicsPixmapItem
+from PySide6.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsRectItem
 from PySide6.QtGui import QColor, QPainter, QPen, QPixmap
 from PySide6.QtCore import QPointF, QRectF, Qt
 
+PLACEMENT_INDICATOR_RADIUS = 12
+Z_REMOVE_BUTTON = 999999
 BUTTON_RADIUS = 8
 
 class RemoveDecorationButton(QGraphicsItem):
@@ -21,7 +23,7 @@ class RemoveDecorationButton(QGraphicsItem):
         self.onClick = onClick
         self.isHovering = False
 
-        self.setZValue(999999)
+        self.setZValue(Z_REMOVE_BUTTON)
         self.setAcceptedMouseButtons(Qt.LeftButton)
         self.setAcceptHoverEvents(True)
         self.setCursor(Qt.PointingHandCursor)
@@ -80,6 +82,66 @@ class RemoveDecorationButton(QGraphicsItem):
 
         super().mousePressEvent(event)
 
+class PlacementIndicator(QGraphicsItem):
+    def __init__(
+        self,
+        radius: int = PLACEMENT_INDICATOR_RADIUS,
+        padding: int = 4
+    ):
+        super().__init__()
+        self.radius = float(radius)
+        self.padding = float(padding)
+        self.isHovering = False
+        self.previewPixmap: QPixmap | None = None
+
+        self.setZValue(999999)
+        self.setAcceptedMouseButtons(Qt.NoButton)
+        self.setAcceptHoverEvents(True)
+
+    def setPreviewPixmap(self, pixmap: QPixmap | None):
+        self.previewPixmap = pixmap
+        self.update()
+
+    def boundingRect(self) -> QRectF:
+        radius = self.radius + self.padding
+        return QRectF(-radius, -radius, 2 * radius, 2 * radius)
+
+    def paint(self, painter: QPainter, option, widget=None):
+        painter.setRenderHint(QPainter.Antialiasing, True)
+
+        background = QColor(90, 200, 90, 235) if self.isHovering else QColor(70, 180, 70, 220)
+        border = QColor(40, 120, 40, 255)
+
+        painter.setPen(QPen(border, 1.0))
+        painter.setBrush(background)
+        painter.drawEllipse(
+            QRectF(
+                -self.radius,
+                -self.radius,
+                2 * self.radius,
+                2 * self.radius
+            )
+        )
+
+        pen = QPen(QColor(255, 255, 255, 255), 2.0)
+        pen.setCapStyle(Qt.RoundCap)
+        painter.setPen(pen)
+
+        lineDistance = self.radius * 0.4
+
+        painter.drawLine(QPointF(-lineDistance, 0), QPointF(lineDistance, 0))
+        painter.drawLine(QPointF(0, -lineDistance), QPointF(0, lineDistance))
+
+    def hoverEnterEvent(self, event):
+        self.isHovering = True
+        self.update()
+        super().hoverEnterEvent(event)
+
+    def hoverLeaveEvent(self, event):
+        self.isHovering = False
+        self.update()
+        super().hoverLeaveEvent(event)
+
 class DecorationGraphicsItem(QGraphicsPixmapItem):
     def __init__(
         self,
@@ -99,6 +161,20 @@ class DecorationGraphicsItem(QGraphicsPixmapItem):
         self.setShapeMode(QGraphicsPixmapItem.BoundingRectShape)
         self.setAcceptedMouseButtons(Qt.LeftButton)
 
+        # hack alert: CERTAIN platforms do per-pixel hit testing for translucent
+        # top level windows. this is not good for decorations that have a central
+        # transparent pixel where the cursor is.
+
+        # to avoid this, we add a nearly-invisible backdrop rectangle that covers
+        # the full size of the pixmap
+        self._hitProxy = QGraphicsRectItem(self)
+        self._hitProxy.setZValue(-999999)
+        self._hitProxy.setPen(QPen(Qt.NoPen))
+        self._hitProxy.setBrush(QColor(0, 0, 0, 1))
+        self._hitProxy.setRect(self.boundingRect())
+        self._hitProxy.setAcceptedMouseButtons(Qt.NoButton)
+        self._hitProxy.setVisible(False)
+
         self.removeHandle = RemoveDecorationButton(
             self,
             onClick=lambda: (
@@ -111,10 +187,19 @@ class DecorationGraphicsItem(QGraphicsPixmapItem):
 
     def setEditMode(self, visible: bool):
         self.removeHandle.setVisible(bool(visible))
+        try:
+            self._hitProxy.setVisible(bool(visible))
+        except Exception:
+            pass
 
     def setPixmap(self, pixmap: QPixmap):
         super().setPixmap(pixmap)
         self._repositionRemoveHandle()
+
+        try:
+            self._hitProxy.setRect(self.boundingRect())
+        except Exception:
+            pass
 
     def mousePressEvent(self, event):
         # clicking the remove handle is handled by the child item.

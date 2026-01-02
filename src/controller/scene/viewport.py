@@ -1,12 +1,19 @@
+from .items import DecorationGraphicsItem, PlacementIndicator
 from .model import DecorationEntity, SceneModel
 from .editor import SceneEditorController
-from .items import DecorationGraphicsItem
 
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QWidget, QGraphicsPixmapItem
-from PySide6.QtCore import QPointF, QRectF, Qt, QPoint
-from PySide6.QtGui import QPainter, QPixmap, QScreen
+from PySide6.QtGui import QPainter, QPixmap, QScreen, QCursor
+from PySide6.QtCore import QPointF, QRectF, Qt
 
 from typing import Dict
+
+# Z-values for layering
+Z_PLACEMENT_INDICATOR = 998999
+Z_GHOST = 999000
+
+# Graphics settings
+GHOST_OPACITY = 0.55
 
 class DecorationScene(QGraphicsScene):
     def __init__(self, parent=None):
@@ -35,25 +42,9 @@ class DecorationView(QGraphicsView):
         # :sob:
         self.setStyleSheet("background: transparent;")
 
-        # enable hover/move events without holding a button
-        self.setMouseTracking(True)
-
-        try:
-            self.viewport().setMouseTracking(True)
-        except Exception:
-            pass
-
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WA_NoSystemBackground, True)
         self.setFocusPolicy(Qt.NoFocus)
-
-        # needed so we can show the placement ghost while just moving the mouse
-        self.setMouseTracking(True)
-
-        try:
-            self.viewport().setMouseTracking(True)
-        except Exception:
-            pass
 
     # a bunch of safe-exiting event handlers that just pass to the editor
     # if not handled, pass through to super()
@@ -123,10 +114,16 @@ class SceneViewportWindow(QWidget):
 
         self.scene = DecorationScene(self)
 
+        # placement indicator circle with preview - shows where the widget will be placed
+        self.placementIndicator = PlacementIndicator()
+        self.placementIndicator.setZValue(Z_PLACEMENT_INDICATOR)
+        self.placementIndicator.setVisible(False)
+        self.scene.addItem(self.placementIndicator)
+
         self.ghost = QGraphicsPixmapItem()
-        self.ghost.setOpacity(0.55)
+        self.ghost.setOpacity(GHOST_OPACITY)
         self.ghost.setVisible(False)
-        self.ghost.setZValue(999000)
+        self.ghost.setZValue(Z_GHOST)
         self.ghost.setAcceptedMouseButtons(Qt.NoButton)
         self.scene.addItem(self.ghost)
 
@@ -144,12 +141,6 @@ class SceneViewportWindow(QWidget):
 
         self.updateSceneBounds()
         self.show()
-
-        try:
-            self.updateMouseInputAttributes()
-        except Exception:
-            pass
-
         self.updateMouseInputAttributes()
 
         self.model.entityAdded.connect(self._onEntityChanged)
@@ -313,10 +304,40 @@ class SceneViewportWindow(QWidget):
         self.ghost.setPos(relative)
         self.ghost.setVisible(True)
 
+        # show placement indicator at cursor position with preview of the widget
+        if self.placementActive:
+            try:
+                cursor = QCursor.pos()
+                cursorGlobal = QPointF(float(cursor.x()), float(cursor.y()))
+
+                origin = self._viewportOriginalGlobal()
+                indicatorRelative = QPointF(
+                    cursorGlobal.x() - origin.x(),
+                    cursorGlobal.y() - origin.y()
+                )
+
+                self.placementIndicator.setPos(indicatorRelative)
+                
+                # Update preview with the current ghost pixmap
+                pixmap = self.ghost.pixmap()
+                if not pixmap.isNull():
+                    self.placementIndicator.setPreviewPixmap(pixmap)
+                
+                self.placementIndicator.setVisible(True)
+
+            except Exception:
+                pass
+
     def clearGhost(self):
         try:
             self.ghost.setVisible(False)
             self.ghost.setPixmap(QPixmap())
+        except Exception:
+            pass
+
+        try:
+            self.placementIndicator.setVisible(False)
+            self.placementIndicator.setPreviewPixmap(None)
         except Exception:
             pass
 
@@ -393,11 +414,27 @@ class SceneViewportWindow(QWidget):
         self.placementActive = False
 
         try:
+            self.clearFocus()
+        except Exception:
+            pass
+
+        try:
             self.view.unsetCursor()
         except Exception:
             pass
 
+        try:
+            self.placementIndicator.setVisible(False)
+            self.placementIndicator.setPreviewPixmap(None)
+        except Exception:
+            pass
+
         self.updateMouseInputAttributes()
+
+        try:
+            self.lower()
+        except Exception:
+            pass
 
     def setEditMode(self, enabled: bool):
         self.inEditMode = enabled
