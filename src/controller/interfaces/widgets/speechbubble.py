@@ -12,7 +12,7 @@ from ..base.styling import (
 )
 
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget, QLineEdit, QHBoxLayout
-from PySide6.QtCore import Qt, QTimer, QPoint, Signal, QSize
+from PySide6.QtCore import Qt, QTimer, QPoint, Signal
 from PySide6.QtGui import QPainter, QPolygon
 
 from typing import Callable, Iterable, Optional
