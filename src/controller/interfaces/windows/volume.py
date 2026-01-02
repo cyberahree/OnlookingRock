@@ -2,12 +2,12 @@ from ..base.anchor import SpriteAnchorMixin
 from ..base import InterfaceComponent
 
 from ..base.lookskit import (
-    BodyLabel,
     CloseButton,
     Divider,
     SubheadingLabel,
     SurfaceFrame,
     applyRockStyle,
+    make_slider_row,
 )
 
 from ..base.styling import (
@@ -27,8 +27,6 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
-    QLabel,
-    QSlider,
     QVBoxLayout,
     QWidget,
 )
@@ -100,9 +98,18 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         rootLayout.addWidget(Divider())
 
         # sliders
-        self._rows: dict[str, tuple[QSlider, QLabel]] = {}
+        self._rows: dict[str, tuple] = {}
 
-        rootLayout.addWidget(self._makeSliderRow("Master", key="master", icon=None))
+        rootRow, rootSlider, rootLabel = make_slider_row(
+            "Master",
+            min_val=0,
+            max_val=100,
+            on_changed=lambda v: self._applyKeyVolume("master", v / 100.0),
+            show_percentage=True,
+        )
+
+        self._rows["master"] = (rootSlider, rootLabel)
+        rootLayout.addWidget(rootRow)
         rootLayout.addWidget(Divider())
 
         for cat in (
@@ -112,7 +119,16 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             SoundCategory.SPECIAL,
             SoundCategory.SPEECH,
         ):
-            rootLayout.addWidget(self._makeSliderRow(cat.name.title(), key=cat.name, icon=None))
+            catRow, catSlider, catLabel = make_slider_row(
+                cat.name.title(),
+                min_val=0,
+                max_val=100,
+                on_changed=lambda v, key=cat.name: self._applyKeyVolume(key, v / 100.0),
+                show_percentage=True,
+            )
+
+            self._rows[cat.name] = (catSlider, catLabel)
+            rootLayout.addWidget(catRow)
 
         # style
         onHoverBackground = QColor(BACKGROUND_COLOR).darker(106)
@@ -150,36 +166,6 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         )
 
         self._syncFromConfig()
-
-    def _makeSliderRow(self, label: str, *, key: str, icon=None) -> QWidget:
-        row = QWidget()
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(PADDING // 2)
-
-        nameLabel = BodyLabel(label, selectable=False)
-        nameLabel.setFixedWidth(74)
-        layout.addWidget(nameLabel, 0)
-
-        slider = QSlider(Qt.Horizontal)
-        slider.setRange(0, 100)
-        slider.setSingleStep(1)
-        slider.setPageStep(5)
-        slider.setTracking(True)
-        layout.addWidget(slider, 1)
-
-        valueLabel = BodyLabel("0%")
-        valueLabel.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        valueLabel.setFixedWidth(42)
-        layout.addWidget(valueLabel, 0)
-
-        self._rows[key] = (slider, valueLabel)
-
-        def onChanged(v: int) -> None:
-            self._applyKeyVolume(key, v / 100.0)
-
-        slider.valueChanged.connect(onChanged)
-        return row
 
     def _applyKeyVolume(self, key: str, value01: float) -> None:
         value01 = clamp(value01)
@@ -248,14 +234,15 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             )
 
             slider, label = self._rows.get(cat.name, (None, None))
+
             if slider is not None:
                 slider.blockSignals(True)
                 slider.setValue(int(round(volume * 100)))
                 slider.blockSignals(False)
-
+            
             if label is not None:
                 label.setText(f"{int(round(volume * 100))}%")
-
+                
     def _reposition(self):
         target = self.anchorNextToSprite(
             yAlign="bottom",

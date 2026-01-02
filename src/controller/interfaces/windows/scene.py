@@ -10,6 +10,7 @@ from ..base.lookskit import (
     SubheadingLabel,
     SurfaceFrame,
     applyRockStyle,
+    make_spinbox_row,
 )
 
 from ..base.styling import (
@@ -34,7 +35,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QListWidget,
     QListWidgetItem,
-    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -104,21 +104,14 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         rootLayout.addWidget(Divider())
 
         # startup spawn count
-        spawnRow = QWidget()
-        spawnLayout = QHBoxLayout(spawnRow)
-        spawnLayout.setContentsMargins(0, 0, 0, 0)
-        spawnLayout.setSpacing(PADDING // 2)
-
-        spawnLabel = BodyLabel("Startup spawn")
-        spawnLabel.setFixedWidth(120)
-        spawnLayout.addWidget(spawnLabel, 0)
-
-        self.spawnSpin = QSpinBox()
-        self.spawnSpin.setMinimum(0)
-        self.spawnSpin.setMaximum(50)
-        self.spawnSpin.setSingleStep(1)
-        self.spawnSpin.setSuffix(" decorations")
-        spawnLayout.addWidget(self.spawnSpin, 1)
+        spawnRow, self.spawnSpin = make_spinbox_row(
+            "Startup spawn",
+            min_val=0,
+            max_val=50,
+            step=1,
+            suffix=" decorations",
+            on_changed=self._onSpawnChanged,
+        )
         rootLayout.addWidget(spawnRow)
         rootLayout.addWidget(Divider())
 
@@ -182,9 +175,6 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             }}
             """,
         )
-
-        # wires
-        self.spawnSpin.valueChanged.connect(self._onSpawnChanged)
 
         self._populateDecorList()
         self._syncFromConfig()

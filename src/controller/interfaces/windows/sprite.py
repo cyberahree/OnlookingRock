@@ -5,10 +5,13 @@ from ..base.lookskit import (
     BodyLabel,
     CloseButton,
     Divider,
-    RockDropdown,
     SubheadingLabel,
     SurfaceFrame,
     applyRockStyle,
+    make_text_input_row,
+    make_dropdown_row,
+    make_scale_slider_row,
+    make_spinbox_row,
 )
 
 from ..base.styling import (
@@ -28,11 +31,8 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
-    QSlider,
-    QSpinBox,
     QVBoxLayout,
-    QWidget,
-    QLineEdit,
+    QWidget
 )
 
 from typing import Callable, Iterable, Optional
@@ -99,29 +99,52 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         rootLayout.addWidget(Divider())
 
         # User Nickname
-        nickRow, self._nickEdit = self._makeTextRow("User Nickname", key="userNick")
+        nickRow, self._nickEdit = make_text_input_row(
+            "User Nickname",
+            on_changed=lambda text: self._applyKeyValue("userNick", text),
+        )
         rootLayout.addWidget(nickRow)
         rootLayout.addWidget(Divider())
 
         # Hat selection
-        hatRow, self.hatDropdown = self._makeDropdownRow(
+        hatRow, self.hatDropdown = make_dropdown_row(
             "Hat",
-            key="hat",
-            items=self.sprite.allHats
+            items=self.sprite.allHats,
+            on_changed=lambda text: self._applyKeyValue("hat", text),
         )
         rootLayout.addWidget(hatRow)
         rootLayout.addWidget(Divider())
 
         # Scale slider
-        scaleRow, self._scaleSlider, self._scaleLabel = self._makeScaleSliderRow("Scale", key="scale")
+        scaleRow, self._scaleSlider, self._scaleLabel = make_scale_slider_row(
+            "Scale",
+            min_scale=0.25,
+            max_scale=2.0,
+            on_changed=None,
+            on_released=lambda scale: self._applyKeyValue("scale", scale),
+        )
         rootLayout.addWidget(scaleRow)
         rootLayout.addWidget(Divider())
 
         # Refresh Rates
         rootLayout.addWidget(BodyLabel("Refresh Rates", selectable=False))
-        primaryRow, self._primaryLoopSpinBox = self._makeRefreshRateSpinBox("Primary Loop", key="primaryLoop")
+        primaryRow, self._primaryLoopSpinBox = make_spinbox_row(
+            "Primary Loop",
+            min_val=1,
+            max_val=240,
+            step=1,
+            suffix=" Hz",
+            on_changed=lambda v: self._applyKeyValue("primaryLoop", v),
+        )
         rootLayout.addWidget(primaryRow)
-        secondaryRow, self._secondaryLoopSpinBox = self._makeRefreshRateSpinBox("Secondary Loop", key="secondaryLoop")
+        secondaryRow, self._secondaryLoopSpinBox = make_spinbox_row(
+            "Secondary Loop",
+            min_val=1,
+            max_val=240,
+            step=1,
+            suffix=" Hz",
+            on_changed=lambda v: self._applyKeyValue("secondaryLoop", v),
+        )
         rootLayout.addWidget(secondaryRow)
 
         # style
@@ -160,101 +183,6 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         )
 
         self._syncFromConfig()
-
-    def _makeTextRow(self, label: str, *, key: str) -> tuple:
-        row = QWidget()
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(PADDING // 2)
-
-        nameLabel = BodyLabel(label, selectable=False)
-        nameLabel.setFixedWidth(120)
-        layout.addWidget(nameLabel, 0)
-
-        textEdit = QLineEdit()
-        textEdit.setMaxLength(32)
-        layout.addWidget(textEdit, 1)
-
-        def onChanged(text: str) -> None:
-            self._applyKeyValue(key, text)
-
-        textEdit.textChanged.connect(onChanged)
-        return row, textEdit
-
-    def _makeDropdownRow(self, label: str, *, key: str, items: list) -> tuple:
-        row = QWidget()
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(PADDING // 2)
-
-        nameLabel = BodyLabel(label, selectable=False)
-        nameLabel.setFixedWidth(120)
-        layout.addWidget(nameLabel, 0)
-
-        dropdown = RockDropdown(items=items)
-        layout.addWidget(dropdown, 1)
-
-        def onChanged(text: str) -> None:
-            self._applyKeyValue(key, text)
-
-        dropdown.currentTextChanged.connect(onChanged)
-        return row, dropdown
-
-    def _makeScaleSliderRow(self, label: str, *, key: str) -> tuple:
-        row = QWidget()
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(PADDING // 2)
-
-        nameLabel = BodyLabel(label, selectable=False)
-        nameLabel.setFixedWidth(74)
-        layout.addWidget(nameLabel, 0)
-
-        slider = QSlider(Qt.Horizontal)
-        slider.setRange(25, 200)  # 0.25 to 2.0
-        slider.setSingleStep(5)
-        slider.setPageStep(10)
-        slider.setTracking(True)
-        layout.addWidget(slider, 1)
-
-        valueLabel = BodyLabel("1.0x")
-        valueLabel.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        valueLabel.setFixedWidth(42)
-        layout.addWidget(valueLabel, 0)
-
-        def onChanged(v: int) -> None:
-            valueLabel.setText(f"{v / 100.0:.2f}x")
-
-        def onReleased() -> None:
-            scale = slider.value() / 100.0
-            self._applyKeyValue(key, scale)
-
-        slider.valueChanged.connect(onChanged)
-        slider.sliderReleased.connect(onReleased)
-        return row, slider, valueLabel
-
-    def _makeRefreshRateSpinBox(self, label: str, *, key: str) -> tuple:
-        row = QWidget()
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(PADDING // 2)
-
-        nameLabel = BodyLabel(label, selectable=False)
-        nameLabel.setFixedWidth(120)
-        layout.addWidget(nameLabel, 0)
-
-        spinBox = QSpinBox()
-        spinBox.setMinimum(1)
-        spinBox.setMaximum(240)
-        spinBox.setSingleStep(1)
-        spinBox.setSuffix(" Hz")
-        layout.addWidget(spinBox, 1)
-
-        def onChanged(v: int) -> None:
-            self._applyKeyValue(key, v)
-
-        spinBox.valueChanged.connect(onChanged)
-        return row, spinBox
 
     def _applyKeyValue(self, key: str, value) -> None:
         if key == "userNick":

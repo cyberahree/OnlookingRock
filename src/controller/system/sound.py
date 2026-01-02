@@ -10,6 +10,9 @@ from dataclasses import dataclass
 from enum import Enum
 
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Number of speech blip sound variations to generate
 SPEECH_BLIP_COUNT = 6
@@ -45,30 +48,31 @@ class SoundManager(QObject):
         super().__init__(parent)
 
         self.soundAssets = AssetController("sounds")
+        self.config = parent.config
 
         self.masterMuted = False
-        self.masterVolume = parent.config.getValue("sound.masterVolume") or 0.5
+        self.masterVolume = self.config.getValue("sound.masterVolume") or 0.5
 
         self.soundCategories = {
             SoundCategory.EVENT: CategoryConfig(
-                volume=parent.config.getValue("sound.categoryVolumes.EVENT") or 0.5,
+                volume=self.config.getValue("sound.categoryVolumes.EVENT") or 0.5,
                 maxPolyphony=9
             ),
 
             SoundCategory.FEEDBACK: CategoryConfig(
-                volume=parent.config.getValue("sound.categoryVolumes.FEEDBACK") or 0.5
+                volume=self.config.getValue("sound.categoryVolumes.FEEDBACK") or 0.5
             ),
 
             SoundCategory.AMBIENT: CategoryConfig(
-                volume=parent.config.getValue("sound.categoryVolumes.AMBIENT") or 0.3
+                volume=self.config.getValue("sound.categoryVolumes.AMBIENT") or 0.3
             ),
 
             SoundCategory.SPECIAL: CategoryConfig(
-                volume=parent.config.getValue("sound.categoryVolumes.SPECIAL") or 0.5,
+                volume=self.config.getValue("sound.categoryVolumes.SPECIAL") or 0.5,
             ),
 
             SoundCategory.SPEECH: CategoryConfig(
-                volume=parent.config.getValue("sound.categoryVolumes.SPEECH") or 0.6,
+                volume=self.config.getValue("sound.categoryVolumes.SPEECH") or 0.6,
                 maxPolyphony=SPEECH_BLIP_COUNT
             )
         }

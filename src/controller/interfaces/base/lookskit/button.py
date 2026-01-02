@@ -8,12 +8,6 @@ from PySide6.QtGui import QIcon
 from typing import Callable, Optional
 from dataclasses import dataclass
 
-@dataclass
-class ButtonSpec:
-    text: str
-    variant: str = "default"
-    onClick: Optional[Callable[[], None]] = None
-
 class RockButton(QPushButton, _RockWidgetMixin):
     def __init__(
         self,

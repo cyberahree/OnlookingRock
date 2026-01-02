@@ -12,13 +12,19 @@ from .interfaces.windows.sprite import SpriteWindowComponent
 from .interfaces.windows.scene import SceneWindowComponent
 from .interfaces.base import InterfaceManager
 
-from .sprite import SpriteSystem, limitScale, IDLE_COMBINATION, DRAG_COMBINATION
 from .sprite.petting import CircularPettingController
 from .sprite.speech import SpeechBubbleController
 from .sprite.eyetrack import LaserMouseController
 from .sprite.blinking import BlinkingController
 from .sprite.cosmetic import HatOverlayWindow
 from .sprite.dragger import SpriteDragger
+
+from .sprite import (
+    SpriteSystem,
+    limitScale,
+    IDLE_COMBINATION,
+    DRAG_COMBINATION
+)
 
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
 from PySide6.QtCore import Qt, QTimer

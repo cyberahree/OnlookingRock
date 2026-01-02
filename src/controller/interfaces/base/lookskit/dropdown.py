@@ -13,7 +13,6 @@ class DropdownSpec:
     variant: str = "default"
     onValueChanged: Optional[Callable[[str], None]] = None
 
-
 class RockDropdown(QComboBox, _RockWidgetMixin):
     def __init__(
         self,
