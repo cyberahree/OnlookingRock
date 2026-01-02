@@ -22,7 +22,7 @@ class AssetController:
     def getAsset(self, relativePath: str) -> Path:
         return ROOT_ASSET_DIRECTORY / self.folder / relativePath
     
-    def getRandom(self, relativePath: str, suffixes: anySuffixes = None, removeSuffix: bool = True) -> Path | None:
+    def getRandom(self, relativePath: str = "", suffixes: anySuffixes = None, removeSuffix: bool = True) -> Path | None:
         items = self.listDirectory(relativePath, suffixes)
         
         if not items:
@@ -30,10 +30,10 @@ class AssetController:
 
         return random.choice(items).stem
 
-    def listDirectory(self, relativePath: str, suffixes: anySuffixes = None) -> list[Path]:
+    def listDirectory(self, relativePath: str = "", suffixes: anySuffixes = None) -> list[Path]:
         return list(self.iterateDirectory(relativePath, suffixes))
 
-    def iterateDirectory(self, relativePath: str, suffixes: anySuffixes = None):
+    def iterateDirectory(self, relativePath: str = "", suffixes: anySuffixes = None):
         directory = self.getAsset(relativePath)
         
         if suffixes is None:

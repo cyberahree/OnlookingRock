@@ -29,6 +29,9 @@ BORDER_MARGIN = 16
 BORDER_RADIUS = 4
 PADDING = 8
 
+# MISC
+CLOSE_STR = "✕"
+
 # UTILITY FUNCTIONS
 def asRGB(color: QColor) -> str:
     return f"rgba({color.red()}, {color.green()}, {color.blue()}, {color.alpha()})"

@@ -1,4 +1,4 @@
-from ..asset import AssetController
+from .src.controller.asset import AssetController
 
 from PySide6.QtCore import QPointF, QRectF, Qt
 

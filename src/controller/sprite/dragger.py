@@ -42,7 +42,7 @@ class SpriteDragger:
             return
 
         # determine which screen the sprite is on
-        screen = QGuiApplication.screenAt(self.sprite.pos())
+        screen = QGuiApplication.screenAt(self.sprite.geometry().center())
         
         if screen is None:
             screen = QGuiApplication.primaryScreen()

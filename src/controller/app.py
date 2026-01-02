@@ -349,9 +349,9 @@ class RockinWindow(QWidget):
         )
 
     def shutdown(self):
-        self.config.saveConfig()
         self.soundManager.shutdown()
 
+        self.config.saveConfig()
         APPLICATION.quit()
 
     # sprite methods

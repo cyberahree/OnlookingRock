@@ -1,4 +1,4 @@
-from ..styling import DEFAULT_FONT
+from ..styling import DEFAULT_FONT, CLOSE_STR
 from .primitives import _RockWidgetMixin
 
 from PySide6.QtWidgets import QPushButton, QWidget
@@ -67,5 +67,5 @@ class CloseButton(RockButton):
         parent: Optional[QWidget] = None,
         onClick: Optional[Callable[[], None]] = None,
     ):
-        super().__init__("✕", parent, variant="ghost", onClick=onClick)
+        super().__init__(CLOSE_STR, parent, variant="ghost", onClick=onClick)
         self.setFixedSize(28, 28)
