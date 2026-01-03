@@ -12,7 +12,8 @@ class SpriteDragger:
         self,
         sprite,
         onDragStart: Optional[Callable[[], None]] = None,
-        onDragEnd: Optional[Callable[[], None]] = None
+        onDragEnd: Optional[Callable[[], None]] = None,
+        canDrag: Optional[Callable[[], bool]] = None
     ):
         """
         initialise the sprite dragger with optional callbacks.
@@ -27,6 +28,7 @@ class SpriteDragger:
         self.sprite = sprite
         self.onDragStart = onDragStart
         self.onDragEnd = onDragEnd
+        self.canDrag = canDrag or (lambda: True)
 
         self.isDragging = False
         self.dragDelta = None
@@ -39,6 +41,9 @@ class SpriteDragger:
         """
 
         if event.button() != Qt.LeftButton:
+            return
+
+        if not self.canDrag():
             return
 
         self.dragDelta = event.globalPosition().toPoint() - self.sprite.pos()

@@ -29,7 +29,7 @@ TIME_TEMPLATE = [
     "greetings from {}",
     "reporting live from {}",
     "currently experiencing {}",
-    "i crawled out of my pebble cave for {}"
+    "i crawled out of my pebble cave at {}"
 ]
 
 USER_FEELING_TEMPLATE = [

@@ -34,6 +34,8 @@ from .sprite import (
     DRAG_COMBINATION
 )
 
+from .events import EventManager, InteractabilityFlags
+
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
 from PySide6.QtCore import Qt, QTimer
 
@@ -73,6 +75,8 @@ class RockinWindow(QWidget):
         self.currentFace = None
         self.currentEyes = None
         self.currentHat = None
+
+        self.eventInteractability = InteractabilityFlags()
 
         #############################################
         # 3) clocks (other systems depend on these) #
@@ -141,21 +145,23 @@ class RockinWindow(QWidget):
         self.dragger = SpriteDragger(
             self,
             onDragStart=self.onDragStart,
-            onDragEnd=self.onDragEnd
+            onDragEnd=self.onDragEnd,
+            canDrag=lambda: self.spriteReady and self.eventInteractability.isEnabled("drag")
         )
 
         self.blinkController = BlinkingController(
             QTimer(self),
             self.triggerBlink,
             self.updateSpriteLoop,
-            lambda: not self.spritePetting
+            lambda: not self.spritePetting and self.eventInteractability.isEnabled("blink")
         )
 
         self.pettingController = CircularPettingController(
             self,
             canPet=lambda: (
                 (not self.blinkController.isBlinking) and
-                (not self.dragger.isDragging)
+                (not self.dragger.isDragging) and
+                self.eventInteractability.isEnabled("petting")
             )
         )
 
@@ -163,7 +169,8 @@ class RockinWindow(QWidget):
             self,
             canTrack=lambda: (
                 (not self.blinkController.isBlinking) and
-                (not self.dragger.isDragging)
+                (not self.dragger.isDragging) and
+                self.eventInteractability.isEnabled("eyetrack")
             )
         )
 
@@ -195,6 +202,7 @@ class RockinWindow(QWidget):
         self.startMenu = StartMenuComponent(
             self,
             [
+                MenuAction("triggerEvent", "start event", lambda: self.eventManager.triggerRandomEvent(), "event"),
                 MenuAction("scene", "scene", lambda: self.interfaceManager.open("sceneEditor"), "scene"),
                 MenuAction("settings", "sprite", lambda: self.interfaceManager.open("spriteEditor"), "settings"),
                 MenuAction("editVolume", "volume", lambda: self.interfaceManager.open("volumeEditor"), "sound"),
@@ -242,6 +250,23 @@ class RockinWindow(QWidget):
             "speechBubbles",
             self.speechBubble.bubble,
             True
+        )
+
+        #####################
+        # 8) events manager #
+        #####################
+        self.eventManager = EventManager(
+            sprite=self,
+            config=self.config,
+            flags=self.eventInteractability,
+            soundManager=self.soundManager,
+            sceneSystem=self.sceneSystem,
+            speechBubble=self.speechBubble,
+            canRun=lambda: (
+                self.spriteReady
+                and (not self.dragger.isDragging)
+                and (not self.interfaceManager.isAnyOpen())
+            ),
         )
 
         ###################################
@@ -393,6 +418,10 @@ class RockinWindow(QWidget):
 
         self.updateSpriteLoop()
 
+    def _onStartupComplete(self):
+        self.spriteReady = True
+        self.eventManager.start()
+
     # app methods
     def startWindowLoop(self):
         """
@@ -415,7 +444,7 @@ class RockinWindow(QWidget):
         self.soundManager.playSound(
             "applicationStart.wav",
             SoundCategory.SPECIAL,
-            onFinish=lambda: setattr(self, "spriteReady", True)
+            onFinish=self._onStartupComplete
         )
 
         userNick = self.config.getValue("sprite.userNick")
@@ -455,6 +484,8 @@ class RockinWindow(QWidget):
 
         if not self.spriteReady:
             return
+
+        self.eventManager.stop()
 
         self.spriteReady = False
         self.updateSpriteFeatures("empty", "shuttingdown", True)
@@ -559,6 +590,12 @@ class RockinWindow(QWidget):
         """
 
         if not self.spriteReady:
+            return
+        
+        # when autopilot is disabled, events are expected to drive face/eyes directly.
+        if not self.eventInteractability.isEnabled("autopilot"):
+            self.spritePetting = False
+            self.previouslyPetting = False
             return
         
         # 1) if the sprite is being pet, set the features of

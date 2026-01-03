@@ -31,7 +31,7 @@ from PySide6.QtWidgets import (
 from typing import Callable, Iterable, Optional, Sequence
 from dataclasses import dataclass
 
-SIZE_CONSTRAINTS = (128, 512)
+SIZE_CONSTRAINTS = (196, 512)
 
 @dataclass
 class MenuAction:
@@ -95,7 +95,7 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
 
         self.setObjectName("startMenu")
 
-        self.setFixedWidth(SIZE_CONSTRAINTS[0])
+        self.setMaximumWidth(SIZE_CONSTRAINTS[0])
         self.setMaximumHeight(SIZE_CONSTRAINTS[1])
 
         self.rootFrame = SurfaceFrame(self, padding=PADDING)
@@ -181,6 +181,43 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
             topLeft,
             self.sprite.size(),
         )
+
+    def _recomputeWidth(self) -> None:
+        """
+        recalculate menu width based on content size.
+        """
+
+        if not hasattr(self, "listWidget"):
+            return
+
+        maxItemWidth = 0
+
+        # measure title width
+        titleWidth = self.titleLabel.sizeHint().width()
+        maxItemWidth = max(maxItemWidth, titleWidth)
+
+        # measure each list item width
+        for i in range(self.listWidget.count()):
+            item = self.listWidget.item(i)
+            if item:
+                # account for icon if present
+                iconWidth = self.listWidget.iconSize().width() + 4 if not item.icon().isNull() else 0
+                
+                # measure text width
+                metrics = self.listWidget.fontMetrics()
+                textWidth = metrics.horizontalAdvance(item.text())
+                
+                itemWidth = iconWidth + textWidth
+                maxItemWidth = max(maxItemWidth, itemWidth)
+
+        # add padding and margins
+        chromeWidth = (PADDING * 4) + 16  # padding + some margin for scrollbar/borders
+        optimalWidth = maxItemWidth + chromeWidth
+
+        # constrain to min/max bounds
+        finalWidth = max(128, min(SIZE_CONSTRAINTS[0], optimalWidth))
+        
+        self.setFixedWidth(finalWidth)
 
     def _recomputeHeight(self) -> None:
         """
@@ -314,7 +351,7 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
 
     def _recomputeHeightSnap(self) -> None:
         """
-        recompute height without animation (snap to final size).
+        recompute height and width without animation (snap to final size).
         """
 
         if not self.isVisible():
@@ -324,6 +361,7 @@ class StartMenuComponent(InterfaceComponent, SpriteAnchorMixin):
         self.enableMoveAnimation = False
 
         try:
+            self._recomputeWidth()
             self._recomputeHeight()
         finally:
             self.enableMoveAnimation = previous
