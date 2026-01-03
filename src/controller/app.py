@@ -370,13 +370,13 @@ class RockinWindow(QWidget):
         :param event: the mouse press event
         """
 
-        btn = event.button()
+        button = event.button()
 
-        if btn == Qt.LeftButton:
-            self.soundManager.playAmbientAudio("dragging")
-            self.dragger.handleMousePress(event)
-            event.accept()
-        elif btn == Qt.RightButton:
+        if (button == Qt.LeftButton) and self.dragger.canDrag():
+                self.soundManager.playAmbientAudio("dragging")
+                self.dragger.handleMousePress(event)
+                event.accept()
+        elif button == Qt.RightButton:
             self.interfaceManager.toggle("startMenu")
             event.accept()
         else:
