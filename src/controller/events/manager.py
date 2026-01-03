@@ -63,7 +63,6 @@ class EventManager(QObject):
         self.eventsEnabled = True
         self.startupMinimumDelay = 15
         self.maxEventDuration = 120
-        self.increaseChanceOnBoredom = True
         self.eventIntervalRange = {
             "min": 300,
             "max": 600
@@ -87,15 +86,25 @@ class EventManager(QObject):
 
     # config handlers
     def _loadFromConfig(self):
+        """
+        Load event manager settings from configuration.
+        """
         self.eventsEnabled = self.config.getValue("events.enabled")
         self.startupMinimumDelay = self.config.getValue("events.startupMinimumDelay")
         self.maxEventDuration = self.config.getValue("events.maxEventDuration")
-        self.increaseChanceOnBoredom = self.config.getValue("events.increaseChanceOnBoredom")
 
         self.eventIntervalRange["min"] = self.config.getValue("events.eventIntervalRange.min")
         self.eventIntervalRange["max"] = self.config.getValue("events.eventIntervalRange.max")
 
     def _onConfigChanged(self, path: str, value: str):
+        """
+        Handle configuration changes for event-related settings.
+
+        :param path: Configuration key path
+        :type path: str
+        :param value: New value for the configuration key
+        :type value: str
+        """
         if not path.startswith("events."):
             return
 
@@ -107,8 +116,6 @@ class EventManager(QObject):
             self.startupMinimumDelay = value
         elif path == "maxEventDuration":
             self.maxEventDuration = value
-        elif path == "increaseChanceOnBoredom":
-            self.increaseChanceOnBoredom = value
         elif path == "eventIntervalRange.min":
             self.eventIntervalRange["min"] = value
         elif path == "eventIntervalRange.max":
@@ -123,12 +130,18 @@ class EventManager(QObject):
         self.events = discoverEvents()
 
     def start(self):
+        """
+        Start the event manager scheduler.
+        """
         self.isRunning = True
         self.scheduleNext(
             isInitial=True
         )
 
     def stop(self):
+        """
+        Stop the event manager scheduler and finish any active event.
+        """
         self.isRunning = False
 
         try:
@@ -140,9 +153,21 @@ class EventManager(QObject):
 
     # internal methods
     def nowMs(self) -> int:
+        """
+        Get the current time in milliseconds.
+
+        :return: Current time in milliseconds since epoch
+        :rtype: int
+        """
         return int(time.time() * 1000)
 
     def scheduleNext(self, isInitial: bool = False) -> None:
+        """
+        Schedule the next event tick.
+
+        :param isInitial: Whether this is the initial scheduling after start
+        :type isInitial: bool
+        """
         if not self.isRunning:
             return
 
@@ -164,6 +189,17 @@ class EventManager(QObject):
         self._timer.start(max(250, delayMs))
 
     def pickWeightedEvent(self, context: EventContext) -> Optional[BaseEvent]:
+        """
+        Select a random event from eligible events based on their weights.
+
+        Filters events by cooldown, enabled status, and canRun conditions,
+        then randomly selects one based on their weight values.
+
+        :param context: Event context for checking eligibility
+        :type context: EventContext
+        :return: Selected event or None if no eligible events
+        :rtype: Optional[BaseEvent]
+        """
         now = self.nowMs()
 
         runnable: List[BaseEvent] = []
@@ -212,6 +248,14 @@ class EventManager(QObject):
         event: BaseEvent,
         context: EventContext
     ) -> None:
+        """
+        Execute an event with watchdog timer protection.
+
+        :param event: The event to run
+        :type event: BaseEvent
+        :param context: Event context providing resources and state
+        :type context: EventContext
+        """
         startMs = self.nowMs()
 
         logger.debug(f"Starting event {event.id}")
@@ -253,6 +297,12 @@ class EventManager(QObject):
         #    doneOnce()
 
     def finishactiveEvent(self, force: bool) -> None:
+        """
+        Clean up and finish the currently active event.
+
+        :param force: Whether the event is being forcibly terminated
+        :type force: bool
+        """
         if self.activeEvent is None:
             return
 

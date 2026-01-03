@@ -1,3 +1,16 @@
+"""
+controller for interactability flags
+
+flags that are currently tracked by the sprite system;
+- "drag" -> controls user dragging of rockin
+- "blink" -> controls blinking of rockin's eyes
+- "petting" -> controls petting interaction
+- "eyetrack" -> controls cursor tracking
+- "autopilot" -> disables the sprite update loop; events are expected to set sprite features manually
+
+any flag can be acquired by any owner, and will remain disabled until all owners have released it
+"""
+
 from typing import Dict, Iterable, Set
 from dataclasses import dataclass
 

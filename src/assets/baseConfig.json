@@ -33,7 +33,6 @@
         "enabled": true,
         "startupMinimumDelay": 15,
         "maxEventDuration": 120,
-        "increaseChanceOnBoredom": true,
         "eventIntervalRange": {
             "min": 300,
             "max": 600

@@ -133,6 +133,16 @@ class SceneActions:
         position: QPointF,
         clampToViewport: bool = True
     ):
+        """
+        Move a scene entity to a new position.
+
+        :param entityId: ID of the entity to move
+        :type entityId: str
+        :param position: New position for the entity
+        :type position: QPointF
+        :param clampToViewport: Whether to clamp the position to viewport bounds
+        :type clampToViewport: bool
+        """
         entity = self._sceneModel.getEntity(entityId)
 
         if entity is None:
@@ -152,6 +162,12 @@ class SceneActions:
         )
 
     def removeEntity(self, entityId: str):
+        """
+        Remove an entity from the scene.
+
+        :param entityId: ID of the entity to remove
+        :type entityId: str
+        """
         self._sceneModel.removeEntity(entityId)
 
     def spawnEntity(
@@ -161,6 +177,20 @@ class SceneActions:
         clampToViewport: bool = True,
         transient: bool = True
     ) -> str:
+        """
+        Spawn a new decoration entity in the scene.
+
+        :param decorationName: Name of the decoration to spawn
+        :type decorationName: str
+        :param position: Position to spawn the entity at
+        :type position: QPointF
+        :param clampToViewport: Whether to clamp the position to viewport bounds
+        :type clampToViewport: bool
+        :param transient: Whether the entity should be transient (not persisted)
+        :type transient: bool
+        :return: The ID of the newly spawned entity
+        :rtype: str
+        """
         target = position
 
         if clampToViewport:

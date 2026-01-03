@@ -1,6 +1,9 @@
+from ...sprite.animation import FacialAnimationSequence
+from ..base import BaseEvent
+
 from PySide6.QtCore import QTimer
 
-from ..base import BaseEvent
+from random import randint
 
 class NapEvent(BaseEvent):
     id = "nap"
@@ -22,7 +25,18 @@ class NapEvent(BaseEvent):
         context,
         onFinished
     ):
-        lock = context.lock(self.id, "drag", "eyetrack", "petting", "blink", "autopilot")
+        context = context
+        onFinished = onFinished
+        lock = context.lock(
+            self.id,
+            "drag",
+            "eyetrack",
+            "petting",
+            "blink",
+            "autopilot"
+        )
+
+        sleepDuration = randint(4000, 7000)
 
         try:
             context.sprite.dragger.reset()
@@ -35,14 +49,37 @@ class NapEvent(BaseEvent):
             pass
 
         try:
-            context.speech.addSpeech("zzz...")
+            context.speech.addSpeech("zzz...", sleepDuration)
         except Exception:
             pass
 
-        def finish():
-            lock.release()
-            onFinished()
+        def onSleepFinish():
+            # perform rapid blinking animation to simulate waking up
+            sequence = FacialAnimationSequence(context.sprite)
+            
+            # 6 rapid blinks with 100ms intervals
+            for _ in range(6):
+                sequence.addState(
+                    randint(50, 250),
+                    eyes="blink",
+                    face="idle"
+                )
 
-        QTimer.singleShot(4000, finish)
+                sequence.addState(
+                    randint(150, 200),
+                    eyes="idle",
+                    face="idle"
+                )
+
+            # return to normal appearance
+            sequence.addState(0, face="idle", eyes="idle")
+            
+            def on_wakeup_complete():
+                lock.release()
+                onFinished()
+            
+            sequence.play(on_wakeup_complete)
+
+        QTimer.singleShot(sleepDuration, onSleepFinish)
 
 EVENTS = [NapEvent()]

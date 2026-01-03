@@ -645,13 +645,13 @@ class RockinWindow(QWidget):
         if (not self.spriteReady or self.blinkController.isBlinking) and not forceful:
             return
         
-        if (self.currentFace != faceName):
+        if (self.currentFace != faceName) and (faceName is not None):
             self.currentFace = faceName
             self.faceLabel.setPixmap(
                 self.spriteSystem.getFace(faceName, self.currentSpriteScale)
             )
 
-        if (self.currentEyes != eyesName):
+        if (self.currentEyes != eyesName) and (eyesName is not None):
             self.currentEyes = eyesName
             self.eyesLabel.setPixmap(
                 self.spriteSystem.getEyes(eyesName, self.currentSpriteScale)

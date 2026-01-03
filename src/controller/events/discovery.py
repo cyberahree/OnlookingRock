@@ -9,6 +9,14 @@ logger = logging.getLogger(__name__)
 def collectEventsFromModule(
     module: importlib.ModuleType
 ) -> list[BaseEvent]:
+    """
+    Collect event instances from a module's EVENTS list.
+
+    :param module: The module to collect events from
+    :type module: importlib.ModuleType
+    :return: List of event instances found in the module
+    :rtype: list[BaseEvent]
+    """
     moduleEvents = []
 
     if not hasattr(module, "EVENTS"):
@@ -27,6 +35,15 @@ def collectEventsFromModule(
     return moduleEvents
 
 def discoverEvents() -> list[BaseEvent]:
+    """
+    Discover and load all events from the modules package.
+
+    Searches through all modules in the events.modules package,
+    imports them, and collects their EVENTS lists.
+
+    :return: List of all discovered event instances
+    :rtype: list[BaseEvent]
+    """
     allEvents = []
 
     # if this errors, we have bigger problems to deal with
