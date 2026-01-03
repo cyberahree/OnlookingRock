@@ -31,10 +31,10 @@ def makeIconSquare(
     x = (width - scaled.width()) // 2
     y = (height - scaled.height()) // 2
 
-    p = QPainter(canvas)
-    p.setRenderHint(QPainter.SmoothPixmapTransform, True)
-    p.drawPixmap(x, y, scaled)
-    p.end()
+    painter = QPainter(canvas)
+    painter.setRenderHint(QPainter.SmoothPixmapTransform, True)
+    painter.drawPixmap(x, y, scaled)
+    painter.end()
 
     return QIcon(canvas)
 

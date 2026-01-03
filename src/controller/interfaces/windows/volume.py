@@ -127,7 +127,7 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             min_val=0,
             max_val=100,
             on_changed=lambda v: self._applyKeyVolume("master", v / 100.0),
-            show_percentage=True,
+            showPercentage=True,
         )
 
         self._rows["master"] = (rootSlider, rootLabel)
@@ -146,7 +146,7 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
                 min_val=0,
                 max_val=100,
                 on_changed=lambda v, key=cat.name: self._applyKeyVolume(key, v / 100.0),
-                show_percentage=True,
+                showPercentage=True,
             )
 
             self._rows[cat.name] = (catSlider, catLabel)

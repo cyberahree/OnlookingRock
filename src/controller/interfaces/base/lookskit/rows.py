@@ -1,9 +1,8 @@
-from .primitives import _RockWidgetMixin
 from .dropdown import RockDropdown
 from .typography import BodyLabel
+from .switch import ToggleSwitch
 from ..styling import PADDING
 
-from PySide6.QtGui import QColor
 from PySide6.QtCore import Qt
 
 from PySide6.QtWidgets import (
@@ -19,7 +18,7 @@ from typing import Callable, List, Optional
 
 def buildTextInputRow(
     label: str,
-    on_changed: Optional[Callable[[str], None]] = None,
+    onChanged: Optional[Callable[[str], None]] = None,
     max_length: int = 32,
     parent: Optional[QWidget] = None,
 ) -> tuple[QWidget, QLineEdit]:
@@ -28,24 +27,23 @@ def buildTextInputRow(
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(PADDING // 2)
 
-    name_label = BodyLabel(label, selectable=False)
-    name_label.setFixedWidth(120)
-    layout.addWidget(name_label, 0)
+    nameLabel = BodyLabel(label, selectable=False)
+    nameLabel.setFixedWidth(120)
+    layout.addWidget(nameLabel, 0)
 
-    text_edit = QLineEdit()
-    text_edit.setMaxLength(max_length)
-    layout.addWidget(text_edit, 1)
+    textEdit = QLineEdit()
+    textEdit.setMaxLength(max_length)
+    layout.addWidget(textEdit, 1)
 
-    if on_changed is not None:
-        text_edit.textChanged.connect(on_changed)
+    if onChanged is not None:
+        textEdit.textChanged.connect(onChanged)
 
-    return row, text_edit
+    return row, textEdit
 
 def buildDropdownRow(
     label: str,
     items: List[str],
-    *,
-    on_changed: Optional[Callable[[str], None]] = None,
+    onChanged: Optional[Callable[[str], None]] = None,
     parent: Optional[QWidget] = None,
 ) -> tuple[QWidget, "RockDropdown"]:
     from .dropdown import RockDropdown
@@ -55,15 +53,15 @@ def buildDropdownRow(
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(PADDING // 2)
 
-    name_label = BodyLabel(label, selectable=False)
-    name_label.setFixedWidth(120)
-    layout.addWidget(name_label, 0)
+    nameLabel = BodyLabel(label, selectable=False)
+    nameLabel.setFixedWidth(120)
+    layout.addWidget(nameLabel, 0)
 
     dropdown = RockDropdown(items=items)
     layout.addWidget(dropdown, 1)
 
-    if on_changed is not None:
-        dropdown.currentTextChanged.connect(on_changed)
+    if onChanged is not None:
+        dropdown.currentTextChanged.connect(onChanged)
 
     return row, dropdown
 
@@ -71,10 +69,10 @@ def buildSliderRow(
     label: str,
     min_val: int = 0,
     max_val: int = 100,
-    on_changed: Optional[Callable[[int], None]] = None,
-    label_width: int = 74,
-    value_label_width: int = 42,
-    show_percentage: bool = False,
+    onChanged: Optional[Callable[[int], None]] = None,
+    labelWidth: int = 74,
+    valueLabelWidth: int = 42,
+    showPercentage: bool = False,
     parent: Optional[QWidget] = None,
 ) -> tuple[QWidget, QSlider, QLabel]:
     row = QWidget(parent)
@@ -82,9 +80,9 @@ def buildSliderRow(
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(PADDING // 2)
 
-    name_label = BodyLabel(label, selectable=False)
-    name_label.setFixedWidth(label_width)
-    layout.addWidget(name_label, 0)
+    nameLabel = BodyLabel(label, selectable=False)
+    nameLabel.setFixedWidth(labelWidth)
+    layout.addWidget(nameLabel, 0)
 
     slider = QSlider(Qt.Horizontal)
     slider.setRange(min_val, max_val)
@@ -93,39 +91,38 @@ def buildSliderRow(
     slider.setTracking(True)
     layout.addWidget(slider, 1)
 
-    value_label = BodyLabel("0%")
-    value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    value_label.setFixedWidth(value_label_width)
-    layout.addWidget(value_label, 0)
+    valueLabel = BodyLabel("0%")
+    valueLabel.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+    valueLabel.setFixedWidth(valueLabelWidth)
+    layout.addWidget(valueLabel, 0)
 
-    def on_value_changed(v: int) -> None:
-        if show_percentage:
+    def onValueChanged(v: int) -> None:
+        if showPercentage:
             percentage = int(round((v - min_val) / (max_val - min_val) * 100)) if max_val > min_val else 0
-            value_label.setText(f"{percentage}%")
+            valueLabel.setText(f"{percentage}%")
         else:
-            value_label.setText(str(v))
+            valueLabel.setText(str(v))
 
-        if on_changed is not None:
-            on_changed(v)
+        if onChanged is not None:
+            onChanged(v)
 
-    slider.valueChanged.connect(on_value_changed)
+    slider.valueChanged.connect(onValueChanged)
 
-    # Initialize label display to match initial slider value (without triggering callback)
-    if show_percentage:
+    if showPercentage:
         percentage = int(round((min_val - min_val) / (max_val - min_val) * 100)) if max_val > min_val else 0
-        value_label.setText(f"{percentage}%")
+        valueLabel.setText(f"{percentage}%")
     else:
-        value_label.setText(str(min_val))
+        valueLabel.setText(str(min_val))
 
-    return row, slider, value_label
+    return row, slider, valueLabel
 
 def buildSpinboxRow(
     label: str,
-    min_val: int = 0,
-    max_val: int = 100,
+    minValue: int = 0,
+    maxValue: int = 100,
     step: int = 1,
     suffix: str = "",
-    on_changed: Optional[Callable[[int], None]] = None,
+    onChanged: Optional[Callable[[int], None]] = None,
     parent: Optional[QWidget] = None,
 ) -> tuple[QWidget, QSpinBox]:
     row = QWidget(parent)
@@ -133,29 +130,31 @@ def buildSpinboxRow(
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(PADDING // 2)
 
-    name_label = BodyLabel(label, selectable=False)
-    name_label.setFixedWidth(120)
-    layout.addWidget(name_label, 0)
+    nameLabel = BodyLabel(label, selectable=False)
+    nameLabel.setFixedWidth(120)
+    layout.addWidget(nameLabel, 0)
 
     spinbox = QSpinBox()
-    spinbox.setMinimum(min_val)
-    spinbox.setMaximum(max_val)
+    spinbox.setMinimum(minValue)
+    spinbox.setMaximum(maxValue)
     spinbox.setSingleStep(step)
+
     if suffix:
         spinbox.setSuffix(suffix)
+
     layout.addWidget(spinbox, 1)
 
-    if on_changed is not None:
-        spinbox.valueChanged.connect(on_changed)
+    if onChanged is not None:
+        spinbox.valueChanged.connect(onChanged)
 
     return row, spinbox
 
 def buildScaleSliderRow(
     label: str,
-    min_scale: float = 0.25,
-    max_scale: float = 2.0,
-    on_changed: Optional[Callable[[float], None]] = None,
-    on_released: Optional[Callable[[float], None]] = None,
+    minScale: float = 0.25,
+    maxScale: float = 2.0,
+    onChanged: Optional[Callable[[float], None]] = None,
+    onReleased: Optional[Callable[[float], None]] = None,
     parent: Optional[QWidget] = None,
 ) -> tuple[QWidget, QSlider, QLabel]:
     row = QWidget(parent)
@@ -163,39 +162,85 @@ def buildScaleSliderRow(
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(PADDING // 2)
 
-    name_label = BodyLabel(label, selectable=False)
-    name_label.setFixedWidth(74)
-    layout.addWidget(name_label, 0)
+    nameLabel = BodyLabel(label, selectable=False)
+    nameLabel.setFixedWidth(74)
+    layout.addWidget(nameLabel, 0)
 
-    # Convert scale range to integer range (multiply by 100)
-    slider_min = int(min_scale * 100)
-    slider_max = int(max_scale * 100)
+    sliderMin = int(minScale * 100)
+    sliderMax = int(maxScale * 100)
 
     slider = QSlider(Qt.Horizontal)
-    slider.setRange(slider_min, slider_max)
+    slider.setRange(sliderMin, sliderMax)
     slider.setSingleStep(5)
     slider.setPageStep(10)
     slider.setTracking(True)
     layout.addWidget(slider, 1)
 
-    value_label = BodyLabel(f"{min_scale:.2f}x")
-    value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    value_label.setFixedWidth(42)
-    layout.addWidget(value_label, 0)
+    valueLabel = BodyLabel(f"{minScale:.2f}x")
+    valueLabel.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+    valueLabel.setFixedWidth(42)
+    layout.addWidget(valueLabel, 0)
 
-    def on_value_changed(v: int) -> None:
+    def onValueChanged(v: int) -> None:
         scale = v / 100.0
-        value_label.setText(f"{scale:.2f}x")
+        valueLabel.setText(f"{scale:.2f}x")
 
-        if on_changed is not None:
-            on_changed(scale)
+        if onChanged is not None:
+            onChanged(scale)
 
-    def on_slider_released() -> None:
+    def onSliderReleased() -> None:
         scale = slider.value() / 100.0
-        if on_released is not None:
-            on_released(scale)
 
-    slider.valueChanged.connect(on_value_changed)
-    slider.sliderReleased.connect(on_slider_released)
+        if onReleased is not None:
+            onReleased(scale)
 
-    return row, slider, value_label
+    slider.valueChanged.connect(onValueChanged)
+    slider.sliderReleased.connect(onSliderReleased)
+
+    return row, slider, valueLabel
+
+def buildSwitchRow(
+    label: str,
+    onChanged: Optional[Callable[[bool], None]] = None,
+    parent: Optional[QWidget] = None,
+) -> tuple[QWidget, ToggleSwitch]:
+    """
+    build a row with a label and toggle switch.
+    
+    :param label: the label text to display
+    :type label: str
+    :param onChanged: callback when switch state changes
+    :type onChanged: Optional[Callable[[bool], None]]
+    :param parent: parent widget
+    :type parent: Optional[QWidget]
+    :return: tuple of (row widget, toggle switch)
+    :rtype: tuple[QWidget, ToggleSwitch]
+    """
+    row = QWidget(parent)
+    layout = QHBoxLayout(row)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(PADDING // 2)
+
+    nameLabel = BodyLabel(label, selectable=False)
+    nameLabel.setFixedWidth(120)
+    layout.addWidget(nameLabel, 0)
+
+    switch = ToggleSwitch(onChanged=onChanged)
+    layout.addWidget(switch, 0, Qt.AlignLeft)
+    
+    stateLabel = BodyLabel("disabled", selectable=False)
+    stateLabel.setFixedWidth(64)
+    layout.addWidget(stateLabel, 0, Qt.AlignLeft)
+    
+    def onSwitchChanged(checked: bool):
+        stateLabel.setText("enabled" if checked else "disabled")
+
+        if onChanged is not None:
+            onChanged(checked)
+    
+    switch._onChanged = onSwitchChanged
+    stateLabel.setText("enabled" if switch.isChecked() else "disabled")
+    
+    layout.addStretch(1)
+
+    return row, switch, stateLabel

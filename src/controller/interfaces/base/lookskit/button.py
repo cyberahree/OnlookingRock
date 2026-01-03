@@ -13,7 +13,6 @@ class RockButton(QPushButton, _RockWidgetMixin):
         self,
         text: str = "",
         parent: Optional[QWidget] = None,
-        *,
         variant: str = "default",
         onClick: Optional[Callable[[], None]] = None,
     ):
@@ -31,7 +30,6 @@ class RockIconButton(QPushButton, _RockWidgetMixin):
         icon: Optional[QIcon] = None,
         text: str = "",
         parent: Optional[QWidget] = None,
-        *,
         variant: str = "ghost",
         iconSizePx: int = 16,
         fixedSizePx: Optional[int] = None,

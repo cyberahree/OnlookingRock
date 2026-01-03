@@ -12,6 +12,7 @@ from ..base.lookskit import (
     buildDropdownRow,
     buildScaleSliderRow,
     buildSpinboxRow,
+    buildSwitchRow,
 )
 
 from ..base.styling import (
@@ -123,7 +124,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         # User Nickname
         nickRow, self._nickEdit = buildTextInputRow(
             "User Nickname",
-            on_changed=lambda text: self._applyKeyValue("userNick", text),
+            onChanged=lambda text: self._applyKeyValue("userNick", text),
         )
         rootLayout.addWidget(nickRow)
         rootLayout.addWidget(Divider())
@@ -140,10 +141,10 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         # Scale slider
         scaleRow, self._scaleSlider, self._scaleLabel = buildScaleSliderRow(
             "Scale",
-            min_scale=0.25,
-            max_scale=2.0,
+            minScale=0.25,
+            maxScale=2.0,
             on_changed=None,
-            on_released=lambda scale: self._applyKeyValue("scale", scale),
+            onReleased=lambda scale: self._applyKeyValue("scale", scale),
         )
         rootLayout.addWidget(scaleRow)
         rootLayout.addWidget(Divider())
@@ -152,8 +153,8 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         rootLayout.addWidget(BodyLabel("Refresh Rates", selectable=False))
         primaryRow, self._primaryLoopSpinBox = buildSpinboxRow(
             "Primary Loop",
-            min_val=1,
-            max_val=240,
+            minValue=1,
+            maxValue=240,
             step=1,
             suffix=" Hz",
             on_changed=lambda v: self._applyKeyValue("primaryLoop", v),
@@ -161,13 +162,22 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         rootLayout.addWidget(primaryRow)
         secondaryRow, self._secondaryLoopSpinBox = buildSpinboxRow(
             "Secondary Loop",
-            min_val=1,
-            max_val=240,
+            minValue=1,
+            maxValue=240,
             step=1,
             suffix=" Hz",
             on_changed=lambda v: self._applyKeyValue("secondaryLoop", v),
         )
         rootLayout.addWidget(secondaryRow)
+        rootLayout.addWidget(Divider())
+
+        # permissions
+        rootLayout.addWidget(BodyLabel("Permissions", selectable=False))
+        geoIpRow, self._geoIpSwitch, self._geoIpStateLabel = buildSwitchRow(
+            "GeoIP fetching",
+            on_changed=lambda v: self._applyKeyValue("allowedGeoIpFetch", v),
+        )
+        rootLayout.addWidget(geoIpRow)
 
         # style
         onHoverBackground = QColor(BACKGROUND_COLOR).darker(106)
@@ -227,6 +237,8 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             self.config.setValue("sprite.refreshRates.primaryLoop", value)
         elif key == "secondaryLoop":
             self.config.setValue("sprite.refreshRates.secondaryLoop", value)
+        elif key == "allowedGeoIpFetch":
+            self.config.setValue("location.allowedGeoIpFetch", value)
 
         self._scheduleSave()
 
@@ -307,6 +319,17 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._secondaryLoopSpinBox.blockSignals(True)
         self._secondaryLoopSpinBox.setValue(secondaryLoop)
         self._secondaryLoopSpinBox.blockSignals(False)
+
+        # permissions
+        try:
+            allowedGeoIpFetch = bool(self.config.getValue("location.allowedGeoIpFetch"))
+        except Exception:
+            allowedGeoIpFetch = False
+
+        self._geoIpSwitch.blockSignals(True)
+        self._geoIpSwitch.setChecked(allowedGeoIpFetch)
+        self._geoIpStateLabel.setText("enabled" if allowedGeoIpFetch else "disabled")
+        self._geoIpSwitch.blockSignals(False)
 
     def _reposition(self):
         """

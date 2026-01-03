@@ -22,5 +22,25 @@
     "scene": {
         "startupDecorationSpawnCount": 5,
         "persistentDecorations": []
+    },
+    "location": {
+        "allowedGeoIpFetch": false,
+
+        "weatherStats": {
+            "lastUpdated": 0,
+            "timestamps": [],
+            "temperature": [0.0],
+            "precipitation": [0.0],
+            "precipitationChance": [0],
+            "visibility": [0.0]
+        },
+        
+        "ipStats": {
+            "lastUpdated": 0,
+            "ip": "127.0.0.1",
+            
+            "country": "Unknown",
+            "city": "Unknown"
+        }
     }
 }

@@ -1,0 +1,185 @@
+from .config import ConfigController
+
+from dataclasses import dataclass
+from typing import Optional
+
+import requests
+import time
+
+IP_API = "https://ip-api.com/json/"
+OPEN_METEO = "https://api.open-meteo.com/v1/forecast"
+
+IP_LOCATION_CUTOFF_SECONDS = (60 * 60 * 24) # 24 hours
+CACHE_CUTOFF_WEATHER_SECONDS = (60 * 60) # 1 hour
+
+TIME_FRIENDLY = {
+    0: "midnight",
+    1: "night",
+    4: "dawn",
+    5: "sunrise",
+    6: "morning",
+    12: "noon",
+    13: "afternoon",
+    17: "evening",
+    18: "dusk",
+    19: "sunset",
+    20: "night",
+    23: "night"
+}
+
+@dataclass
+class Location:
+    city: str
+    country: str
+
+    lat_lon: Optional[
+        tuple[float, float]
+    ]
+
+@dataclass
+class WeatherData:
+    timestamps: list[int] # unix timestamps
+    temperature: list[float] # c
+    precipitation: list[float] # mm
+    precipitation_probability: list[float] # %
+    visibility: list[float] # metres
+
+class Services:
+    """
+    manages application permissions and related functionality
+    """
+    def __init__(
+        self,
+        configController: ConfigController
+    ):
+        """
+        initialise the services controller with required dependencies
+        """
+
+        self.config = configController
+
+    def getFriendlyLocalTime(self) -> str:
+        """
+        gets a friendly representation of the current local time
+
+        :return: the friendly local time string
+        :rtype: str
+        """
+
+        localTime = time.localtime()
+        hour = localTime.tm_hour
+
+        friendlyTime = TIME_FRIENDLY.get(hour, "daytime")
+
+        return friendlyTime
+
+    def getLocation(self) -> Optional[Location]:
+        """
+        gets an inaccurate location using ip geolocation
+
+        :return: the inaccurate location or None if unavailable
+        :rtype: Optional[Location]
+        """
+        allowedGeoIpFetch = self.config.getByPath("location.allowedGeoIpFetch")
+
+        if not allowedGeoIpFetch:
+            return None
+
+        ipResponse = requests.get(IP_API)
+
+        if not ipResponse.ok:
+            return None
+        
+        ipData = ipResponse.json()
+
+        latitude = ipData.get("lat")
+        longitude = ipData.get("lon")
+
+        hasCoordinates = (latitude is not None) and (longitude is not None)
+
+        return Location(
+            city=ipData.get("city", "Unknown"),
+            country=ipData.get("country", "Unknown"),
+
+            lat_lon=(latitude, longitude) if hasCoordinates else None
+        )
+
+    def getWeatherData(self, location: Location) -> Optional[WeatherData]:
+        """
+        gets weather data for the given location if permission is granted
+        AND if weather data has not been recently fetched
+
+        cached weather data is stored in configuration, and will be returned
+        if it is still valid
+
+        :param location: the location to get weather data for
+        :type location: Location
+
+        :return: the weather data or None if unavailable
+        :rtype: Optional[WeatherData]
+        """
+
+        cachedWeatherStats = self.config.getByPath("location.weatherStats")
+        lastCacheTimestamp = cachedWeatherStats.get("lastFetchTimestamp", 0)
+
+        currentTimestamp = time.time()
+
+        if (currentTimestamp - lastCacheTimestamp) < CACHE_CUTOFF_WEATHER_SECONDS:
+            return WeatherData(
+                timestamps=cachedWeatherStats.get("timestamps", []),
+                temperature=cachedWeatherStats.get("temperature", []),
+                precipitation=cachedWeatherStats.get("precipitation", []),
+                precipitation_probability=cachedWeatherStats.get("precipitationChance", []),
+                visibility=cachedWeatherStats.get("visibility", [])
+            )
+        
+        weatherResponse = requests.get(
+            OPEN_METEO,
+            params={
+                "latitude": location.lat_lon[0],
+                "longitude": location.lat_lon[1],
+                "hourly": "temperature_2m,precipitation,precipitation_probability,visibility",
+                "timezone": "auto",
+                "forecast_days": 1
+            }
+        )
+
+        if not weatherResponse.ok:
+            return None
+        
+        weatherData = weatherResponse.json().get("hourly")
+
+        if weatherData is None:
+            return None
+        
+        # convert timestamps to unix
+        unixTimestamps = []
+
+        for isoTimestamp in weatherData.get("time", []):
+            structTime = time.strptime(isoTimestamp, "%Y-%m-%dT%H:%M")
+            unixTimestamps.append(int(time.mktime(structTime)))
+        
+        weatherData["time"] = unixTimestamps
+
+        weatherStats = WeatherData(
+            timestamps=weatherData.get("time", []),
+            temperature=weatherData.get("temperature_2m", []),
+            precipitation=weatherData.get("precipitation", []),
+            precipitation_probability=weatherData.get("precipitation_probability", []),
+            visibility=weatherData.get("visibility", [])
+        )
+
+        # update cached weather stats
+        self.config.setValue(
+            "location.weatherStats",
+            {
+                "lastFetchTimestamp": currentTimestamp,
+                "timestamps": weatherStats.timestamps,
+                "temperature": weatherStats.temperature,
+                "precipitation": weatherStats.precipitation,
+                "precipitationChance": weatherStats.precipitation_probability,
+                "visibility": weatherStats.visibility
+            }
+        )
+
+        return weatherStats

@@ -20,6 +20,9 @@ BACKGROUND_COLOR = QColor(255, 255, 224, 255)
 BORDER_COLOR = QColor(200, 200, 200, 255)
 """border color for interface elements"""
 
+ENABLED_COLOR = QColor(113, 213, 128, 255)
+"""color for enabled elements"""
+
 TEXT_COLOR = QColor(34, 34, 34, 255)
 """default text color"""
 

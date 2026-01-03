@@ -131,8 +131,8 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         # startup spawn count
         spawnRow, self.spawnSpin = buildSpinboxRow(
             "Startup spawn",
-            min_val=0,
-            max_val=50,
+            minValue=0,
+            maxValue=50,
             step=1,
             suffix=" decorations",
             on_changed=self._onSpawnChanged,

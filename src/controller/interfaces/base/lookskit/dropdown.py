@@ -18,7 +18,6 @@ class RockDropdown(QComboBox, _RockWidgetMixin):
         self,
         items: Optional[List[str]] = None,
         parent: Optional[QWidget] = None,
-        *,
         variant: str = "default",
         onValueChanged: Optional[Callable[[str], None]] = None,
     ):
