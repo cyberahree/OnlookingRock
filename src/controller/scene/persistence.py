@@ -243,6 +243,9 @@ class ScenePersistence(QObject):
             records = []
 
             for entity in self.model.entitesList.values():
+                if entity.transient:
+                    continue
+
                 records.append({
                     "id": entity.entityId,
                     "name": entity.name,

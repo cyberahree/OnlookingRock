@@ -16,6 +16,8 @@ class DecorationEntity:
     x: float
     y: float
 
+    transient: bool = False
+
     @property
     def globalPosition(self) -> QPointF:
         """
