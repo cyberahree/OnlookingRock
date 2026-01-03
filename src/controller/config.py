@@ -237,3 +237,17 @@ class ConfigController(QObject):
 
         setByPath(self.config, path, value)
         self.onValueChanged.emit(path, value)
+
+    def bulkSetValues(self, updates: dict[str, Any], parentPath: str = None):
+        """
+        set multiple configuration values and emit change signals for each.
+        
+        :param updates: a dictionary of path-value pairs to update
+        :type updates: dict[str, Any]
+        """
+
+        if (parentPath is not None) and not parentPath.endswith("."):
+            parentPath += "."
+
+        for (path, value) in updates.items():
+            self.setValue(parentPath + path, value)

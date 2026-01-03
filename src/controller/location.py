@@ -73,7 +73,6 @@ class LocationServices:
             
         return "today"
 
-
     def getLocation(self) -> Optional[Location]:
         """
         gets an inaccurate location using ip geolocation
@@ -85,6 +84,24 @@ class LocationServices:
 
         if not allowedGeoIpFetch:
             return None
+        
+        lastFetchTimestamp = self.config.getByPath("location.geoIpFetchTimestamp")
+
+        currentTimestamp = time.time()
+
+        if (currentTimestamp - lastFetchTimestamp) < IP_LOCATION_CUTOFF_SECONDS:
+            cachedCity = self.config.getByPath("location.city")
+            cachedCountry = self.config.getByPath("location.country")
+            cachedLat = self.config.getByPath("location.latitude")
+            cachedLon = self.config.getByPath("location.longitude")
+
+            hasCoordinates = (cachedLat is not None) and (cachedLon is not None)
+
+            return Location(
+                city=cachedCity,
+                country=cachedCountry,
+                lat_lon=(cachedLat, cachedLon) if hasCoordinates else None
+            )
 
         ipResponse = requests.get(IP_API)
 
@@ -98,12 +115,26 @@ class LocationServices:
 
         hasCoordinates = (latitude is not None) and (longitude is not None)
 
-        return Location(
+        locationObject = Location(
             city=ipData.get("city", "Unknown"),
             country=ipData.get("country", "Unknown"),
 
             lat_lon=(latitude, longitude) if hasCoordinates else None
         )
+
+        # update cached location info
+        self.config.bulkSetValues(
+            {
+                "geoIpFetchTimestamp": currentTimestamp,
+                "city": locationObject.city,
+                "country": locationObject.country,
+                "latitude": latitude,
+                "longitude": longitude
+            },
+            parentPath="location"
+        )
+
+        return locationObject
 
     def getWeatherData(self, location: Location) -> Optional[WeatherData]:
         """
@@ -171,8 +202,7 @@ class LocationServices:
         )
 
         # update cached weather stats
-        self.config.setValue(
-            "location.weatherStats",
+        self.config.bulkSetValues(
             {
                 "lastFetchTimestamp": currentTimestamp,
                 "timestamps": weatherStats.timestamps,
@@ -180,7 +210,8 @@ class LocationServices:
                 "precipitation": weatherStats.precipitation,
                 "precipitationChance": weatherStats.precipitation_probability,
                 "visibility": weatherStats.visibility
-            }
+            },
+            parentPath="location.weatherStats"
         )
 
         return weatherStats

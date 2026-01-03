@@ -247,7 +247,7 @@ class RockinWindow(QWidget):
         ###################################
         # 8) settings value updates       #
         ###################################
-        self.config.onValueChanged.connect(self.configUpdated)
+        self.config.onValueChanged.connect(self._onConfigChange)
 
         ###########################
         # 9) initial sprite setup #
@@ -262,7 +262,7 @@ class RockinWindow(QWidget):
         self.show()
 
     # events
-    def configUpdated(self, path: str, value: object):
+    def _onConfigChange(self, path: str, value: object):
         """
         handle configuration value changes and update relevant systems.
         
@@ -272,17 +272,15 @@ class RockinWindow(QWidget):
         :type value: object
         """
 
-        if path.startswith("sound."):
-            # volume changes
-            if path == "sound.masterVolume":
-                self.soundManager.setMasterVolume(float(value))
-            else:
-                category = path[len("sound.categoryVolumes."):]
-                self.soundManager.setCategoryVolume(category, float(value))
-        elif path == "sprite.scale":
+        if not path.startswith("sprite."):
+            return
+        
+        path = path[len("sprite."):]
+        
+        if path == "scale":
             # scale changes
             self.setSpriteScale(float(value))
-        elif path == "sprite.hat":
+        elif path == "hat":
             self.currentHat = str(value)
             self.hatOverlay.setHatPixmap(
                 self.spriteSystem.getHat(
@@ -290,7 +288,7 @@ class RockinWindow(QWidget):
                     self.currentSpriteScale
                 )
             )
-        elif path.startswith("sprite.refreshRates"):
+        elif path.startswith("refreshRates"):
             # refresh rate changes
             self.primaryClock.setRefreshRate(
                 self.config.getValue("sprite.refreshRates.primaryLoop")
@@ -299,8 +297,6 @@ class RockinWindow(QWidget):
             self.secondaryClock.setRefreshRate(
                 self.config.getValue("sprite.refreshRates.secondaryLoop")
             )
-        else:
-            pass
 
     def moveEvent(self, event):
         """

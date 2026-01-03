@@ -5,7 +5,7 @@ from .speech import buildSpeechBlips
 from PySide6.QtMultimedia import QSoundEffect, QMediaPlayer, QAudioOutput
 from PySide6.QtCore import QObject, QUrl, QTimer, Signal, QDateTime
 
-from typing import Callable, List, Optional, Annotated
+from typing import Callable, List, Optional, Annotated, Any
 from dataclasses import dataclass
 from enum import Enum
 
@@ -91,6 +91,8 @@ class SoundManager(QObject):
         self.soundCache = {}
         self.cooldownCache = {}
 
+        self.config.onValueChanged.connect(self._onConfigChange)
+
         # audios that loop
         self.ambientAudioOutput = QAudioOutput(self)
         self.ambientMediaPlayer = QMediaPlayer(self)
@@ -105,6 +107,27 @@ class SoundManager(QObject):
         self.scheduledSounds: List[QTimer] = []
 
     # internal methods
+    def _onConfigChange(self, path: str, value: Any) -> None:
+        """
+        handle configuration changes.
+        
+        :param path: Configuration path that changed
+        :type path: str
+        :param value: New value for the configuration
+        :type value: Any
+        """
+
+        if not path.startswith("sound."):
+            return
+        
+        path = path[len("sound."):]
+
+        if path == "masterVolume":
+            self.setMasterVolume(float(value))
+        else:
+            category = path[len("categoryVolumes."):]
+            self.setCategoryVolume(category, float(value))
+
     def _massLoadSoundInstanceToCategory(self, url: QUrl, category: SoundCategory) -> List[QSoundEffect]:
         """
         load multiple sound instances for a category based on polyphony configuration.
