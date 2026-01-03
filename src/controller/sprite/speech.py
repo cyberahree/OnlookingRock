@@ -192,6 +192,9 @@ class SpeechBubbleController(QWidget):
             self._nextTimer.stop()
             self.bubble.fadeOut()
             return
+        
+        if not self.active:
+            self.bubble._reposition()
 
         self.active = True
         item = self.queue.popleft()

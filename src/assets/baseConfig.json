@@ -4,6 +4,12 @@
         "userNick": "<USERNAME>",
         "scale": 0.75,
 
+        "lastPosition": {
+            "screen": 0,
+            "x": 100,
+            "y": 100
+        },
+
         "refreshRates": {
             "primaryLoop": 30,
             "secondaryLoop": 15

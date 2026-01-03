@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from .location import LocationServices
 from .config import ConfigController
 
 from .system.sound import SoundManager, SoundCategory
@@ -19,6 +20,13 @@ from .sprite.blinking import BlinkingController
 from .sprite.cosmetic import HatOverlayWindow
 from .sprite.dragger import SpriteDragger
 
+from .sprite.templates import (
+    USER_FEELING_TEMPLATE,
+    TIME_TEMPLATE,
+    CUTE_FACES,
+    pickRandom
+)
+
 from .sprite import (
     SpriteSystem,
     limitScale,
@@ -37,7 +45,7 @@ class RockinWindow(QWidget):
     """
     the main application window for the rockin sprite.
     
-    Manages sprite rendering, user interactions, configuration, and all subsystems including sound, scene, and UI interfaces.
+    manages sprite rendering, user interactions, configuration, and all subsystems including sound, scene, and UI interfaces.
     """
 
     def __init__(self) -> None:
@@ -47,16 +55,19 @@ class RockinWindow(QWidget):
 
         super().__init__()
 
-        ##############################
-        # 1) config + settings store #
-        ##############################
+        ########################
+        # 1) config + services #
+        ########################
         self.config = ConfigController()
+        self.locationServices = LocationServices(self.config)
 
         ##############################
         # 2) internal state defaults #
         ##############################
         self.currentSpriteScale = self.config.getValue("sprite.scale")
         self.spriteReady = False
+
+        self.previouslyPetting = False
         self.spritePetting = False
 
         self.currentFace = None
@@ -392,6 +403,19 @@ class RockinWindow(QWidget):
         start the main application window loop with greeting sequence.
         """
 
+        lastX = self.config.getValue("sprite.lastPosition.x")
+        lastY = self.config.getValue("sprite.lastPosition.y")
+        lastScreenIndex = self.config.getValue("sprite.lastPosition.screen")
+
+        if lastScreenIndex >= len(APPLICATION.screens()):
+            lastScreenIndex = len(APPLICATION.screens()) - 1
+        
+        screenGeometry = APPLICATION.screens()[lastScreenIndex].geometry()
+        lastX = max(0, min(lastX, screenGeometry.width() - self.width()))
+        lastY = max(0, min(lastY, screenGeometry.height() - self.height()))
+
+        self.move(int(lastX), int(lastY))
+
         self.soundManager.playSound(
             "applicationStart.wav",
             SoundCategory.SPECIAL,
@@ -400,11 +424,16 @@ class RockinWindow(QWidget):
 
         userNick = self.config.getValue("sprite.userNick")
 
+        timeDescription = pickRandom(TIME_TEMPLATE).format(
+            self.locationServices.getFriendlyLocalTime()
+        )
+
         if (userNick is None) or (userNick == "<USERNAME>"):
             def nameInputted(name):
                 self.config.setValue("sprite.userNick", name)
                 self.speechBubble.addSpeech(f"nice to meet you, {name}! :3")
-                self.speechBubble.addSpeech("i hope you're doing well today! :D")
+                self.speechBubble.addSpeech("i hope you're doing well! :D")
+                self.speechBubble.addSpeech(timeDescription)
 
             self.speechBubble.addSpeech(
                 "hey there! i'm rockin :3"
@@ -418,7 +447,8 @@ class RockinWindow(QWidget):
             )
         else:
             self.speechBubble.addSpeech(f"hey there {userNick}! :3")
-            self.speechBubble.addSpeech("how are you doing today?")
+            self.speechBubble.addSpeech(timeDescription)
+            self.speechBubble.addSpeech(pickRandom(USER_FEELING_TEMPLATE).format(userNick))
 
         sys.exit(APPLICATION.exec_())
 
@@ -432,6 +462,21 @@ class RockinWindow(QWidget):
 
         self.spriteReady = False
         self.updateSpriteFeatures("empty", "shuttingdown", True)
+
+        self.config.setValue(
+            "sprite.lastPosition.x",
+            self.x()
+        )
+
+        self.config.setValue(
+            "sprite.lastPosition.y",
+            self.y()
+        )
+
+        self.config.setValue(
+            "sprite.lastPosition.screen",
+            APPLICATION.screens().index(self.screen())
+        )
 
         self.speechBubble.shutdown()
         self.soundManager.playSound(
@@ -525,11 +570,19 @@ class RockinWindow(QWidget):
         self.spritePetting = self.pettingController.update()
 
         if self.spritePetting:
+            if not self.previouslyPetting:
+                self.speechBubble.addSpeech(
+                    pickRandom(CUTE_FACES)
+                )
+
+            self.previouslyPetting = True
             self.updateSpriteFeatures(
                 "idle", "petting", True
             )
 
             return
+        
+        self.previouslyPetting = False
         
         # 2) otherwise, update sprite features based on keyboard
         #    state or a dragging state
@@ -621,4 +674,3 @@ class RockinWindow(QWidget):
             return
         
         self.updateSpriteEyes("blink")
-

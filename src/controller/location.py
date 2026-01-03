@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import requests
+import random
 import time
 
 IP_API = "https://ip-api.com/json/"
@@ -12,19 +13,16 @@ OPEN_METEO = "https://api.open-meteo.com/v1/forecast"
 IP_LOCATION_CUTOFF_SECONDS = (60 * 60 * 24) # 24 hours
 CACHE_CUTOFF_WEATHER_SECONDS = (60 * 60) # 1 hour
 
-TIME_FRIENDLY = {
-    0: "midnight",
-    1: "night",
-    4: "dawn",
-    5: "sunrise",
-    6: "morning",
-    12: "noon",
-    13: "afternoon",
-    17: "evening",
-    18: "dusk",
-    19: "sunset",
-    20: "night",
-    23: "night"
+TIME_DESCRIPTIONS = {
+    (0, 0): ["midnight", "the witching hour"],
+    (1, 3): ["late night", "the dead of night", "the small hours"],
+    (4, 5): ["dawn", "early morning", "sunrise", "daybreak"],
+    (6, 11): ["morning", "mid-morning"],
+    (12, 12): ["noon", "midday"],
+    (13, 16): ["afternoon", "mid-afternoon"],
+    (17, 18): ["evening", "dusk", "twilight"],
+    (19, 19): ["sunset", "sundown"],
+    (20, 23): ["night", "nighttime", "evening"]
 }
 
 @dataclass
@@ -44,7 +42,7 @@ class WeatherData:
     precipitation_probability: list[float] # %
     visibility: list[float] # metres
 
-class Services:
+class LocationServices:
     """
     manages application permissions and related functionality
     """
@@ -69,9 +67,12 @@ class Services:
         localTime = time.localtime()
         hour = localTime.tm_hour
 
-        friendlyTime = TIME_FRIENDLY.get(hour, "daytime")
+        for hourRange, descriptions in TIME_DESCRIPTIONS.items():
+            if hourRange[0] <= hour <= hourRange[1]:
+                return random.choice(descriptions)
+            
+        return "today"
 
-        return friendlyTime
 
     def getLocation(self) -> Optional[Location]:
         """

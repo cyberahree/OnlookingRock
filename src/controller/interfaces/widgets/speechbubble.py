@@ -418,9 +418,6 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         if not self.sprite:
             return
 
-        if self.isHidden() and not forceShow:
-            return
-
         if forceShow:
             self.show()
 
@@ -437,7 +434,10 @@ class SpeechBubbleComponent(InterfaceComponent, SpriteAnchorMixin):
         if prev_tail != self.tailDirection:
             self.update()
 
-        self.animateTo(target)
+        if self.isVisible():
+            self.animateTo(target)
+        else:
+            self.move(target)
 
     def paintEvent(self, event) -> None:
         """
