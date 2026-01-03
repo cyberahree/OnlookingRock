@@ -133,7 +133,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         hatRow, self.hatDropdown = buildDropdownRow(
             "Hat",
             items=self.sprite.allHats,
-            on_changed=lambda text: self._applyKeyValue("hat", text),
+            onChanged=lambda text: self._applyKeyValue("hat", text),
         )
         rootLayout.addWidget(hatRow)
         rootLayout.addWidget(Divider())
@@ -143,7 +143,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             "Scale",
             minScale=0.25,
             maxScale=2.0,
-            on_changed=None,
+            onChanged=None,
             onReleased=lambda scale: self._applyKeyValue("scale", scale),
         )
         rootLayout.addWidget(scaleRow)
@@ -157,7 +157,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             maxValue=240,
             step=1,
             suffix=" Hz",
-            on_changed=lambda v: self._applyKeyValue("primaryLoop", v),
+            onChanged=lambda v: self._applyKeyValue("primaryLoop", v),
         )
         rootLayout.addWidget(primaryRow)
         secondaryRow, self._secondaryLoopSpinBox = buildSpinboxRow(
@@ -166,7 +166,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             maxValue=240,
             step=1,
             suffix=" Hz",
-            on_changed=lambda v: self._applyKeyValue("secondaryLoop", v),
+            onChanged=lambda v: self._applyKeyValue("secondaryLoop", v),
         )
         rootLayout.addWidget(secondaryRow)
         rootLayout.addWidget(Divider())
@@ -175,7 +175,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         rootLayout.addWidget(BodyLabel("Permissions", selectable=False))
         geoIpRow, self._geoIpSwitch, self._geoIpStateLabel = buildSwitchRow(
             "GeoIP fetching",
-            on_changed=lambda v: self._applyKeyValue("allowedGeoIpFetch", v),
+            onChanged=lambda v: self._applyKeyValue("allowedGeoIpFetch", v),
         )
         rootLayout.addWidget(geoIpRow)
 

@@ -16,13 +16,13 @@ class ToggleSwitch(QWidget, _RockWidgetMixin):
         self,
         parent: Optional[QWidget] = None,
         checked: bool = False,
-        on_changed: Optional[Callable[[bool], None]] = None,
+        onChanged: Optional[Callable[[bool], None]] = None,
     ):
         super().__init__(parent)
         self._setRole("switch", "default")
         
         self._checked = checked
-        self._onChanged = on_changed
+        self._onChanged = onChanged
         
         # colors
         self._handleColor = QColor(255, 255, 255, 230)

@@ -135,7 +135,7 @@ class SceneWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             maxValue=50,
             step=1,
             suffix=" decorations",
-            on_changed=self._onSpawnChanged,
+            onChanged=self._onSpawnChanged,
         )
         rootLayout.addWidget(spawnRow)
         rootLayout.addWidget(Divider())

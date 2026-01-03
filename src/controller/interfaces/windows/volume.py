@@ -126,7 +126,7 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             "Master",
             min_val=0,
             max_val=100,
-            on_changed=lambda v: self._applyKeyVolume("master", v / 100.0),
+            onChanged=lambda v: self._applyKeyVolume("master", v / 100.0),
             showPercentage=True,
         )
 
@@ -145,7 +145,7 @@ class VolumeWindowComponent(InterfaceComponent, SpriteAnchorMixin):
                 cat.name.title(),
                 min_val=0,
                 max_val=100,
-                on_changed=lambda v, key=cat.name: self._applyKeyVolume(key, v / 100.0),
+                onChanged=lambda v, key=cat.name: self._applyKeyVolume(key, v / 100.0),
                 showPercentage=True,
             )
 
