@@ -68,7 +68,7 @@ EMOTION_DECISION_TABLE: list[ReactionRule] = [
         name="tired_low",
         mood=TIRED_COMBINATION,
         priority=50,
-        predicate=lambda m: (m.idleTime < SLEEP_DELTA_THRESHOLD / (3/4))
+        predicate=lambda m: (m.idleTime < SLEEP_DELTA_THRESHOLD / (1/4))
         and (m.activityLevel < 0.15 and m.keysPerSecond < 1.5),
     ),
     ReactionRule(
@@ -339,7 +339,8 @@ class SpriteSystem:
                 averageDelta=self.keyListener.getAverageDelta()
             )
 
-        logger.debug("metrics=%s", metrics)
+        # TODO: uncomment
+        #logger.debug("metrics=%s", metrics)
         
         # "best" = highest priority rule that matches right now
         for rule in sorted(rules, key=lambda r: r.priority, reverse=True):

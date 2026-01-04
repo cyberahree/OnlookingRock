@@ -37,7 +37,7 @@ class CircularPettingController:
         # detection tuning
         windowMs: int = 900,
         maxSampleGapMs: int = 90,
-        loopsRequired: float = 0.90,
+        loopsRequired: float = 1.20,
 
         # small guards against noise: lower to allow for smaller circles
         minPathPxAtScale1: float = 25.0,

@@ -59,8 +59,11 @@ class InterfaceManager(QObject):
         else:
             component.open()
 
-    def isAnyOpen(self) -> bool:
-        for component in self.components.values():
+    def isAnyOpen(self, ignoreSpecific: str = None) -> bool:
+        for name, component in self.components.items():
+            if name == ignoreSpecific:
+                continue
+
             if not component.isVisible():
                 continue
 

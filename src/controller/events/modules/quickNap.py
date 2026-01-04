@@ -1,19 +1,24 @@
 from ...sprite.animation import FacialAnimationSequence
+from ..context import EventContext
 from ..base import BaseEvent
 
 from PySide6.QtCore import QTimer
 
+from typing import Callable
 from random import randint
 
 class NapEvent(BaseEvent):
     id = "nap"
-    weight = 1.0
+    weight = 0.6
     cooldownSeconds = 120
 
-    def canRun(self, context) -> bool:
+    def canRun(self, context: EventContext) -> bool:
         # don't start if user is currently dragging or interacting heavily
         try:
             if context.sprite.dragger.isDragging:
+                return False
+            
+            if len(context.speech.queue) > 0:
                 return False
         except Exception:
             pass
@@ -22,11 +27,9 @@ class NapEvent(BaseEvent):
 
     def run(
         self,
-        context,
-        onFinished
+        context: EventContext,
+        onFinished: Callable[[], None]
     ):
-        context = context
-        onFinished = onFinished
         lock = context.lock(
             self.id,
             "drag",
@@ -82,4 +85,6 @@ class NapEvent(BaseEvent):
 
         QTimer.singleShot(sleepDuration, onSleepFinish)
 
-EVENTS = [NapEvent()]
+EVENTS = [
+    NapEvent()
+]

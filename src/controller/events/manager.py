@@ -149,7 +149,7 @@ class EventManager(QObject):
         except Exception:
             pass
 
-        self.finishactiveEvent(True)
+        self.finishActiveEvent(True)
 
     # internal methods
     def nowMs(self) -> int:
@@ -212,6 +212,8 @@ class EventManager(QObject):
             eventCooldownSeconds = event.cooldownSeconds
             lastRan = self.lastEventRunMs.get(event.id)
 
+            logger.debug(f"Evaluating event {event.id}: cooldown={eventCooldownSeconds}, lastRan={lastRan}")
+
             if (eventCooldownSeconds > 0) and lastRan:
                 delta = (now - lastRan) / 1000
 
@@ -222,7 +224,6 @@ class EventManager(QObject):
                 if not event.canRun(context):
                     continue
             except Exception as e:
-                logger.error(f"Error checking canRun for event {event.id}: {e}")
                 continue
 
             weight = event.weight
@@ -232,6 +233,8 @@ class EventManager(QObject):
 
             runnable.append(event)
             weights.append(weight)
+
+        logger.debug(f"Found {len(runnable)} runnable events.")
 
         if not runnable:
             return None
@@ -265,7 +268,7 @@ class EventManager(QObject):
 
         watchdogTimer = QTimer(self)
         watchdogTimer.setSingleShot(True)
-        watchdogTimer.timeout.connect(lambda: self.finishactiveEvent(True))
+        watchdogTimer.timeout.connect(lambda: self.finishActiveEvent(True))
         watchdogTimer.start(max(
             5000, (maxDuration * 1000)
         ))
@@ -285,18 +288,18 @@ class EventManager(QObject):
                 return
 
             isFinished = True
-            self.finishactiveEvent(False)
+            self.finishActiveEvent(False)
         
-        #try:
-        event.run(
-            context,
-            doneOnce
-        )
-        #except Exception as e:
-        #    logger.error(f"Error running event {event.id}: {e}")
-        #    doneOnce()
+        try:
+            event.run(
+                context,
+                doneOnce
+            )
+        except Exception as e:
+            logger.error(f"Error running event {event.id}: {e}")
+            doneOnce()
 
-    def finishactiveEvent(self, force: bool) -> None:
+    def finishActiveEvent(self, force: bool) -> None:
         """
         Clean up and finish the currently active event.
 
@@ -416,6 +419,6 @@ class EventManager(QObject):
             logger.debug("Cannot trigger event: no eligible events available")
             return False
         
-        logger.info(f"Manually triggering event: {candidateEvent.id}")
+        logger.debug(f"Manually triggering event: {candidateEvent.id}")
         self.runEvent(candidateEvent, context)
         return True

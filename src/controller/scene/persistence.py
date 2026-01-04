@@ -198,6 +198,7 @@ class ScenePersistence(QObject):
                 )
 
                 entityId = str(uuid.uuid4())
+
                 newEntity = DecorationEntity(
                     entityId=entityId,
                     name=name,

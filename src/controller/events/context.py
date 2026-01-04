@@ -4,7 +4,8 @@ from ..scene.editor import SceneEditorController
 
 from .flags import InteractabilityFlags, FlagToken
 
-from PySide6.QtCore import QPoint, QPointF, QTimer
+from PySide6.QtCore import QPoint, QPointF, QTimer, QPropertyAnimation, QEasingCurve, QEventLoop
+from PySide6.QtGui import QGuiApplication
 
 from typing import Callable, Optional
 from uuid import uuid4
@@ -21,7 +22,7 @@ class EventSounds:
         self,
         relativePath: str,
         volume: float = 1.0,
-        onFinished: Optional[Callable[[], None]] = None
+        onFinish: Optional[Callable[[], None]] = None
     ):
         """
         play a sound effect
@@ -38,7 +39,7 @@ class EventSounds:
             relativePath,
             SoundCategory.EVENT,
             volume=volume,
-            onFinished=onFinished
+            onFinish=onFinish
         )
 
 class SceneActions:
@@ -80,7 +81,7 @@ class SceneActions:
         :rtype: List[SceneEntity]
         """
 
-        return list(self.model.entitesList.values())
+        return list(self._sceneModel.entitesList.values())
 
     def findEntitiesByName(self, name: str) -> list[DecorationEntity]:
         """
@@ -116,8 +117,8 @@ class SceneActions:
         bestEntity = None
 
         for entity in self.getEntities():
-            diffX = entity.position.x() - point.x()
-            diffY = entity.position.y() - point.y()
+            diffX = entity.x - point.x()
+            diffY = entity.y - point.y()
 
             distance = (diffX ** 2 + diffY ** 2) ** 0.5
 
@@ -200,10 +201,12 @@ class SceneActions:
             )
 
         entityId = str(uuid4())
+
         entity = DecorationEntity(
             entityId=entityId,
             name=decorationName,
-            position=target,
+            x=target.x(),
+            y=target.y(),
             transient=transient
         )
 
@@ -228,6 +231,7 @@ class EventContext:
         self.scene = SceneActions(sprite, sceneSystem)
         self.sceneSystem = sceneSystem
         self.speech = speechBubble
+        self._spriteMoveAnimation: Optional[QPropertyAnimation] = None
 
     def lock(
         self,
@@ -263,3 +267,88 @@ class EventContext:
             max(0, int(milliseconds)),
             callback
         )
+
+    def yieldMs(self, milliseconds: int):
+        """
+        block execution for a number of milliseconds, processing Qt events
+
+        :param milliseconds: yield duration in milliseconds
+        :type milliseconds: int
+        """
+        if milliseconds <= 0:
+            return
+
+        loop = QEventLoop()
+        QTimer.singleShot(max(1, int(milliseconds)), loop.quit)
+        loop.exec()
+
+    def animateSpriteTo(
+        self,
+        target: QPointF,
+        durationMs: int = 400,
+        clampToScreen: bool = True,
+        easing: QEasingCurve.Type = QEasingCurve.OutCubic,
+        onFinished: Optional[Callable[[], None]] = None
+    ) -> QPropertyAnimation:
+        """
+        Smoothly move the sprite to a target point with optional screen clamping.
+
+        :param target: Destination centre point in global coordinates
+        :param durationMs: Duration of the animation in milliseconds
+        :param clampToScreen: Whether to clamp the destination to the current screen
+        :param easing: Easing curve for the animation
+        :param onFinished: Optional callback when animation completes
+        :return: The QPropertyAnimation instance managing the move
+        """
+
+        point = QPointF(target)  # desired centre position
+
+        halfWidth = self.sprite.width() / 2.0
+        halfHeight = self.sprite.height() / 2.0
+
+        # translate centre target to top-left for positioning
+        topLeft = QPointF(point.x() - halfWidth, point.y() - halfHeight)
+
+        if clampToScreen:
+            # clamp using the target point's screen, not the sprite's current screen
+            screen = QGuiApplication.screenAt(point.toPoint())
+
+            if screen is None:
+                screen = QGuiApplication.primaryScreen()
+
+            if screen is not None:
+                bounds = screen.availableGeometry()
+
+                clampedX = max(
+                    bounds.left(),
+                    min(int(topLeft.x()), bounds.right() - self.sprite.width())
+                )
+
+                clampedY = max(
+                    bounds.top(),
+                    min(int(topLeft.y()), bounds.bottom() - self.sprite.height())
+                )
+
+                topLeft = QPointF(float(clampedX), float(clampedY))
+
+        destination = QPoint(int(topLeft.x()), int(topLeft.y()))
+
+        if self._spriteMoveAnimation is not None:
+            try:
+                self._spriteMoveAnimation.stop()
+            except Exception:
+                pass
+
+        moveAnimation = QPropertyAnimation(self.sprite, b"pos", self.sprite)
+        moveAnimation.setDuration(max(1, int(durationMs)))
+        moveAnimation.setStartValue(self.sprite.pos())
+        moveAnimation.setEndValue(destination)
+        moveAnimation.setEasingCurve(easing)
+
+        if onFinished is not None:
+            moveAnimation.finished.connect(onFinished)
+
+        self._spriteMoveAnimation = moveAnimation
+        moveAnimation.start()
+
+        return moveAnimation

@@ -208,7 +208,7 @@ class RockinWindow(QWidget):
                 MenuAction("editVolume", "volume", lambda: self.interfaceManager.open("volumeEditor"), "sound"),
                 MenuAction("quitSprite", "quit", self.triggerShutdown, "power")
             ],
-            lambda: not self.interfaceManager.isAnyOpen(),
+            lambda: (not self.interfaceManager.isAnyOpen()) and self.eventInteractability.isEnabled("startmenu"),
             self.secondaryClock
         )
 
@@ -265,7 +265,7 @@ class RockinWindow(QWidget):
             canRun=lambda: (
                 self.spriteReady
                 and (not self.dragger.isDragging)
-                and (not self.interfaceManager.isAnyOpen())
+                and (not self.interfaceManager.isAnyOpen("startMenu"))
             ),
         )
 
@@ -436,8 +436,11 @@ class RockinWindow(QWidget):
             lastScreenIndex = len(APPLICATION.screens()) - 1
         
         screenGeometry = APPLICATION.screens()[lastScreenIndex].geometry()
-        lastX = max(0, min(lastX, screenGeometry.width() - self.width()))
-        lastY = max(0, min(lastY, screenGeometry.height() - self.height()))
+        isOutsideOfScreen = not screenGeometry.contains(int(lastX), int(lastY))
+
+        if (lastX is None or lastY is None) or isOutsideOfScreen:
+            lastX = screenGeometry.x() + (screenGeometry.width() - self.width()) / 2
+            lastY = screenGeometry.y() + (screenGeometry.height() - self.height()) / 2
 
         self.move(int(lastX), int(lastY))
 
@@ -453,7 +456,8 @@ class RockinWindow(QWidget):
             self.locationServices.getFriendlyLocalTime()
         )
 
-        if (userNick is None) or (userNick == "<USERNAME>"):
+        # TODO: uncomment
+        """if (userNick is None) or (userNick == "<USERNAME>"):
             def nameInputted(name):
                 self.config.setValue("sprite.userNick", name)
                 self.speechBubble.addSpeech(f"nice to meet you, {name}! :3")
@@ -473,7 +477,7 @@ class RockinWindow(QWidget):
         else:
             self.speechBubble.addSpeech(f"hey there {userNick}! :3")
             self.speechBubble.addSpeech(timeDescription)
-            self.speechBubble.addSpeech(pickRandom(USER_FEELING_TEMPLATE).format(userNick))
+            self.speechBubble.addSpeech(pickRandom(USER_FEELING_TEMPLATE).format(userNick))"""
 
         sys.exit(APPLICATION.exec_())
 

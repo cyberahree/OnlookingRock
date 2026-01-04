@@ -39,7 +39,7 @@ class WeatherData:
     timestamps: list[int] # unix timestamps
     temperature: list[float] # c
     precipitation: list[float] # mm
-    precipitation_probability: list[float] # %
+    precipitationChance: list[float] # %
     visibility: list[float] # metres
 
 class LocationServices:
@@ -80,20 +80,20 @@ class LocationServices:
         :return: the inaccurate location or None if unavailable
         :rtype: Optional[Location]
         """
-        allowedGeoIpFetch = self.config.getByPath("location.allowedGeoIpFetch")
+        allowedGeoIpFetch = self.config.getValue("location.allowedGeoIpFetch")
 
         if not allowedGeoIpFetch:
             return None
         
-        lastFetchTimestamp = self.config.getByPath("location.geoIpFetchTimestamp")
+        lastFetchTimestamp = self.config.getValue("location.geoIpFetchTimestamp")
 
         currentTimestamp = time.time()
 
         if (currentTimestamp - lastFetchTimestamp) < IP_LOCATION_CUTOFF_SECONDS:
-            cachedCity = self.config.getByPath("location.city")
-            cachedCountry = self.config.getByPath("location.country")
-            cachedLat = self.config.getByPath("location.latitude")
-            cachedLon = self.config.getByPath("location.longitude")
+            cachedCity = self.config.getValue("location.city")
+            cachedCountry = self.config.getValue("location.country")
+            cachedLat = self.config.getValue("location.latitude")
+            cachedLon = self.config.getValue("location.longitude")
 
             hasCoordinates = (cachedLat is not None) and (cachedLon is not None)
 
@@ -136,7 +136,7 @@ class LocationServices:
 
         return locationObject
 
-    def getWeatherData(self, location: Location) -> Optional[WeatherData]:
+    def getWeatherData(self, location: Location = None) -> Optional[WeatherData]:
         """
         gets weather data for the given location if permission is granted
         AND if weather data has not been recently fetched
@@ -151,7 +151,13 @@ class LocationServices:
         :rtype: Optional[WeatherData]
         """
 
-        cachedWeatherStats = self.config.getByPath("location.weatherStats")
+        if location is None:
+            location = self.getLocation()
+        
+        if location is None or location.lat_lon is None:
+            return None
+
+        cachedWeatherStats = self.config.getValue("location.weatherStats")
         lastCacheTimestamp = cachedWeatherStats.get("lastFetchTimestamp", 0)
 
         currentTimestamp = time.time()
@@ -161,7 +167,7 @@ class LocationServices:
                 timestamps=cachedWeatherStats.get("timestamps", []),
                 temperature=cachedWeatherStats.get("temperature", []),
                 precipitation=cachedWeatherStats.get("precipitation", []),
-                precipitation_probability=cachedWeatherStats.get("precipitationChance", []),
+                precipitationChance=cachedWeatherStats.get("precipitationChance", []),
                 visibility=cachedWeatherStats.get("visibility", [])
             )
         
@@ -170,7 +176,7 @@ class LocationServices:
             params={
                 "latitude": location.lat_lon[0],
                 "longitude": location.lat_lon[1],
-                "hourly": "temperature_2m,precipitation,precipitation_probability,visibility",
+                "hourly": "temperature_2m,precipitation,precipitationChance,visibility",
                 "timezone": "auto",
                 "forecast_days": 1
             }
@@ -197,7 +203,7 @@ class LocationServices:
             timestamps=weatherData.get("time", []),
             temperature=weatherData.get("temperature_2m", []),
             precipitation=weatherData.get("precipitation", []),
-            precipitation_probability=weatherData.get("precipitation_probability", []),
+            precipitationChance=weatherData.get("precipitationChance", []),
             visibility=weatherData.get("visibility", [])
         )
 
@@ -208,7 +214,7 @@ class LocationServices:
                 "timestamps": weatherStats.timestamps,
                 "temperature": weatherStats.temperature,
                 "precipitation": weatherStats.precipitation,
-                "precipitationChance": weatherStats.precipitation_probability,
+                "precipitationChance": weatherStats.precipitationChance,
                 "visibility": weatherStats.visibility
             },
             parentPath="location.weatherStats"

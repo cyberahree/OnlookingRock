@@ -86,7 +86,7 @@ class SpeechBubbleController(QWidget):
         self,
         text: str,
         duration: Optional[int] = None
-    ):
+    ) -> Optional[int]:
         """
         add a speech message to the queue for display.
         
@@ -94,6 +94,8 @@ class SpeechBubbleController(QWidget):
         :type text: str
         :param duration: Display duration in milliseconds (auto-calculated if None)
         :type duration: Optional[int]
+        :return: The duration the message will be displayed for
+        :rtype: Optional[int]
         """
 
         if self.shuttingDown:
@@ -121,6 +123,8 @@ class SpeechBubbleController(QWidget):
 
         if not self.active:
             self._showNext()
+
+        return duration
 
     def askSpeech(
         self,
