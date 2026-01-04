@@ -246,7 +246,6 @@ class EventManager(QObject):
         
         try:
             chosenEvent = random.choices(runnable, weights=weights, k=1)[0]
-            print(chosenEvent)
             return chosenEvent
         except Exception as e:
             logger.error(f"Error picking weighted event: {e}")

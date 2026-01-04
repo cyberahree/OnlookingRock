@@ -171,8 +171,14 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         rootLayout.addWidget(secondaryRow)
         rootLayout.addWidget(Divider())
 
-        # permissions
-        rootLayout.addWidget(BodyLabel("Permissions", selectable=False))
+        # preferences
+        rootLayout.addWidget(BodyLabel("Preferences", selectable=False))
+        preferMetricRow, self._preferMetricSwitch, self._preferMetricStateLabel = buildSwitchRow(
+            "Prefer Metric",
+            onChanged=lambda v: self._applyKeyValue("preferMetric", v),
+        )
+        rootLayout.addWidget(preferMetricRow)
+
         geoIpRow, self._geoIpSwitch, self._geoIpStateLabel = buildSwitchRow(
             "GeoIP fetching",
             onChanged=lambda v: self._applyKeyValue("allowedGeoIpFetch", v),
@@ -237,6 +243,8 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
             self.config.setValue("sprite.refreshRates.primaryLoop", value)
         elif key == "secondaryLoop":
             self.config.setValue("sprite.refreshRates.secondaryLoop", value)
+        elif key == "preferMetric":
+            self.config.setValue("location.preferMetric", value)
         elif key == "allowedGeoIpFetch":
             self.config.setValue("location.allowedGeoIpFetch", value)
 
@@ -320,7 +328,17 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         self._secondaryLoopSpinBox.setValue(secondaryLoop)
         self._secondaryLoopSpinBox.blockSignals(False)
 
-        # permissions
+        # preferences
+        try:
+            preferMetric = bool(self.config.getValue("location.preferMetric"))
+        except Exception:
+            preferMetric = True
+
+        self._preferMetricSwitch.blockSignals(True)
+        self._preferMetricSwitch.setChecked(preferMetric)
+        self._preferMetricStateLabel.setText("enabled" if preferMetric else "disabled")
+        self._preferMetricSwitch.blockSignals(False)
+
         try:
             allowedGeoIpFetch = bool(self.config.getValue("location.allowedGeoIpFetch"))
         except Exception:
