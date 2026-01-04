@@ -15,7 +15,7 @@ BLINK_COMBINATION = ("idle", "blink")
 DRAG_COMBINATION = ("idle", "dragged")
 IDLE_COMBINATION = ("idle", "idle")
 
-SLEEP_DELTA_THRESHOLD = 120
+SLEEP_DELTA_THRESHOLD = 300
 SCALING_LIMITS = (0.1, 2.0)
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ EMOTION_DECISION_TABLE: list[ReactionRule] = [
         name="tired_low",
         mood=TIRED_COMBINATION,
         priority=50,
-        predicate=lambda m: (m.idleTime < SLEEP_DELTA_THRESHOLD / (1/4))
+        predicate=lambda m: (m.idleTime < SLEEP_DELTA_THRESHOLD * 3 / 4)
         and (m.activityLevel < 0.15 and m.keysPerSecond < 1.5),
     ),
     ReactionRule(
@@ -196,7 +196,7 @@ class SpriteSystem:
 
         scale = limitScale(scale)
 
-        if not scale in self.cachedPixmaps:
+        if scale not in self.cachedPixmaps:
             self.cachedPixmaps[scale] = PixmapCache()
         else:
             # check if already cached
@@ -342,7 +342,12 @@ class SpriteSystem:
         logger.debug("metrics=%s", metrics)
         
         # "best" = highest priority rule that matches right now
-        for rule in sorted(rules, key=lambda r: r.priority, reverse=True):
+        if rules is EMOTION_DECISION_TABLE:
+            ordered_rules = rules
+        else:
+            ordered_rules = sorted(rules, key=lambda r: r.priority, reverse=True)
+
+        for rule in ordered_rules:
             if not rule.predicate(metrics):
                 continue
 
@@ -362,14 +367,5 @@ class SpriteSystem:
             return IDLE_COMBINATION
         
         idle = time.time() - self.keyListener.lastKeyPress
-
-        # no activity = asleep
-        # factz
-        if idle >= SLEEP_DELTA_THRESHOLD:
-            return ASLEEP_COMBINATION
-
-        # tired mode
-        if idle >= (SLEEP_DELTA_THRESHOLD / 3):
-            return TIRED_COMBINATION
     
         return self.chooseMood(idle)

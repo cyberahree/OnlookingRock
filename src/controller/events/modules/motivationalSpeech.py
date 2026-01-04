@@ -12,8 +12,9 @@ class MotivationEvent(BaseEvent):
     cooldownSeconds = 400
 
     def canRun(self, context: EventContext) -> bool:
-        if len(context.speech.queue) > 0:
+        if len(context.speech.queue) > 0 or context.speech.active:
             return False
+
         return True
 
     def run(

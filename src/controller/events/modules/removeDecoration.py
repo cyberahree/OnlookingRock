@@ -18,7 +18,7 @@ class RemoveDecorationEvent(BaseEvent):
         if len(context.scene.getEntities()) < 1:
             return False
         
-        if len(context.speech.queue) > 0:
+        if len(context.speech.queue) > 0 or context.speech.active:
                 return False
         return True
 

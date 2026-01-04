@@ -27,6 +27,10 @@ class RandomThoughtEvent(BaseEvent):
     def canRun(self, context: EventContext) -> bool:
         if len(context.speech.queue) > 0:
             return False
+
+        if len(context.speech.queue) > 0 or context.speech.active:
+                return False
+
         return True
 
     def run(

@@ -18,7 +18,7 @@ class NapEvent(BaseEvent):
             if context.sprite.dragger.isDragging:
                 return False
             
-            if len(context.speech.queue) > 0:
+            if len(context.speech.queue) > 0 or context.speech.active:
                 return False
         except Exception:
             pass
