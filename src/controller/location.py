@@ -52,6 +52,10 @@ class WeatherData:
     precipitationUnit: str = "mm"
     visibilityUnit: str = "km"
 
+temperatureAsFarenheit: float = lambda temperatureC: (temperatureC * 9/5) + 32
+precipitationAsInches: float = lambda precipitationMm: precipitationMm / 25.4
+visibilityAsMiles: float = lambda visibilityKm: visibilityKm / 1.60934
+
 class LocationServices:
     """
     manages application permissions and related functionality
@@ -157,31 +161,6 @@ class LocationServices:
 
         return locationObject
 
-    def convertToImperial(
-        self,
-        temperatureC: float,
-        precipitationMm: float,
-        visibilityKm: float
-    ) -> tuple[float, float, float]:
-        """
-        converts the given weather data to imperial units
-
-        :param temperatureC: temperature in celsius
-        :type temperatureC: float
-        :param precipitationMm: precipitation in millimetres
-        :type precipitationMm: float
-        :param visibilityKm: visibility in kilometres
-        :type visibilityKm: float
-        
-        :return: the converted (temperatureF, precipitationIn, visibilityMi)
-        :rtype: tuple[float, float, float]
-        """
-        temperatureF = (temperatureC * 9/5) + 32
-        precipitationIn = precipitationMm / 25.4
-        visibilityMi = visibilityKm / 1.60934
-
-        return (temperatureF, precipitationIn, visibilityMi)
-
     def getWeatherData(self, location: Location = None) -> Optional[WeatherData]:
         """
         gets weather data for the given location if permission is granted
@@ -255,11 +234,11 @@ class LocationServices:
             for visMetres in weatherData.get("visibility", []):
                 visibilityKm.append(visMetres / 1000.0)
 
-            timestamps = unixTimestamps
-            temperature = weatherData.get("temperature_2m", [])
-            precipitation = weatherData.get("precipitation", [])
-            precipitationChance = weatherData.get("precipitation_probability", [])
-            visibility = visibilityKm
+            timestamps: list[int] = unixTimestamps
+            temperature: list[float] = weatherData.get("temperature_2m", [])
+            precipitation: list[float] = weatherData.get("precipitation", [])
+            precipitationChance: list[float] = weatherData.get("precipitation_probability", [])
+            visibility: list[float] = visibilityKm
 
             # 2.5) update cached weather stats
             self.config.bulkSetValues(
@@ -279,22 +258,25 @@ class LocationServices:
             convertedTemperature = []
             convertedPrecipitation = []
             convertedVisibility = []
-            min_len = min(len(temperature), len(precipitation), len(visibility))
 
-            for i in range(min_len):
+            minLen = min(len(temperature), len(precipitation), len(visibility))
+
+            for i in range(minLen):
                 tempC = temperature[i]
                 precipMm = precipitation[i]
                 visKm = visibility[i]
 
-                tempF, precipIn, visMi = self.convertToImperial(
-                    tempC,
-                    precipMm,
-                    visKm
+                convertedTemperature.append(
+                    temperatureAsFarenheit(tempC)
                 )
 
-                convertedTemperature.append(tempF)
-                convertedPrecipitation.append(precipIn)
-                convertedVisibility.append(visMi)
+                convertedPrecipitation.append(
+                    precipitationAsInches(precipMm)
+                )
+
+                convertedVisibility.append(
+                    visibilityAsMiles(visKm)
+                )
 
             temperature = convertedTemperature
             precipitation = convertedPrecipitation
