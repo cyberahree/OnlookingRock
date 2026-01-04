@@ -11,6 +11,8 @@ from ..base import BaseEvent
 from PySide6.QtCore import QTimer
 from typing import Callable
 
+import time
+
 class WeatherEvent(BaseEvent):
     id = "weather"
     weight = 0.35
@@ -22,7 +24,7 @@ class WeatherEvent(BaseEvent):
         
         locationServices = context.sprite.locationServices
 
-        if not locationServices.getLocation():
+        if not locationServices.locationPermissionAllowed():
             return False
 
         return True
@@ -43,22 +45,42 @@ class WeatherEvent(BaseEvent):
         locationServices = context.sprite.locationServices
         weatherData = locationServices.getWeatherData()
 
-        print(weatherData)
+        if weatherData is None or not weatherData.timestamps:
+            self.lock.release()
+            self.onFinished()
+            return
+
+        # find the current hour's weather data
+        currentTime = int(time.time())
+        closestIndex = 0
+        minDiff = abs(weatherData.timestamps[0] - currentTime)
+
+        for i, timestamp in enumerate(weatherData.timestamps):
+            diff = abs(timestamp - currentTime)
+            if diff < minDiff:
+                minDiff = diff
+                closestIndex = i
+
+        # extract current hour's values
+        currentTemp = round(weatherData.temperature[closestIndex], 1)
+        currentVisibility = int(weatherData.visibility[closestIndex])
+        currentPrecipitation = round(weatherData.precipitation[closestIndex], 1)
+        currentPrecipChance = weatherData.precipitationChance[closestIndex]
 
         messages = [
             pickRandom(
                 WEATHER_TEMPERATURE_TEMPLATES
-            ).format(weatherData.temperature),
+            ).format(currentTemp),
 
             pickRandom(
                 WEATHER_VISIBILITY_TEMPLATES
-            ).format(weatherData.visibility),
+            ).format(currentVisibility),
 
             pickRandom(
                 WEATHER_PRECIPITATION_TEMPLATES
             ).format(
-                amount = weatherData.precipitation,
-                chance = weatherData.precipitationChance
+                amount=currentPrecipitation,
+                chance=currentPrecipChance
             )
         ]
 

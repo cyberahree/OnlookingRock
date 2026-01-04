@@ -55,7 +55,9 @@
             "ip": "127.0.0.1",
             
             "country": "Unknown",
-            "city": "Unknown"
+            "city": "Unknown",
+            "lat": 0.0,
+            "lon": 0.0
         }
     }
 }

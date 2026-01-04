@@ -27,6 +27,7 @@ class JokeEvent(BaseEvent):
         self.lock = context.lock(
             self.id,
             "petting",
+            "autopilot"
         )
 
         response = requests.get("https://official-joke-api.appspot.com/random_joke", timeout=5)
@@ -36,8 +37,8 @@ class JokeEvent(BaseEvent):
         
         if response.ok:
             jokeData = response.json()
-            setup = jokeData.get("setup", "")
-            punchline = jokeData.get("punchline", "")        
+            setup = jokeData.get("setup", "").lower()
+            punchline = jokeData.get("punchline", "").lower()        
 
         totalDuration = 0
 

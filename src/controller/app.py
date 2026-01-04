@@ -606,7 +606,7 @@ class RockinWindow(QWidget):
         self.spritePetting = self.pettingController.update()
 
         if self.spritePetting:
-            if not self.previouslyPetting:
+            if (not self.previouslyPetting) and len(self.speechBubble.queue) < 1 and (not self.speechBubble.active):
                 self.speechBubble.addSpeech(
                     pickRandom(CUTE_FACES)
                 )
@@ -617,8 +617,8 @@ class RockinWindow(QWidget):
             )
 
             return
-        
-        self.previouslyPetting = False
+        else:
+            self.previouslyPetting = False
         
         # 2) otherwise, update sprite features based on keyboard
         #    state or a dragging state

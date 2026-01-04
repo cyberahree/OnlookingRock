@@ -7,7 +7,7 @@ import requests
 import random
 import time
 
-IP_API = "https://ip-api.com/json/"
+IP_API = "http://ip-api.com/json/"
 OPEN_METEO = "https://api.open-meteo.com/v1/forecast"
 
 IP_LOCATION_CUTOFF_SECONDS = (60 * 60 * 24) # 24 hours
@@ -73,6 +73,16 @@ class LocationServices:
             
         return "today"
 
+    def locationPermissionAllowed(self) -> bool:
+        """
+        checks if location fetching is allowed by user configuration
+
+        :return: whether location fetching is allowed
+        :rtype: bool
+        """
+
+        return (self.config.getValue("location.allowedGeoIpFetch") == True)
+
     def getLocation(self) -> Optional[Location]:
         """
         gets an inaccurate location using ip geolocation
@@ -80,20 +90,18 @@ class LocationServices:
         :return: the inaccurate location or None if unavailable
         :rtype: Optional[Location]
         """
-        allowedGeoIpFetch = self.config.getValue("location.allowedGeoIpFetch")
-
-        if not allowedGeoIpFetch:
+        if not self.locationPermissionAllowed():
             return None
         
-        lastFetchTimestamp = self.config.getValue("location.geoIpFetchTimestamp")
+        lastFetchTimestamp = self.config.getValue("location.ipStats.lastUpdated")
 
         currentTimestamp = time.time()
 
         if (currentTimestamp - lastFetchTimestamp) < IP_LOCATION_CUTOFF_SECONDS:
-            cachedCity = self.config.getValue("location.city")
-            cachedCountry = self.config.getValue("location.country")
-            cachedLat = self.config.getValue("location.latitude")
-            cachedLon = self.config.getValue("location.longitude")
+            cachedCity = self.config.getValue("location.ipStats.city")
+            cachedCountry = self.config.getValue("location.ipStats.country")
+            cachedLat = self.config.getValue("location.ipStats.lat")
+            cachedLon = self.config.getValue("location.ipStats.lon")
 
             hasCoordinates = (cachedLat is not None) and (cachedLon is not None)
 
@@ -125,13 +133,13 @@ class LocationServices:
         # update cached location info
         self.config.bulkSetValues(
             {
-                "geoIpFetchTimestamp": currentTimestamp,
+                "lastUpdated": currentTimestamp,
                 "city": locationObject.city,
                 "country": locationObject.country,
-                "latitude": latitude,
-                "longitude": longitude
+                "lat": latitude,
+                "lon": longitude
             },
-            parentPath="location"
+            parentPath="location.ipStats"
         )
 
         return locationObject
@@ -158,7 +166,7 @@ class LocationServices:
             return None
 
         cachedWeatherStats = self.config.getValue("location.weatherStats")
-        lastCacheTimestamp = cachedWeatherStats.get("lastFetchTimestamp", 0)
+        lastCacheTimestamp = cachedWeatherStats.get("lastUpdated", 0)
 
         currentTimestamp = time.time()
 
@@ -176,7 +184,7 @@ class LocationServices:
             params={
                 "latitude": location.lat_lon[0],
                 "longitude": location.lat_lon[1],
-                "hourly": "temperature_2m,precipitation,precipitationChance,visibility",
+                "hourly": "temperature_2m,precipitation,precipitation_probability,visibility",
                 "timezone": "auto",
                 "forecast_days": 1
             }
@@ -184,7 +192,7 @@ class LocationServices:
 
         if not weatherResponse.ok:
             return None
-        
+
         weatherData = weatherResponse.json().get("hourly")
 
         if weatherData is None:
@@ -203,14 +211,14 @@ class LocationServices:
             timestamps=weatherData.get("time", []),
             temperature=weatherData.get("temperature_2m", []),
             precipitation=weatherData.get("precipitation", []),
-            precipitationChance=weatherData.get("precipitationChance", []),
+            precipitationChance=weatherData.get("precipitation_probability", []),
             visibility=weatherData.get("visibility", [])
         )
 
         # update cached weather stats
         self.config.bulkSetValues(
             {
-                "lastFetchTimestamp": currentTimestamp,
+                "lastUpdated": currentTimestamp,
                 "timestamps": weatherStats.timestamps,
                 "temperature": weatherStats.temperature,
                 "precipitation": weatherStats.precipitation,
