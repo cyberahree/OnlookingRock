@@ -1,7 +1,10 @@
-from ..sprite.speech import SpeechBubbleController
+from ..interfaces.windows.mediaview import MediaViewWindow
+
 from ..system.sound import SoundManager
 from ..config import ConfigController
 from ..scene import SceneSystem
+
+from ..sprite.speech import SpeechBubbleController
 
 from .flags import InteractabilityFlags
 from .discovery import discoverEvents
@@ -38,6 +41,7 @@ class EventManager(QObject):
         soundManager: SoundManager,
         sceneSystem: SceneSystem,
         speechBubble: SpeechBubbleController,
+        mediaView: MediaViewWindow,
         canRun: Optional[Callable[[], bool]] = None
     ):
         """
@@ -59,6 +63,7 @@ class EventManager(QObject):
         self.soundManager = soundManager
         self.sceneSystem = sceneSystem
         self.speechBubble = speechBubble
+        self.mediaView = mediaView
 
         self.eventsEnabled = True
         self.startupMinimumDelay = 15
@@ -368,7 +373,8 @@ class EventManager(QObject):
             flags=self.flags,
             soundManager=self.soundManager,
             sceneSystem=self.sceneSystem,
-            speechBubble=self.speechBubble
+            speechBubble=self.speechBubble,
+            mediaView=self.mediaView
         )
 
         candidateEvent = self.pickWeightedEvent(context)

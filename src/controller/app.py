@@ -11,6 +11,7 @@ from .interfaces.windows.startmenu import StartMenuComponent, MenuAction
 from .interfaces.windows.volume import VolumeWindowComponent
 from .interfaces.windows.sprite import SpriteWindowComponent
 from .interfaces.windows.scene import SceneWindowComponent
+from .interfaces.windows.mediaview import MediaViewWindow
 from .interfaces.base import InterfaceManager
 
 from .sprite.petting import CircularPettingController
@@ -199,6 +200,11 @@ class RockinWindow(QWidget):
             self.sceneSystem
         )
 
+        self.mediaView = MediaViewWindow(
+            self,
+            self.secondaryClock
+        )
+
         self.startMenu = StartMenuComponent(
             self,
             [
@@ -219,7 +225,8 @@ class RockinWindow(QWidget):
                 self.startMenu,
                 self.volumeEditor,
                 self.spriteEditor,
-                self.sceneEditor
+                self.sceneEditor,
+                self.mediaView
             ]
         )
 
@@ -252,6 +259,12 @@ class RockinWindow(QWidget):
             True
         )
 
+        self.interfaceManager.registerComponent(
+            "mediaView",
+            self.mediaView,
+            False
+        )
+
         #####################
         # 8) events manager #
         #####################
@@ -262,6 +275,7 @@ class RockinWindow(QWidget):
             soundManager=self.soundManager,
             sceneSystem=self.sceneSystem,
             speechBubble=self.speechBubble,
+            mediaView=self.mediaView,
             canRun=lambda: (
                 self.spriteReady
                 and (not self.dragger.isDragging)

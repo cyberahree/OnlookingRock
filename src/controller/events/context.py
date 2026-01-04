@@ -1,3 +1,5 @@
+from ..interfaces.windows.mediaview import MediaViewWindow
+
 from ..system.sound import SoundCategory, SoundManager
 from ..scene.model import DecorationEntity, SceneModel
 from ..scene.editor import SceneEditorController
@@ -223,6 +225,7 @@ class EventContext:
         flags: InteractabilityFlags,
         soundManager: SoundManager,
         sceneSystem,
+        mediaView: MediaViewWindow,
         speechBubble
     ):
         self.sprite = sprite
@@ -231,6 +234,7 @@ class EventContext:
         self.scene = SceneActions(sprite, sceneSystem)
         self.sceneSystem = sceneSystem
         self.speech = speechBubble
+        self.mediaView = mediaView
         self._spriteMoveAnimation: Optional[QPropertyAnimation] = None
 
     def lock(

@@ -35,6 +35,9 @@ def main():
     # logging
     setLogging(arguments.debug)
 
+    # chromium flags
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu --disable-gpu-compositing --disable-features=WebCodecs --disable-accelerated-video-encode"
+
     # start application
     from .app import RockinWindow
 
