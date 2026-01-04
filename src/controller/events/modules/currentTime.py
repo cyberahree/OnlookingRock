@@ -6,13 +6,13 @@ from typing import Callable
 
 import random
 
-
 class TimeEvent(BaseEvent):
     id = "time"
     weight = 0.45
     cooldownSeconds = 500
 
     time_phrases = [
+        # TODO: more appropriate time-based phrases
         "Time flies when you're having fun!",
         "Remember, time is precious, use it wisely.",
         "It's a great time to take a break!",

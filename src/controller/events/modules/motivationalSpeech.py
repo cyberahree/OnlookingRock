@@ -40,11 +40,11 @@ class MotivationEvent(BaseEvent):
         if response.ok:
             quoteData = response.json()
             
-            quote = quoteData.get("quote", quote)
-            author = quoteData.get("author", author)
+            quote = quoteData.get("quote", quote).lower()
+            author = quoteData.get("author", author).lower()
 
         duration = context.speech.addSpeech(
-            f"{quote} - by {author}"
+            f"{quote} -{author}"
         )
 
         QTimer.singleShot(duration + 150, lambda: self.lock.release() or self.onFinished())

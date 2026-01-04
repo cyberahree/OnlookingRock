@@ -339,8 +339,7 @@ class SpriteSystem:
                 averageDelta=self.keyListener.getAverageDelta()
             )
 
-        # TODO: uncomment
-        #logger.debug("metrics=%s", metrics)
+        logger.debug("metrics=%s", metrics)
         
         # "best" = highest priority rule that matches right now
         for rule in sorted(rules, key=lambda r: r.priority, reverse=True):

@@ -34,7 +34,7 @@ class UselessFactEvent(BaseEvent):
         response = requests.get("https://uselessfacts.jsph.pl/api/v2/facts/random", timeout=5)
 
         if response.ok:
-            fact = response.json().get("text", "i couldnt understand what the fact was.. :<")
+            fact = response.json().get("text", "i couldnt understand what the fact was.. :<").lower()
 
         duration = self.context.speech.addSpeech(fact)
         QTimer.singleShot(duration + 150, lambda: self.lock.release() or self.onFinished())

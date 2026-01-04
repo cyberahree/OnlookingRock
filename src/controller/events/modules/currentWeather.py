@@ -32,6 +32,7 @@ class WeatherEvent(BaseEvent):
         context: EventContext,
         onFinished: Callable[[], None]
     ):
+        # TODO: fix
         self.context = context
         self.onFinished = onFinished
         self.lock = context.lock(
@@ -45,6 +46,8 @@ class WeatherEvent(BaseEvent):
 
         locationServices = context.sprite.locationServices
         weatherData = locationServices.getWeatherData()
+
+        print(weatherData)
 
         messages = [
             pickRandom(

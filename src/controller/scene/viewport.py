@@ -209,9 +209,6 @@ class SceneViewportWindow(QWidget):
         self.model.entityUpdated.connect(self._onEntityChanged)
         self.model.entityRemoved.connect(self._onEntityRemoved)
 
-        # TODO: implement physics
-        clock.timer.timeout.connect(lambda: None)
-
     # events
     def resizeEvent(self, event):
         """
