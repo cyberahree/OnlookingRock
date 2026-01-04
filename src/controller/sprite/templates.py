@@ -66,28 +66,35 @@ CUTE_FACES = [
 ]
 
 WEATHER_TEMPERATURE_TEMPLATES = [
-    "it's currently {}°C outside",
-    "the temperature right now is {}°C",
-    "it's a {} degree Celsius day",
-    "outside, it's about {}°C",
-    "the thermometer reads {}°C at the moment",
+    # formatting arguments:
+    # value = temperature value
+    # unit = C/F
+    "it's currently {value}°{unit} outside",
+    "the temperature right now is {value}°{unit}",
+    "it's a {value}°{unit} day",
+    "outside, it's about {value}°{unit}",
+    "the thermometer reads {value}°{unit} at the moment",
 ]
 
 WEATHER_VISIBILITY_TEMPLATES = [
-    "the visibility is currently {} metres",
-    "you can see up to {} metres right now",
-    "the visibility distance is around {} metres",
-    "it's about {} metres visibility at the moment",
-    "right now, the visibility is approximately {} metres",
+    # formatting arguments:
+    # value = visibility distance
+    # unit = kilometres/miles
+    "the visibility is currently {value} {unit}",
+    "you can see up to {value} {unit} right now",
+    "the visibility distance is around {value} {unit}",
+    "it's about {value} {unit} visibility at the moment",
+    "right now, the visibility is approximately {value} {unit}",
 ]
 
 WEATHER_PRECIPITATION_TEMPLATES = [
     # formatting argunments:
-    # amount = millimeters
+    # value = millimeters
     # chance = percentage
-    "theres's a {chance}% chance of precipitation with {amount}mm expected",
-    "expect around {amount}mm of precipitation, with a {chance}% chance",
-    "the forecast shows a {chance}% chance of precipitation, with {amount}mm likely",
-    "precipitation is expected at {amount}mm, with a {chance}% chance",
-    "currently, there's a {chance}% chance of precipitation, with {amount}mm anticipated",
+    # unit = millimetres/inches
+    "theres's a {chance}% chance of precipitation with {value} {unit} expected",
+    "expect around {value} {unit} of precipitation, with a {chance}% chance",
+    "the forecast shows a {chance}% chance of precipitation, with {value} {unit} likely",
+    "precipitation is expected at {value} {unit}, with a {chance}% chance",
+    "currently, there's a {chance}% chance of precipitation, with {value} {unit} anticipated",
 ]

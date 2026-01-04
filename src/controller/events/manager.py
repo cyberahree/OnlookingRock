@@ -417,7 +417,8 @@ class EventManager(QObject):
             flags=self.flags,
             soundManager=self.soundManager,
             sceneSystem=self.sceneSystem,
-            speechBubble=self.speechBubble
+            speechBubble=self.speechBubble,
+            mediaView=self.mediaView
         )
         
         candidateEvent = self.pickWeightedEvent(context)

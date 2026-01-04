@@ -3,3 +3,4 @@ pyside6_addons>=6.10.1
 platformdirs>=4.5.1
 pyside6>=6.10.1
 pynput>=1.8.1
+matplotlib>=3.7.0

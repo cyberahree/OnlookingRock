@@ -470,7 +470,7 @@ class RockinWindow(QWidget):
             self.locationServices.getFriendlyLocalTime()
         )
 
-        if (userNick is None) or (userNick == "<USERNAME>"):
+        """if (userNick is None) or (userNick == "<USERNAME>"):
             def nameInputted(name):
                 self.config.setValue("sprite.userNick", name)
                 self.speechBubble.addSpeech(f"nice to meet you, {name}! :3")
@@ -490,7 +490,7 @@ class RockinWindow(QWidget):
         else:
             self.speechBubble.addSpeech(f"hey there {userNick}! :3")
             self.speechBubble.addSpeech(timeDescription)
-            self.speechBubble.addSpeech(pickRandom(USER_FEELING_TEMPLATE).format(userNick))
+            self.speechBubble.addSpeech(pickRandom(USER_FEELING_TEMPLATE).format(userNick))"""
 
         sys.exit(APPLICATION.exec_())
 

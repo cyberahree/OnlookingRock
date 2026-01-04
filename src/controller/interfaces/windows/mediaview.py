@@ -12,7 +12,7 @@ from ..base.lookskit import (
 
 from ..base.styling import BORDER_MARGIN, PADDING
 
-from PySide6.QtCore import QEvent, QSize, Qt, QUrl, Signal, QTimer
+from PySide6.QtCore import QSize, Qt, QUrl, Signal, QTimer, QEvent
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtGui import QDesktopServices, QPixmap
 
@@ -22,7 +22,8 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QStackedWidget,
     QVBoxLayout,
-    QWidget
+    QWidget,
+    QSizePolicy
 )
 
 from typing import Optional
@@ -144,11 +145,17 @@ class MediaViewWindow(InterfaceComponent, SpriteAnchorMixin):
         self.imageLabel.setAlignment(Qt.AlignCenter)
         self.imageLabel.setMinimumSize(1, 1)
 
+        self.imageLabel.setSizePolicy(
+            QSizePolicy.Ignored,
+            QSizePolicy.Ignored
+        )
+
         self.imageScroll = QScrollArea()
         self.imageScroll.setWidgetResizable(True)
         self.imageScroll.setFrameShape(QScrollArea.NoFrame)
         self.imageScroll.setWidget(self.imageLabel)
 
+        self.imageScroll.viewport().installEventFilter(self)
         self.stack.addWidget(self.imageScroll)
 
         # 2) web page
@@ -175,6 +182,12 @@ class MediaViewWindow(InterfaceComponent, SpriteAnchorMixin):
         )
 
         self.animateTo(target)
+
+    def eventFilter(self, watched, event):
+        if (watched is self.imageScroll.viewport()) and event.type() == QEvent.Resize:
+            self._applyScaledPixmap()
+
+        return super().eventFilter(watched, event)
 
     def resizeEvent(self, event):
         """
@@ -240,15 +253,15 @@ class MediaViewWindow(InterfaceComponent, SpriteAnchorMixin):
         """
         self.ensureBuilt()
 
-        self.lastPixmap = pixmap
-        self._applyScaledPixmap()
-
         self.titleLabel.setText(title)
         self.stack.setCurrentIndex(self.IMAGE_PAGE_INDEX)
         self.openBrowserButton.setVisible(False)
 
         if openPanel:
             self.open()
+
+        self.lastPixmap = pixmap
+        QTimer.singleShot(0, self._syncImageToViewport)
 
     def showImagefromBytes(
         self,
@@ -390,6 +403,54 @@ class MediaViewWindow(InterfaceComponent, SpriteAnchorMixin):
                 </body>
             </html>
         """
+
+    def _syncImageToViewport(self) -> None:
+        self._resizeWindowToFitPixmap()
+        self._applyScaledPixmap()
+
+    def _resizeWindowToFitPixmap(self) -> None:
+        if self.stack.currentIndex() != self.IMAGE_PAGE_INDEX:
+            return
+
+        if not self.lastPixmap or self.lastPixmap.isNull():
+            return
+
+        viewport = self.imageScroll.viewport().size()
+        if viewport.width() <= 5 or viewport.height() <= 5:
+            return
+
+        chromeWidth = self.width() - viewport.width()
+        chromeHeight = self.height() - viewport.height()
+
+        maxViewWidth = max(1, MAX_SIZE.width() - chromeWidth)
+        maxViewHeight = max(1, MAX_SIZE.height() - chromeHeight)
+        minViewWidth = max(1, MIN_SIZE.width() - chromeWidth)
+        minViewHeight = max(1, MIN_SIZE.height() - chromeHeight)
+
+        imageWidth = self.lastPixmap.width()
+        imageHeight = self.lastPixmap.height()
+
+        if imageWidth <= 0 or imageHeight <= 0:
+            return
+
+        scale = min(maxViewWidth / imageWidth, maxViewHeight / imageHeight)
+
+        minScale = max(minViewWidth / imageWidth, minViewHeight / imageHeight)
+        scale = max(scale, minScale)
+        scale = min(scale, min(maxViewWidth / imageWidth, maxViewHeight / imageHeight))
+
+        targetViewWidth = int(imageWidth * scale)
+        targetViewHeight = int(imageHeight * scale)
+
+        targetWidth = targetViewWidth + chromeWidth
+        targetHeight = targetViewHeight + chromeHeight
+
+        targetWidth = max(MIN_SIZE.width(), min(MAX_SIZE.width(), targetWidth))
+        targetHeight = max(MIN_SIZE.height(), min(MAX_SIZE.height(), targetHeight))
+
+        if targetWidth != self.width() or targetHeight != self.height():
+            self.resize(targetWidth, targetHeight)
+            self._reposition()
 
     def _applyScaledPixmap(self) -> None:
         """

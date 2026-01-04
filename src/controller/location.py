@@ -25,6 +25,12 @@ TIME_DESCRIPTIONS = {
     (20, 23): ["night", "nighttime", "evening"]
 }
 
+UNITS = [
+    # temperature, precipitation, visibility
+    ["C", "millimetres", "kilometres"], # metric
+    ["F", "inches", "miles"]  # imperial
+]
+
 @dataclass
 class Location:
     city: str
@@ -40,7 +46,11 @@ class WeatherData:
     temperature: list[float] # c
     precipitation: list[float] # mm
     precipitationChance: list[float] # %
-    visibility: list[float] # metres
+    visibility: list[float] # km
+
+    temperatureUnit: str = "C"
+    precipitationUnit: str = "mm"
+    visibilityUnit: str = "km"
 
 class LocationServices:
     """
@@ -97,7 +107,10 @@ class LocationServices:
 
         currentTimestamp = time.time()
 
-        if (currentTimestamp - lastFetchTimestamp) < IP_LOCATION_CUTOFF_SECONDS:
+        if (
+            lastFetchTimestamp is not None
+            and (currentTimestamp - lastFetchTimestamp) < IP_LOCATION_CUTOFF_SECONDS
+        ):
             cachedCity = self.config.getValue("location.ipStats.city")
             cachedCountry = self.config.getValue("location.ipStats.country")
             cachedLat = self.config.getValue("location.ipStats.lat")
@@ -111,7 +124,7 @@ class LocationServices:
                 lat_lon=(cachedLat, cachedLon) if hasCoordinates else None
             )
 
-        ipResponse = requests.get(IP_API)
+        ipResponse = requests.get(IP_API, timeout=10)
 
         if not ipResponse.ok:
             return None
@@ -144,6 +157,31 @@ class LocationServices:
 
         return locationObject
 
+    def convertToImperial(
+        self,
+        temperatureC: float,
+        precipitationMm: float,
+        visibilityKm: float
+    ) -> tuple[float, float, float]:
+        """
+        converts the given weather data to imperial units
+
+        :param temperatureC: temperature in celsius
+        :type temperatureC: float
+        :param precipitationMm: precipitation in millimetres
+        :type precipitationMm: float
+        :param visibilityKm: visibility in kilometres
+        :type visibilityKm: float
+        
+        :return: the converted (temperatureF, precipitationIn, visibilityMi)
+        :rtype: tuple[float, float, float]
+        """
+        temperatureF = (temperatureC * 9/5) + 32
+        precipitationIn = precipitationMm / 25.4
+        visibilityMi = visibilityKm / 1.60934
+
+        return (temperatureF, precipitationIn, visibilityMi)
+
     def getWeatherData(self, location: Location = None) -> Optional[WeatherData]:
         """
         gets weather data for the given location if permission is granted
@@ -162,70 +200,115 @@ class LocationServices:
         if location is None:
             location = self.getLocation()
         
-        if location is None or location.lat_lon is None:
-            return None
+        cachedWeatherStats = self.config.getValue("location.weatherStats") or {}
 
-        cachedWeatherStats = self.config.getValue("location.weatherStats")
+        # cache object
         lastCacheTimestamp = cachedWeatherStats.get("lastUpdated", 0)
-
         currentTimestamp = time.time()
 
-        if (currentTimestamp - lastCacheTimestamp) < CACHE_CUTOFF_WEATHER_SECONDS:
-            return WeatherData(
-                timestamps=cachedWeatherStats.get("timestamps", []),
-                temperature=cachedWeatherStats.get("temperature", []),
-                precipitation=cachedWeatherStats.get("precipitation", []),
-                precipitationChance=cachedWeatherStats.get("precipitationChance", []),
-                visibility=cachedWeatherStats.get("visibility", [])
+        # units system
+        preferMetric = (self.config.getValue("location.preferMetric") == True)
+        unitSet = UNITS[0] if preferMetric else UNITS[1]
+
+        # 1) default to cached values (even if stale or empty)
+        timestamps = cachedWeatherStats.get("timestamps", [])
+        temperature = cachedWeatherStats.get("temperature", [])
+        precipitation = cachedWeatherStats.get("precipitation", [])
+        precipitationChance=cachedWeatherStats.get("precipitationChance", [])
+        visibility = cachedWeatherStats.get("visibility", [])
+
+        # 2) revalidate only if cache is stale, or doesnt exist
+        cacheDoesntExist = (lastCacheTimestamp == 0 or len(timestamps) == 0)
+        cacheIsStale =  (currentTimestamp - lastCacheTimestamp) >= CACHE_CUTOFF_WEATHER_SECONDS
+
+        if cacheDoesntExist or cacheIsStale:
+            # 2.1) collect new data
+            weatherResponse = requests.get(
+                OPEN_METEO,
+                params={
+                    "latitude": location.lat_lon[0],
+                    "longitude": location.lat_lon[1],
+                    "hourly": "temperature_2m,precipitation,precipitation_probability,visibility",
+                    "timezone": "auto",
+                    "forecast_days": 1
+                }
             )
-        
-        weatherResponse = requests.get(
-            OPEN_METEO,
-            params={
-                "latitude": location.lat_lon[0],
-                "longitude": location.lat_lon[1],
-                "hourly": "temperature_2m,precipitation,precipitation_probability,visibility",
-                "timezone": "auto",
-                "forecast_days": 1
-            }
+
+            # 2.2) failed to get weather data
+            if not weatherResponse.ok:
+                return None
+
+            weatherData = weatherResponse.json().get("hourly")
+
+            if weatherData is None:
+                return None
+            
+            # 2.3) convert timestamps to unix
+            unixTimestamps = []
+
+            for isoTimestamp in weatherData.get("time", []):
+                structTime = time.strptime(isoTimestamp, "%Y-%m-%dT%H:%M")
+                unixTimestamps.append(int(time.mktime(structTime)))
+
+            # 2.4) convert metres to kilometres
+            visibilityKm = []
+            for visMetres in weatherData.get("visibility", []):
+                visibilityKm.append(visMetres / 1000.0)
+
+            timestamps = unixTimestamps
+            temperature = weatherData.get("temperature_2m", [])
+            precipitation = weatherData.get("precipitation", [])
+            precipitationChance = weatherData.get("precipitation_probability", [])
+            visibility = visibilityKm
+
+            # 2.5) update cached weather stats
+            self.config.bulkSetValues(
+                {
+                    "lastUpdated": currentTimestamp,
+                    "timestamps": timestamps,
+                    "temperature": temperature,
+                    "precipitation": precipitation,
+                    "precipitationChance": precipitationChance,
+                    "visibility": visibility
+                },
+                parentPath="location.weatherStats"
+            )
+
+        # 3) convert to imperial if needed
+        if not preferMetric:
+            convertedTemperature = []
+            convertedPrecipitation = []
+            convertedVisibility = []
+            min_len = min(len(temperature), len(precipitation), len(visibility))
+
+            for i in range(min_len):
+                tempC = temperature[i]
+                precipMm = precipitation[i]
+                visKm = visibility[i]
+
+                tempF, precipIn, visMi = self.convertToImperial(
+                    tempC,
+                    precipMm,
+                    visKm
+                )
+
+                convertedTemperature.append(tempF)
+                convertedPrecipitation.append(precipIn)
+                convertedVisibility.append(visMi)
+
+            temperature = convertedTemperature
+            precipitation = convertedPrecipitation
+            visibility = convertedVisibility
+
+        # 4) return assembled weather data
+        return WeatherData(
+            timestamps=timestamps,
+            temperature=temperature,
+            precipitation=precipitation,
+            precipitationChance=precipitationChance,
+            visibility=visibility,
+
+            temperatureUnit=unitSet[0],
+            precipitationUnit=unitSet[1],
+            visibilityUnit=unitSet[2]
         )
-
-        if not weatherResponse.ok:
-            return None
-
-        weatherData = weatherResponse.json().get("hourly")
-
-        if weatherData is None:
-            return None
-        
-        # convert timestamps to unix
-        unixTimestamps = []
-
-        for isoTimestamp in weatherData.get("time", []):
-            structTime = time.strptime(isoTimestamp, "%Y-%m-%dT%H:%M")
-            unixTimestamps.append(int(time.mktime(structTime)))
-        
-        weatherData["time"] = unixTimestamps
-
-        weatherStats = WeatherData(
-            timestamps=weatherData.get("time", []),
-            temperature=weatherData.get("temperature_2m", []),
-            precipitation=weatherData.get("precipitation", []),
-            precipitationChance=weatherData.get("precipitation_probability", []),
-            visibility=weatherData.get("visibility", [])
-        )
-
-        # update cached weather stats
-        self.config.bulkSetValues(
-            {
-                "lastUpdated": currentTimestamp,
-                "timestamps": weatherStats.timestamps,
-                "temperature": weatherStats.temperature,
-                "precipitation": weatherStats.precipitation,
-                "precipitationChance": weatherStats.precipitationChance,
-                "visibility": weatherStats.visibility
-            },
-            parentPath="location.weatherStats"
-        )
-
-        return weatherStats
