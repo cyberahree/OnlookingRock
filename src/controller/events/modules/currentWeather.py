@@ -37,11 +37,7 @@ class WeatherEvent(BaseEvent):
         self.onFinished = onFinished
         self.lock = context.lock(
             self.id,
-            "drag",
-            "eyetrack",
-            "petting",
-            "blink",
-            "autopilot"
+            "petting"
         )
 
         locationServices = context.sprite.locationServices

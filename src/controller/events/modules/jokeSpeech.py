@@ -26,11 +26,7 @@ class JokeEvent(BaseEvent):
         self.onFinished = onFinished
         self.lock = context.lock(
             self.id,
-            "drag",
-            "eyetrack",
             "petting",
-            "blink",
-            "autopilot"
         )
 
         response = requests.get("https://official-joke-api.appspot.com/random_joke", timeout=5)

@@ -38,11 +38,7 @@ class RandomThoughtEvent(BaseEvent):
         self.onFinished = onFinished
         self.lock = context.lock(
             self.id,
-            "drag",
-            "eyetrack",
             "petting",
-            "blink",
-            "autopilot"
         )
 
         duration = context.speech.addSpeech(

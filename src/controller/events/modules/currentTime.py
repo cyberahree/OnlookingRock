@@ -36,11 +36,7 @@ class TimeEvent(BaseEvent):
         self.onFinished = onFinished
         self.lock = context.lock(
             self.id,
-            "drag",
-            "eyetrack",
-            "petting",
-            "blink",
-            "autopilot"
+            "petting"
         )
 
         duration = context.speech.addSpeech(

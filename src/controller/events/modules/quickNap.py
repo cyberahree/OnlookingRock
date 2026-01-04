@@ -35,8 +35,6 @@ class NapEvent(BaseEvent):
             "drag",
             "eyetrack",
             "petting",
-            "blink",
-            "autopilot"
         )
 
         sleepDuration = randint(4000, 7000)
