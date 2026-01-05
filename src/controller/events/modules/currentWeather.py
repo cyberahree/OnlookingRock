@@ -91,6 +91,8 @@ def _chooseVisibilityColor(
 
 class WeatherEvent(BaseEvent):
     id = "weather"
+    name = "Current Weather"
+
     weight = 0.35
     cooldownSeconds = 7200
 

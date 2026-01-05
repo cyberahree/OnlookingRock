@@ -10,6 +10,8 @@ import math
 
 class RemoveDecorationEvent(BaseEvent):
     id = "removeDecoration"
+    name = "Destructive Renovation"
+
     weight = 0.05
     cooldownSeconds = 600
 

@@ -11,14 +11,25 @@ class HeadingLabel(QLabel, _RockWidgetMixin):
         super().__init__(text, parent)
         self._setRole("heading")
         self.setFont(HEADING_FONT)
+        self.setWordWrap(True)
         self.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
 class SubheadingLabel(QLabel, _RockWidgetMixin):
-    def __init__(self, text: str = "", parent: Optional[QWidget] = None):
+    def __init__(
+        self,
+        text: str = "",
+        parent: Optional[QWidget] = None,
+        selectable: bool = False,
+    ):
         super().__init__(text, parent)
         self._setRole("subheading")
         self.setFont(SUBHEADING_FONT)
-        self.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.setWordWrap(True)
+
+        if selectable:
+            self.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        else:
+            self.setTextInteractionFlags(Qt.NoTextInteraction)
 
 class BodyLabel(QLabel, _RockWidgetMixin):
     def __init__(

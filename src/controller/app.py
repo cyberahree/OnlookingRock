@@ -8,6 +8,7 @@ from .system.timings import TimingClock
 from .scene import SceneSystem
 
 from .interfaces.windows.startmenu import StartMenuComponent, MenuAction
+from .interfaces.windows.event import EventPickerWindowComponent
 from .interfaces.windows.volume import VolumeWindowComponent
 from .interfaces.windows.sprite import SpriteWindowComponent
 from .interfaces.windows.scene import SceneWindowComponent
@@ -180,6 +181,32 @@ class RockinWindow(QWidget):
         ##############################
         self.interfaceManager = InterfaceManager(self)
 
+        self.startMenu = StartMenuComponent(
+            self,
+            [
+                MenuAction("triggerEvent", "events", lambda: self.interfaceManager.open("eventPicker"), "event"),
+                MenuAction("scene", "scene", lambda: self.interfaceManager.open("sceneEditor"), "scene"),
+                MenuAction("settings", "sprite", lambda: self.interfaceManager.open("spriteEditor"), "settings"),
+                MenuAction("editVolume", "volume", lambda: self.interfaceManager.open("volumeEditor"), "sound"),
+                MenuAction("quitSprite", "quit", self.triggerShutdown, "power")
+            ],
+            lambda: (not self.interfaceManager.isAnyOpen()) and self.eventInteractability.isEnabled("startmenu"),
+            self.secondaryClock
+        )
+
+        self.speechBubble = SpeechBubbleController(
+            self,
+            self.secondaryClock,
+            occludersProvider=lambda: [
+                self.startMenu,
+                self.volumeEditor,
+                self.spriteEditor,
+                self.sceneEditor,
+                self.mediaView,
+                self.eventPicker
+            ]
+        )
+
         self.volumeEditor = VolumeWindowComponent(
             self,
             self.secondaryClock,
@@ -205,29 +232,28 @@ class RockinWindow(QWidget):
             self.secondaryClock
         )
 
-        self.startMenu = StartMenuComponent(
-            self,
-            [
-                MenuAction("triggerEvent", "start event", lambda: self.eventManager.triggerRandomEvent(), "event"),
-                MenuAction("scene", "scene", lambda: self.interfaceManager.open("sceneEditor"), "scene"),
-                MenuAction("settings", "sprite", lambda: self.interfaceManager.open("spriteEditor"), "settings"),
-                MenuAction("editVolume", "volume", lambda: self.interfaceManager.open("volumeEditor"), "sound"),
-                MenuAction("quitSprite", "quit", self.triggerShutdown, "power")
-            ],
-            lambda: (not self.interfaceManager.isAnyOpen()) and self.eventInteractability.isEnabled("startmenu"),
-            self.secondaryClock
+        ####################
+        # 7.5) event stuff #
+        ####################
+        self.eventManager = EventManager(
+            sprite=self,
+            config=self.config,
+            flags=self.eventInteractability,
+            soundManager=self.soundManager,
+            sceneSystem=self.sceneSystem,
+            speechBubble=self.speechBubble,
+            mediaView=self.mediaView,
+            canRun=lambda: (
+                self.spriteReady
+                and (not self.dragger.isDragging)
+                and (not self.interfaceManager.isAnyOpen("startMenu"))
+            ),
         )
 
-        self.speechBubble = SpeechBubbleController(
+        self.eventPicker = EventPickerWindowComponent(
             self,
             self.secondaryClock,
-            occludersProvider=lambda: [
-                self.startMenu,
-                self.volumeEditor,
-                self.spriteEditor,
-                self.sceneEditor,
-                self.mediaView
-            ]
+            self.eventManager
         )
 
         self.interfaceManager.registerComponent(
@@ -265,22 +291,10 @@ class RockinWindow(QWidget):
             False
         )
 
-        #####################
-        # 8) events manager #
-        #####################
-        self.eventManager = EventManager(
-            sprite=self,
-            config=self.config,
-            flags=self.eventInteractability,
-            soundManager=self.soundManager,
-            sceneSystem=self.sceneSystem,
-            speechBubble=self.speechBubble,
-            mediaView=self.mediaView,
-            canRun=lambda: (
-                self.spriteReady
-                and (not self.dragger.isDragging)
-                and (not self.interfaceManager.isAnyOpen("startMenu"))
-            ),
+        self.interfaceManager.registerComponent(
+            "eventPicker",
+            self.eventPicker,
+            False
         )
 
         ###################################
@@ -628,6 +642,8 @@ class RockinWindow(QWidget):
 
         if self.spritePetting:
             if (not self.previouslyPetting) and len(self.speechBubble.queue) < 1 and (not self.speechBubble.active):
+                self.spriteSystem.keyListener.contributeActivity(0.33)
+
                 self.speechBubble.addSpeech(
                     pickRandom(CUTE_FACES)
                 )

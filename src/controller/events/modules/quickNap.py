@@ -9,6 +9,8 @@ from random import randint
 
 class NapEvent(BaseEvent):
     id = "nap"
+    name = "just a 'quick' nap..,,."
+
     weight = 0.6
     cooldownSeconds = 120
 

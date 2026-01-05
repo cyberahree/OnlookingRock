@@ -8,6 +8,8 @@ import requests
 
 class UselessFactEvent(BaseEvent):
     id = "uselessFact"
+    name = "Did you know..?"
+
     weight = 0.95
     cooldownSeconds = 300
 

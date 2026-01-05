@@ -11,7 +11,7 @@ from .discovery import discoverEvents
 from .context import EventContext
 from .base import BaseEvent
 
-from PySide6.QtCore import QObject, QTimer
+from PySide6.QtCore import QObject, QTimer, Signal
 
 from typing import Callable, Dict, List, Optional
 from dataclasses import dataclass
@@ -31,7 +31,11 @@ class EventRunState:
 class EventManager(QObject):
     """
     scheduler for sprite random events
+
+    :cvar eventTriggered: Emitted with the event ID and friendly name when an event fires.
+    :vartype eventTriggered: PySide6.QtCore.Signal
     """
+    eventTriggered = Signal(str, str)
 
     def __init__(
         self,
@@ -156,6 +160,192 @@ class EventManager(QObject):
 
         self.finishActiveEvent(True)
 
+    # external methods
+    def getEvents(self) -> List[tuple[str, str]]:
+        """
+        Get the list of all registered events.
+
+        :return: List of registered event ids and their friendly names
+        :rtype: List[tuple[str, str]]
+        """
+        return [(e.id, e.name) for e in self.events]
+
+    def getEvent(self, eventId: str) -> Optional[BaseEvent]:
+        """
+        Retrieve a specific event by its ID.
+
+        :param eventId: The ID of the event to retrieve
+        :type eventId: str
+        :return: The event instance if found, None otherwise
+        :rtype: Optional[BaseEvent]
+        """
+        return next((e for e in self.events if e.id == eventId), None)
+
+    def getRemainingCooldown(self, eventId: str) -> Optional[int]:
+        """
+        Get the remaining cooldown time for a specific event.
+
+        :param eventId: The ID of the event to check
+        :type eventId: str
+        :return: Remaining cooldown time in seconds, or None if not on cooldown
+        :rtype: Optional[int]
+        """
+        now = self.nowMs()
+        event = self.getEvent(eventId)
+
+        if event is None:
+            return None
+
+        lastRan = self.lastEventRunMs.get(eventId)
+
+        if lastRan is None:
+            return None
+
+        eventCooldownSeconds = event.cooldownSeconds
+
+        if eventCooldownSeconds <= 0:
+            return None
+
+        delta = (now - lastRan) / 1000
+
+        remaining = eventCooldownSeconds - delta
+
+        if remaining <= 0:
+            return None
+
+        return int(remaining)
+
+    def getFriendlyCooldownText(self, eventId: str) -> Optional[str]:
+        """
+        Get a user-friendly string representing the remaining cooldown time for an event.
+
+        :param eventId: The ID of the event to check
+        :type eventId: str
+        :return: Friendly cooldown string (e.g., "2m 30s"), or None if not on cooldown
+        :rtype: Optional[str]
+        """
+        remaining = self.getRemainingCooldown(eventId)
+
+        if remaining is None:
+            return None
+
+        minutes = remaining // 60
+        seconds = remaining % 60
+
+        parts = []
+
+        if minutes > 0:
+            parts.append(f"{minutes}m")
+
+        if seconds > 0 or minutes == 0:
+            parts.append(f"{seconds}s")
+
+        return " ".join(parts)
+
+    def isEventEnabled(self, eventId: str) -> bool:
+        """
+        Check if a specific event is enabled.
+
+        :param eventId: The ID of the event to check
+        :type eventId: str
+        :return: True if the event is enabled, False otherwise
+        :rtype: bool
+        """
+        event = self.getEvent(eventId)
+
+        if event is None:
+            return False
+
+        return event.isEnabled
+
+    def triggerEvent(self, eventId: str) -> bool:
+        """
+        Manually trigger a specific event by its ID.
+
+        :param eventId: The ID of the event to trigger
+        :type eventId: str
+        :return: True if the event was successfully triggered, False otherwise
+        :rtype: bool
+        """
+        if not self.eventsEnabled:
+            logger.debug("Cannot trigger event: events are disabled")
+            return False
+        
+        if self.activeEvent is not None:
+            logger.debug("Cannot trigger event: another event is already running")
+            return False
+        
+        event = self.getEvent(eventId)
+
+        if event is None:
+            logger.debug(f"Cannot trigger event: event ID {eventId} not found")
+            return False
+
+        context = EventContext(
+            sprite=self.sprite,
+            flags=self.flags,
+            soundManager=self.soundManager,
+            sceneSystem=self.sceneSystem,
+            speechBubble=self.speechBubble,
+            mediaView=self.mediaView
+        )
+
+        try:
+            if not event.canRun(context):
+                logger.debug(f"Cannot trigger event: canRun gate failed for event ID {eventId}")
+                return False
+        except Exception as e:
+            logger.error(f"Error checking canRun gate for event ID {eventId}: {e}")
+            return False
+        
+        logger.debug(f"Manually triggering event: {event.id}")
+        self.runEvent(event, context)
+
+        return True
+
+    def attemptEventTrigger(self) -> bool:
+        """
+        Manually trigger a random event, bypassing the normal scheduler.
+        Useful for testing or user-initiated events.
+        
+        :return: True if an event was triggered, False otherwise
+        :rtype: bool
+        """
+        if not self.eventsEnabled:
+            logger.debug("Cannot trigger event: events are disabled")
+            return False
+        
+        if self.activeEvent is not None:
+            logger.debug("Cannot trigger event: another event is already running")
+            return False
+        
+        try:
+            if not self.canRun():
+                logger.debug("Cannot trigger event: canRun gate failed")
+                return False
+        except Exception as e:
+            logger.error(f"Error checking canRun gate: {e}")
+            return False
+        
+        context = EventContext(
+            sprite=self.sprite,
+            flags=self.flags,
+            soundManager=self.soundManager,
+            sceneSystem=self.sceneSystem,
+            speechBubble=self.speechBubble,
+            mediaView=self.mediaView
+        )
+        
+        candidateEvent = self.pickWeightedEvent(context)
+        
+        if candidateEvent is None:
+            logger.debug("Cannot trigger event: no eligible events available")
+            return False
+        
+        logger.debug(f"Manually triggering event: {candidateEvent.id}")
+        self.runEvent(candidateEvent, context)
+        return True
+
     # internal methods
     def nowMs(self) -> int:
         """
@@ -266,7 +456,8 @@ class EventManager(QObject):
         """
         startMs = self.nowMs()
 
-        logger.debug(f"Starting event {event.id}")
+        logger.debug(f"Starting event {event.id} ({event.name})")
+        self.eventTriggered.emit(event.id, event.name)
         self.lastEventRunMs[event.id] = startMs
 
         maxDuration = event.maxDurationSeconds or self.maxEventDuration
@@ -386,46 +577,3 @@ class EventManager(QObject):
             candidateEvent,
             context
         )
-
-    def triggerRandomEvent(self) -> bool:
-        """
-        Manually trigger a random event, bypassing the normal scheduler.
-        Useful for testing or user-initiated events.
-        
-        :return: True if an event was triggered, False otherwise
-        :rtype: bool
-        """
-        if not self.eventsEnabled:
-            logger.debug("Cannot trigger event: events are disabled")
-            return False
-        
-        if self.activeEvent is not None:
-            logger.debug("Cannot trigger event: another event is already running")
-            return False
-        
-        try:
-            if not self.canRun():
-                logger.debug("Cannot trigger event: canRun gate failed")
-                return False
-        except Exception as e:
-            logger.error(f"Error checking canRun gate: {e}")
-            return False
-        
-        context = EventContext(
-            sprite=self.sprite,
-            flags=self.flags,
-            soundManager=self.soundManager,
-            sceneSystem=self.sceneSystem,
-            speechBubble=self.speechBubble,
-            mediaView=self.mediaView
-        )
-        
-        candidateEvent = self.pickWeightedEvent(context)
-        
-        if candidateEvent is None:
-            logger.debug("Cannot trigger event: no eligible events available")
-            return False
-        
-        logger.debug(f"Manually triggering event: {candidateEvent.id}")
-        self.runEvent(candidateEvent, context)
-        return True

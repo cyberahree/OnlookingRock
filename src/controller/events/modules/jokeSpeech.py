@@ -8,6 +8,8 @@ import requests
 
 class JokeEvent(BaseEvent):
     id = "joke"
+    name = "The Joke Repository"
+
     weight = 0.8
     cooldownSeconds = 450
 

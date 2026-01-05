@@ -8,6 +8,8 @@ import requests
 
 class MotivationEvent(BaseEvent):
     id = "motivation"
+    name = "A Motivational Mentor"
+
     weight = 0.7
     cooldownSeconds = 400
 

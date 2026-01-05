@@ -7,6 +7,8 @@ from typing import Callable
 
 class ExampleEvent(BaseEvent):
     id = "example"
+    name = "Example Event"
+
     weight = 1.0
     cooldownSeconds = 120
 

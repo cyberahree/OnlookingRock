@@ -8,6 +8,8 @@ import random
 
 class RandomThoughtEvent(BaseEvent):
     id = "randomThought"
+    name = "Shower Thought"
+
     weight = 1.0
     cooldownSeconds = 350
 

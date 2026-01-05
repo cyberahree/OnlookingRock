@@ -10,6 +10,8 @@ import random
 
 class TimeEvent(BaseEvent):
     id = "time"
+    name = "Time Whisperer"
+
     weight = 0.9
     cooldownSeconds = 500
 

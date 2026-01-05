@@ -119,7 +119,21 @@ class KeyListener:
         with keyboard.Listener(on_press=onKeyPress) as listenerThread:
             self.listenerThread = listenerThread
             listenerThread.join()
-    
+
+    def contributeActivity(self, amount: float):
+        """
+        externally contribute to activity level.
+        
+        :param amount: Amount to add to activity level
+        :type amount: float
+        """
+
+        nowMono = time.monotonic()
+
+        with self.listenerLock:
+            self._decayActivityLocked(nowMono)
+            self.activity = min(1.0, self.activity + amount)
+
     def shutdown(self):
         """
         shutdown the keyboard listener thread.

@@ -17,9 +17,10 @@ class BaseEvent:
     """
 
     id: str = ""
-    weight: float = 1.0
+    name: str = ""
 
     isEnabled: bool = True
+    weight: float = 1.0
     cooldownSeconds: int = 0
 
     maxDurationSeconds: int | None = None
