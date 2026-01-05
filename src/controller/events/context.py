@@ -15,9 +15,18 @@ from uuid import uuid4
 class EventSounds:
     """
     helper for playing event-specific sounds
+
+    :param soundManager: sound manager instance
+    :type soundManager: SoundManager
     """
 
     def __init__(self, soundManager: SoundManager):
+        """
+        initialise the event sounds helper
+        
+        :param soundManager: sound manager instance
+        :type soundManager: SoundManager
+        """
         self._soundManager = soundManager
 
     def playSound(
@@ -47,9 +56,22 @@ class EventSounds:
 class SceneActions:
     """
     helper for performing scene-related actions
+
+    :param sprite: the sprite instance
+    :type sprite: SpriteWidget
+    :param sceneSystem: scene system instance
+    :type sceneSystem: SceneSystem
     """
 
     def __init__(self, sprite, sceneSystem):
+        """
+        initialise the scene actions helper
+        
+        :param sprite: the sprite instance
+        :type sprite: SpriteWidget
+        :param sceneSystem: scene system instance
+        :type sceneSystem: SceneSystem
+        """
         self._sprite = sprite
         self._sceneSystem = sceneSystem
         self._sceneEditor: SceneEditorController = sceneSystem.editor
@@ -218,6 +240,19 @@ class SceneActions:
 class EventContext:
     """
     context class provided to event modules
+
+    :param sprite: the sprite instance
+    :type sprite: SpriteWidget
+    :param flags: interactability flags manager
+    :type flags: InteractabilityFlags
+    :param soundManager: sound manager instance
+    :type soundManager: SoundManager
+    :param sceneSystem: scene system instance
+    :type sceneSystem: SceneSystem
+    :param mediaView: media view window instance
+    :type mediaView: MediaViewWindow
+    :param speechBubble: speech bubble controller
+    :type speechBubble: SpeechBubbleController
     """
     def __init__(
         self,
@@ -228,6 +263,18 @@ class EventContext:
         mediaView: MediaViewWindow,
         speechBubble
     ):
+        """
+        initialise the event context
+        
+        :param flags: interactability flags manager
+        :type flags: InteractabilityFlags
+        :param soundManager: sound manager instance
+        :type soundManager: SoundManager
+        :param sceneSystem: scene system instance
+        :param mediaView: media view window instance
+        :type mediaView: MediaViewWindow
+        :param speechBubble: speech bubble controller
+        """
         self.sprite = sprite
         self.flags = flags
         self.sounds = EventSounds(soundManager)

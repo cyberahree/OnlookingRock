@@ -16,6 +16,15 @@ logger = logging.getLogger(__name__)
 JsonDict = dict[str, Any]
 
 def readJSONFile(path: Path) -> JsonDict:
+    """
+    read a JSON file and return its contents as a dictionary.
+    returns an empty dict if the file does not exist.
+    
+    :param path: the path to the JSON file
+    :type path: Path
+    :return: the parsed JSON data
+    :rtype: JsonDict
+    """
     if not path.exists():
         return {}
 
@@ -23,18 +32,32 @@ def readJSONFile(path: Path) -> JsonDict:
         return json.load(file)
 
 def deleteFileIfExists(path: Path) -> None:
+    """
+    delete a file if it exists, silently ignoring any errors.
+    
+    :param path: the path to the file to delete
+    :type path: Path
+    """
     if path.exists():
         try:
             path.unlink()
         except Exception:
             pass
 
-# why an atomic write for a config file?
-# because i fkin love data integrity that's why
 def atomicWriteJson(
     path: Path,
     data: JsonDict
 ) -> None:
+    """
+    write JSON data to a file atomically using a temporary file.
+    ensures data integrity by writing to a temporary file first, then replacing the target.
+    creates parent directories if they do not exist.
+    
+    :param path: the target path to write to
+    :type path: Path
+    :param data: the JSON data to write
+    :type data: JsonDict
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
 
     fileDescriptor, temporaryFile = tempfile.mkstemp(
@@ -63,6 +86,17 @@ def deepMerge(
     base: JsonDict,
     overlay: JsonDict
 ) -> JsonDict:
+    """
+    recursively merge an overlay dictionary into a base dictionary.
+    nested dictionaries are merged recursively; other values are overwritten.
+    
+    :param base: the base dictionary to merge into
+    :type base: JsonDict
+    :param overlay: the dictionary with values to overlay on top of the base
+    :type overlay: JsonDict
+    :return: the merged dictionary
+    :rtype: JsonDict
+    """
     out = deepcopy(base)
 
     for (key, value) in overlay.items():
@@ -77,6 +111,18 @@ def pruneForDefaults(
     defaults: JsonDict,
     current: JsonDict
 ) -> JsonDict:
+    """
+    prune configuration values that match their defaults.
+    recursively compares current values against defaults, returning only the differences.
+    returns None if no differences exist.
+    
+    :param defaults: the default configuration values
+    :type defaults: JsonDict
+    :param current: the current configuration values to compare
+    :type current: JsonDict
+    :return: only the values that differ from defaults, or None if identical
+    :rtype: JsonDict
+    """
     if isinstance(defaults, dict) and isinstance(current, dict):
         out: JsonDict = {}
         hasChanges = False
@@ -115,6 +161,18 @@ def getByPath(
     data: JsonDict,
     path: str
 ) -> Any:
+    """
+    retrieve a value from nested dictionaries using a dot-separated path.
+    raises KeyError if the path does not exist in the data.
+    
+    :param data: the dictionary to retrieve from
+    :type data: JsonDict
+    :param path: dot-separated path to the value (e.g. "sprite.scale")
+    :type path: str
+    :return: the value at the specified path
+    :rtype: Any
+    :raises KeyError: if the path is not found in the data
+    """
     current = data
 
     for part in path.split("."):
@@ -130,6 +188,17 @@ def setByPath(
     path: str,
     value: Any
 ) -> None:
+    """
+    set a value in nested dictionaries using a dot-separated path.
+    creates intermediate dictionaries as needed.
+    
+    :param data: the dictionary to modify
+    :type data: JsonDict
+    :param path: dot-separated path to the value (e.g. "sprite.scale")
+    :type path: str
+    :param value: the value to set
+    :type value: Any
+    """
     parts = path.split(".")
     current = data
 

@@ -3,6 +3,12 @@ import logging
 import os
 
 def setLogging(debug: bool) -> None:
+    """
+    Configures the logging settings for Qt based on the debug flag.
+
+    :param debug: Whether to enable debug logging
+    :type debug: bool
+    """
     key = "true" if debug else "false"
     
     os.environ["QT_LOGGING_RULES"] = """
@@ -16,6 +22,10 @@ def setLogging(debug: bool) -> None:
     )
 
 def main():
+    """
+    Main entry point for the Rockin' Controller application.
+    """
+
     parser = argparse.ArgumentParser(description="Rockin' Controller Application")
 
     parser.add_argument(

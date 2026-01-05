@@ -39,10 +39,11 @@ class FlagToken:
 class InteractabilityFlags:
     """
     controller for interactability flags
+    manages acquisition and release of flags by multiple owners
     """
 
     def __init__(self):
-        self.locks: Dict[str, Set[str]] = {}
+        self._locks: Dict[str, Set[str]] = {}
 
     def isEnabled(self, flag: str) -> bool:
         """
@@ -54,7 +55,7 @@ class InteractabilityFlags:
         :return: true if the flag is enabled, false otherwise
         :rtype: bool
         """
-        return flag not in self.locks or len(self.locks[flag]) == 0
+        return flag not in self._locks or len(self._locks[flag]) == 0
 
     def anyDisabled(self, flags: Iterable[str]) -> bool:
         """
@@ -88,7 +89,7 @@ class InteractabilityFlags:
         flagsTuple = tuple(flags)
 
         for flag in flagsTuple:
-            self.locks.setdefault(flag, set()).add(owner)
+            self._locks.setdefault(flag, set()).add(owner)
 
         return FlagToken(
             owner=owner,
@@ -111,7 +112,7 @@ class InteractabilityFlags:
             flags = (flags,)
 
         for flag in flags:
-            owners = self.locks.get(flag)
+            owners = self._locks.get(flag)
 
             if not owners:
                 continue
@@ -119,7 +120,7 @@ class InteractabilityFlags:
             owners.discard(owner)
 
             if len(owners) == 0:
-                del self.locks[flag]
+                del self._locks[flag]
 
     def clearOwner(self, owner: str):
         """
@@ -131,11 +132,11 @@ class InteractabilityFlags:
 
         toClear = []
 
-        for flag, owners in self.locks.items():
+        for flag, owners in self._locks.items():
             if owner not in owners:
                 continue
 
             owners.discard(owner)
 
         for flag in toClear:
-            del self.locks[flag]
+            del self._locks[flag]

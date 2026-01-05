@@ -2,7 +2,18 @@ from typing import Callable
 
 class BaseEvent:
     """
-    base class for all sprite events
+    base class for all sprite events.
+    
+    :cvar id: unique identifier for the event
+    :vartype id: str
+    :cvar weight: relative weight for event selection; higher values increase selection probability
+    :vartype weight: float
+    :cvar isEnabled: whether the event is currently enabled and can be selected
+    :vartype isEnabled: bool
+    :cvar cooldownSeconds: minimum seconds to wait before this event can run again
+    :vartype cooldownSeconds: int
+    :cvar maxDurationSeconds: maximum duration in seconds for the event; None means unlimited
+    :vartype maxDurationSeconds: int | None
     """
 
     id: str = ""

@@ -33,6 +33,17 @@ UNITS = [
 
 @dataclass
 class Location:
+    """
+    represents a geographical location
+
+    :param city: the city name
+    :type city: str
+    :param country: the country name
+    :type country: str
+
+    :param lat_lon: optional latitude and longitude tuple
+    :type lat_lon: Optional[tuple[float, float]]
+    """
     city: str
     country: str
 
@@ -42,6 +53,30 @@ class Location:
 
 @dataclass
 class WeatherData:
+    """
+    weather data for a given location
+
+    :param timestamps: list of unix timestamps
+    :type timestamps: list[int]
+    :param temperature: list of temperatures corresponding to timestamps
+    :type temperature: list[float]
+    :param precipitation: list of precipitation amounts corresponding to timestamps
+    :type precipitation: list[float]
+    :param precipitationChance: list of precipitation chances corresponding to timestamps
+    :type precipitationChance: list[float]
+    :param visibility: list of visibility distances corresponding to timestamps
+    :type visibility: list[float]
+
+    :param isMetric: whether the data is in metric units
+    :type isMetric: bool
+
+    :param temperatureUnit: unit of temperature
+    :type temperatureUnit: str
+    :param precipitationUnit: unit of precipitation
+    :type precipitationUnit: str
+    :param visibilityUnit: unit of visibility
+    :type visibilityUnit: str
+    """
     timestamps: list[int] # unix timestamps
     temperature: list[float] # c
     precipitation: list[float] # mm
