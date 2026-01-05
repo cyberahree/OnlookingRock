@@ -1,6 +1,9 @@
-pyside6_essentials>=6.10.1
-pyside6_addons>=6.10.1
+matplotlib>=3.10.8
+numpy>=2.4.0
 platformdirs>=4.5.1
-pyside6>=6.10.1
 pynput>=1.8.1
-matplotlib>=3.7.0
+pyside6>=6.10.1
+pyside6_addons>=6.10.1
+pyside6_essentials>=6.10.1
+Requests>=2.32.5
+scipy>=1.16.3

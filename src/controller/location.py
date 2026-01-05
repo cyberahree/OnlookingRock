@@ -48,6 +48,7 @@ class WeatherData:
     precipitationChance: list[float] # %
     visibility: list[float] # km
 
+    isMetric: bool = True
     temperatureUnit: str = "C"
     precipitationUnit: str = "mm"
     visibilityUnit: str = "km"
@@ -290,6 +291,7 @@ class LocationServices:
             precipitationChance=precipitationChance,
             visibility=visibility,
 
+            isMetric=preferMetric,
             temperatureUnit=unitSet[0],
             precipitationUnit=unitSet[1],
             visibilityUnit=unitSet[2]

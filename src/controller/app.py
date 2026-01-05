@@ -442,6 +442,7 @@ class RockinWindow(QWidget):
         start the main application window loop with greeting sequence.
         """
 
+        # persistent position
         lastX = self.config.getValue("sprite.lastPosition.x")
         lastY = self.config.getValue("sprite.lastPosition.y")
         lastScreenIndex = self.config.getValue("sprite.lastPosition.screen")
@@ -458,39 +459,28 @@ class RockinWindow(QWidget):
 
         self.move(int(lastX), int(lastY))
 
+        # startup sound
         self.soundManager.playSound(
             "applicationStart.wav",
             SoundCategory.SPECIAL,
             onFinish=self._onStartupComplete
         )
 
+        # greeting sequence
         userNick = self.config.getValue("sprite.userNick")
 
         timeDescription = pickRandom(TIME_TEMPLATE).format(
             self.locationServices.getFriendlyLocalTime()
         )
 
+        # collect user nickname if not set
         if (userNick is None) or (userNick == "<USERNAME>"):
-            def nameInputted(name):
-                self.config.setValue("sprite.userNick", name)
-                self.speechBubble.addSpeech(f"nice to meet you, {name}! :3")
-                self.speechBubble.addSpeech("i hope you're doing well! :D")
-                self.speechBubble.addSpeech(timeDescription)
-
-            self.speechBubble.addSpeech(
-                "hey there! i'm rockin :3"
-            )
-
-            self.speechBubble.askSpeech(
-                "what's your name?",
-                interactive=True,
-                onConfirm=nameInputted,
-                inputPlaceholder="my name is..."
-            )
+            self.collectUserNickname()
         else:
             self.speechBubble.addSpeech(f"hey there {userNick}! :3")
-            self.speechBubble.addSpeech(timeDescription)
-            self.speechBubble.addSpeech(pickRandom(USER_FEELING_TEMPLATE).format(userNick))
+
+        self.speechBubble.addSpeech(timeDescription)
+        self.speechBubble.addSpeech(pickRandom(USER_FEELING_TEMPLATE).format(userNick))
 
         sys.exit(APPLICATION.exec_())
 
@@ -539,6 +529,23 @@ class RockinWindow(QWidget):
 
         self.config.saveConfig()
         APPLICATION.quit()
+
+    # introduction
+    def collectUserNickname(self):
+        def nameInputted(name):
+            self.config.setValue("sprite.userNick", name)
+            self.speechBubble.addSpeech(f"nice to meet you, {name}! :3")
+
+        self.speechBubble.addSpeech(
+            "hey there! i'm rockin :3"
+        )
+
+        self.speechBubble.askSpeech(
+            "what's your name?",
+            interactive=True,
+            onConfirm=nameInputted,
+            inputPlaceholder="my name is..."
+        )
 
     # sprite methods
     def setSpriteScale(self, scale: float):
