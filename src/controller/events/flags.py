@@ -132,11 +132,14 @@ class InteractabilityFlags:
 
         toClear = []
 
-        for flag, owners in self._locks.items():
+        for flag, owners in list(self._locks.items()):
             if owner not in owners:
                 continue
 
             owners.discard(owner)
+
+            if len(owners) == 0:
+                toClear.append(flag)
 
         for flag in toClear:
             del self._locks[flag]

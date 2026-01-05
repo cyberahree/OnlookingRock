@@ -44,8 +44,8 @@ class BlinkingController:
         self.triggerBlink = triggerBlink
         self.completeBlink = completeBlink
 
-        timer.timeout.connect(self._onBlink)
-        timer.timeout.connect(self._onBlinkComplete)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self._onBlink)
 
         self.scheduleBlink()
 
@@ -54,19 +54,32 @@ class BlinkingController:
         trigger the blink animation when timer fires.
         """
 
+        if self.isBlinking:
+            return
+
         if not self.canBlink():
+            self.scheduleBlink()
             return
 
         self.isBlinking = True
         self.triggerBlink()
+
+        QTimer.singleShot(
+            random.randint(100, 250),
+            self._onBlinkComplete
+        )
     
     def _onBlinkComplete(self) -> None:
         """
         complete the blink animation and update state.
         """
 
+        if not self.isBlinking:
+            return
+
         self.isBlinking = False
         self.completeBlink()
+        self.scheduleBlink()
 
     def setBlinkIntervalRange(self, blinkIntervalRange: tuple[int, int]) -> None:
         """
@@ -98,8 +111,3 @@ class BlinkingController:
 
         self.timer.stop()
         self.timer.start(self.getNextBlink())
-
-        QTimer.singleShot(
-            random.randint(100, 250),
-            self.completeBlink
-        )

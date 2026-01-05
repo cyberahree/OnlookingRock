@@ -1,3 +1,5 @@
+from .context import EventContext
+
 from typing import Callable
 
 class BaseEvent:
@@ -25,7 +27,7 @@ class BaseEvent:
 
     maxDurationSeconds: int | None = None
 
-    def canRun(self, context) -> bool:
+    def canRun(self, context: EventContext) -> bool:
         """
         Determine if the event can run in the given context.
 
@@ -36,13 +38,15 @@ class BaseEvent:
 
     def run(
         self,
-        context,
+        context: EventContext,
         onFinished: Callable[[], None]
     ) -> None:
         """
         Execute the event logic.
 
         :param context: The context in which the event is run.
+        :type context: EventContext
         :param onFinished: Callback to be invoked when the event is finished.
+        :type onFinished: Callable[[], None]
         """
         raise NotImplementedError

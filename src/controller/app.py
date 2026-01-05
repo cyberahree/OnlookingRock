@@ -656,7 +656,7 @@ class RockinWindow(QWidget):
             return
         else:
             self.previouslyPetting = False
-        
+
         # 2) otherwise, update sprite features based on keyboard
         #    state or a dragging state
         self.laserMouse.update()
@@ -730,7 +730,7 @@ class RockinWindow(QWidget):
         :type eyeName: str
         """
 
-        if not self.spriteReady or self.blinkController.isBlinking:
+        if not self.spriteReady or (self.blinkController.isBlinking and eyeName != "blink"):
             return
         
         self.currentEyes = eyeName
