@@ -28,7 +28,7 @@ class MotivationEvent(BaseEvent):
         self.onFinished = onFinished
         self.lock = context.lock(
             self.id,
-            "petting",
+            "petting"
         )
 
         response = requests.get("https://quotes-api-self.vercel.app/quote", timeout=5)

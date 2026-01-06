@@ -746,4 +746,7 @@ class RockinWindow(QWidget):
         if (not self.spriteReady):
             return
         
+        if not self.eventInteractability.isEnabled("autopilot"):
+            return
+
         self.updateSpriteEyes("blink")
