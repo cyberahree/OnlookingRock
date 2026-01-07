@@ -1,6 +1,6 @@
 # 🪨 Onlooking Rock
 
-<img src="./github/the_menace.png"/><br/>
+<img src=".github/assets/the_menace.png"/><br/>
 
 affectionattely known as "rockin", its a desktop sprite that watches your screen, reacts to your activity, chats via speech bubbles, and lets you decorate your monitors with tiny props.
 
@@ -8,7 +8,7 @@ it ships with sound, multi-monitor overlays, and a small UI suite to tweak volum
 
 ## Awesome Features
 
-<img src="./github/sprites.png"/><br/><br/>
+<img src=".github/assets/sprites.png"/><br/><br/>
 
 - it watches you work!
 - rock customisation through interchangable, and custom hats
@@ -52,7 +52,7 @@ your executable file will be generated at `./dist/Rockin/`
 
 ## Configuration
 
-<img src="./github/volume_settings_preview.png"/><br/><br/>
+<img src=".github/assets/volume_settings_preview.png"/><br/><br/>
 
 defaults live in `src/assets/baseConfig.json`: user overrides are stored under your OS config dir (`OnlookinRock/profiles/profile.json`).
 
