@@ -10,12 +10,13 @@ it ships with sound, multi-monitor overlays, and a small UI suite to tweak volum
 
 <img src=".github/assets/sprites.png"/><br/><br/>
 
-- it watches you work!
+- it watches you work! (but respects your privacy)
 - rock customisation through interchangable, and custom hats
 - reactive sprite moods based on keyboard activity and idle time
 - you can give your new friend head pats
 - speech bubbles with typing animation and interactive prompts
 - drag the sprite; right-click to open the start menu overlay
+- randomised events! rockin' will randomly select one to run at intervals
 - volume, sprite, and scene editors (tool windows) with smooth fade/positioning
 - multi-monitor decoration overlays with drag/drop placement and persistence
 - sound system with categories (event, feedback, ambient, special, speech)
@@ -64,5 +65,5 @@ Common keys:
 ## Controls
 
 - drag: left-click and hold the sprite
-- menu: right-click the sprite or press `E`
-- quit: `Esc` from the sprite window, or in the menu
+- menu: right-click the sprite
+- quit: `Esc` when focused on the sprite, or in the menu
