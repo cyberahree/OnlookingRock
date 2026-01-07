@@ -1,19 +1,12 @@
-# Onlooking Rock
+# 🪨 Onlooking Rock
 
 <img src="./github/the_menace.png"/><br/>
 
-affectionattely known as "rockin", it is a desktop sprite that watches your screen, reacts to your activity, chats via speech bubbles, and lets you decorate your monitors with tiny props.
+affectionattely known as "rockin", its a desktop sprite that watches your screen, reacts to your activity, chats via speech bubbles, and lets you decorate your monitors with tiny props.
 
 it ships with sound, multi-monitor overlays, and a small UI suite to tweak volume, sprite cosmetics, and scene decorations.
 
-## Quick start
-
-
-1) Prereqs: Python 3.10+
-2) Install deps: `pip install -r requirements.txt`
-3) Run: `python -B -m src.controller`
-
-## Features
+## Awesome Features
 
 <img src="./github/sprites.png"/><br/><br/>
 
@@ -26,6 +19,36 @@ it ships with sound, multi-monitor overlays, and a small UI suite to tweak volum
 - volume, sprite, and scene editors (tool windows) with smooth fade/positioning
 - multi-monitor decoration overlays with drag/drop placement and persistence
 - sound system with categories (event, feedback, ambient, special, speech)
+
+## Quick start
+
+1) download from [releases](https://github.com/cyberahree/OnlookingRock/releases)
+2) run rockin.exe!
+
+## Building from Source
+
+written in python, you can run it directly from the source (as shown above) or build it with pyinstaller
+
+1. pre-requirements:
+Python 3.10+, pip
+
+2. setup
+`git clone https://github.com/cyberahree/OnlookingRock.git`
+`cd OnlookingRock`
+`pip install -r requirements.txt`
+`pip install pyinstaller`
+
+3. build
+```bash
+python3 -m PyInstaller --noconfirm --clean --windowed --name Rockin ^
+  --paths src ^
+  --add-data "src\assets;assets" ^
+  --collect-submodules controller.events.modules ^
+  src\run.py
+```
+
+4. done
+your executable file will be generated at `./dist/Rockin/`
 
 ## Configuration
 

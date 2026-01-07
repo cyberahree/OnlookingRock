@@ -1,3 +1,4 @@
+from .modules.__registry__ import EVENTS
 from .base import BaseEvent
 
 import importlib
@@ -66,5 +67,8 @@ def discoverEvents() -> list[BaseEvent]:
 
     logger.debug(f"Discovered {len(allEvents)} events from modules")
     logger.debug(f"Events: {[event.id for event in allEvents]}")
+
+    if len(allEvents) == 0:
+        allEvents = EVENTS
 
     return allEvents
