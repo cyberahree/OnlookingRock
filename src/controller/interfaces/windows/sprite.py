@@ -234,7 +234,7 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         if key == "userNick":
             self.config.setValue("sprite.userNick", value)
         elif key == "hat":
-            self.config.setValue("sprite.hat", value)
+            self.config.setValue("sprite.hat", "" if value == "none" else value)
         elif key == "scale":
             scale = clamp(value, 0.25, 2.0)
             self.config.setValue("sprite.scale", scale)
@@ -287,6 +287,8 @@ class SpriteWindowComponent(InterfaceComponent, SpriteAnchorMixin):
         # hat
         try:
             hat = str(self.config.getValue("sprite.hat"))
+            if not hat:
+                hat = "None"
         except Exception:
             hat = "None"
 

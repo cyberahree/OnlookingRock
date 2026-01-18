@@ -41,11 +41,7 @@ Python 3.10+, pip
 
 3. build
 ```bash
-python3 -m PyInstaller --noconfirm --clean --windowed --name Rockin ^
-  --paths src ^
-  --add-data "src\assets;assets" ^
-  --collect-submodules controller.events.modules ^
-  src\run.py
+python -m PyInstaller --noconfirm --clean --windowed --name Rockin --onefile --paths src --add-data "src\assets;assets" --icon icon.png --collect-submodules controller.events.modules src\run.py
 ```
 
 4. done

@@ -131,7 +131,7 @@ class RockinWindow(QWidget):
         self.faceLabel.raise_()
 
         # sprite hat
-        self.allHats = [str(path.stem) for path in self.spriteSystem.spriteAssets.listDirectory("hats")]
+        self.allHats = ["none"] + [str(path.stem) for path in self.spriteSystem.spriteAssets.listDirectory("hats")]
         self.currentHat = self.config.getValue("sprite.hat")
 
         self.hatOverlay.setHatPixmap(

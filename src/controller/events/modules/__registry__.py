@@ -1,3 +1,5 @@
+from ..base import BaseEvent
+
 from .removeDecoration import RemoveDecorationEvent
 from .motivationalSpeech import MotivationEvent
 from .randomThought import RandomThoughtEvent
@@ -7,7 +9,7 @@ from .currentTime import TimeEvent
 from .jokeSpeech import JokeEvent
 from .quickNap import NapEvent
 
-EVENTS = [
+EVENTS: list[BaseEvent] = [
     RemoveDecorationEvent,
     MotivationEvent,
     RandomThoughtEvent,

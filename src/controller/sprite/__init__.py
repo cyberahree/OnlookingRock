@@ -304,6 +304,9 @@ class SpriteSystem:
         :rtype: QPixmap
         """
 
+        if not hatName or hatName.strip().lower() in ["", "none"]:
+            return QPixmap()
+
         scale = limitScale(scale)
         self._loadScaledAsset(scale, "hats", hatName)
 

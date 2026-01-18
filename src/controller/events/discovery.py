@@ -51,7 +51,7 @@ def discoverEvents() -> list[BaseEvent]:
     modules = importlib.import_module(".modules", package=__package__)
 
     for module in pkgutil.iter_modules(modules.__path__, modules.__name__ + "."):
-        if module.name.endswith("__example__"):
+        if module.name.endswith("__example__") or module.name.endswith("__registry__"):
             continue
 
         try:
