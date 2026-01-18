@@ -34,14 +34,14 @@ written in python, you can run it directly from the source (as shown above) or b
 Python 3.10+, pip
 
 2. setup
-`git clone https://github.com/cyberahree/OnlookingRock.git`
-`cd OnlookingRock`
-`pip install -r requirements.txt`
-`pip install pyinstaller`
+- `git clone https://github.com/cyberahree/OnlookingRock.git`
+- `cd OnlookingRock`
+- `pip install -r requirements.txt`
+- `pip install pyinstaller`
 
 3. build
 ```bash
-python -m PyInstaller --noconfirm --clean --windowed --name Rockin --onefile --paths src --add-data "src\assets;assets" --icon icon.png --collect-submodules controller.events.modules src\run.py
+.\bin\build.bat local-build
 ```
 
 4. done
